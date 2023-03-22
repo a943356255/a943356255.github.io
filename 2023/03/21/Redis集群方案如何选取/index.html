@@ -1,0 +1,201 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>Redis集群方案如何选取 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="codis集群中包含的4个组件1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。 2、codis proxy：接收客户端请求，并把请求转发给 codis server。 3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。 4、codis dashboard">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Redis集群方案如何选取">
+<meta property="og:url" content="http://example.com/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="codis集群中包含的4个组件1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。 2、codis proxy：接收客户端请求，并把请求转发给 codis server。 3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。 4、codis dashboard">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-03-21T01:09:20.000Z">
+<meta property="article:modified_time" content="2023-03-21T04:07:56.241Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="集群">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: undefined,
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Redis集群方案如何选取',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-03-21 12:07:56'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Redis集群方案如何选取</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-03-21T01:09:20.000Z" title="Created 2023-03-21 09:09:20">2023-03-21</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-03-21T04:07:56.241Z" title="Updated 2023-03-21 12:07:56">2023-03-21</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/Redis/">Redis</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Redis集群方案如何选取"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h3 id="codis集群中包含的4个组件"><a href="#codis集群中包含的4个组件" class="headerlink" title="codis集群中包含的4个组件"></a>codis集群中包含的4个组件</h3><p>1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。</p>
+<p>2、codis proxy：接收客户端请求，并把请求转发给 codis server。</p>
+<p>3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。</p>
+<p>4、codis dashboard 和 codis fe：共同组成了集群管理工具。其中，codis dashboard 负责执行集群管理工作，包括增删 codis server、codis proxy 和进行数据迁移。而 codis fe 负责提供 dashboard 的 Web 操作界面，便于我们直接在 Web 界面上进行集群管理。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321095144355.png" alt="image-20230321095144355"></p>
+<h3 id="Codis处理请求流程"><a href="#Codis处理请求流程" class="headerlink" title="Codis处理请求流程"></a>Codis处理请求流程</h3><p>1、首先使用codis dashboard 设置 codis server 和 codis proxy 的访问地址。</p>
+<p>2、客户端与coids proxy建立连接。codis proxy本身支持Redis的RESP交互协议，所以与codis proxy建立连接与原生Redis没有区别。</p>
+<p>3、coids proxy接受到请求后，会查询请求数据和coids proxy的映射关系，然后把请求转发给对应的coids server，处理完后会把结果返回给coids proxy，然后由代理（coids proxy）返回给客户端。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321100625064.png" alt="image-20230321100625064"></p>
+<h3 id="Codis关键技术原理"><a href="#Codis关键技术原理" class="headerlink" title="Codis关键技术原理"></a>Codis关键技术原理</h3><h4 id="数据如何在集群里分布"><a href="#数据如何在集群里分布" class="headerlink" title="数据如何在集群里分布"></a>数据如何在集群里分布</h4><p>在 Codis 集群中，一个数据应该保存在哪个 codis server 上，这是通过逻辑槽（Slot）映射来完成的。</p>
+<p>coids集群又1024个Slot，编号0-1023，我们可以手动把这些Slot分给codis server，也可以使用dashboard进行自动分配。</p>
+<p>当客户端要读写数据时，会使用 CRC32 算法计算数据 key 的哈希值，并把这个哈希值对 1024 取模。而取模后的值，则对应 Slot 的编号。此时，根据第一步分配的 Slot 和 server 对应关系，我们就可以知道数据保存在哪个 server 上了。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321101725696.png" alt="image-20230321101725696"></p>
+<p>数据 key 和 Slot 的映射关系是客户端在读写数据前直接通过 CRC32 计算得到的，而 Slot 和 codis server 的映射关系是通过分配完成的，所以就需要用一个存储系统保存下来。</p>
+<p>Slot 和 codis server 的映射关系称为数据路由表（简称路由表）。我们在 codis dashboard 上分配好路由表后，dashboard 会把路由表发送给 codis proxy，同时，dashboard 也会把路由表保存在 Zookeeper 中。codis-proxy 会把路由表缓存在本地，当它接收到客户端请求后，直接查询本地的路由表，就可以完成正确的请求转发了。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321102745604.png" alt="image-20230321102745604"></p>
+<h3 id="Codis与Redis-Cluster映射区别"><a href="#Codis与Redis-Cluster映射区别" class="headerlink" title="Codis与Redis Cluster映射区别"></a>Codis与Redis Cluster映射区别</h3><p>Codis 中的路由表是我们通过 codis dashboard 分配和修改的，并被保存在 Zookeeper 集群中。一旦路由表被修改，codis dashbaord 就会把修改后的路由表发送给 codis proxy，然后proxy就可以进行转发。</p>
+<p>在 Redis Cluster 中，数据路由表是通过每个实例相互间的通信传递的，最后会在每个实例上保存一份。当数据路由信息发生变化时，就需要在所有实例间通过网络消息进行传递。</p>
+<h3 id="Codis如何进行扩容和数据迁移"><a href="#Codis如何进行扩容和数据迁移" class="headerlink" title="Codis如何进行扩容和数据迁移"></a>Codis如何进行扩容和数据迁移</h3><p>扩容包括增加 codis server 和增加 codis proxy。</p>
+<h4 id="增加codis-server"><a href="#增加codis-server" class="headerlink" title="增加codis server"></a>增加codis server</h4><p>1、增加codis server，将他们加入集群。</p>
+<p>2、把部分数据迁移到新的 server。</p>
+<h5 id="数据迁移过程"><a href="#数据迁移过程" class="headerlink" title="数据迁移过程"></a>数据迁移过程</h5><p>1、在源 server 上，Codis 从要迁移的 Slot 中随机选择一个数据，发送给目的 server。</p>
+<p>比如原来有server 1，2，3。现在新添加了一个4，这一步就是从1或2或3中随机选一个数据发送给4。</p>
+<p>2、目的 server 确认收到数据后，会给源 server 返回确认消息。这时，源 server 会在本地将刚才迁移的数据删除。</p>
+<p>3、第一步和第二步就是单个数据的迁移过程。Codis 会不断重复这个迁移过程，直到要迁移的 Slot 中的数据全部迁移完成。</p>
+<h5 id="迁移种类：同步迁移和异步迁移"><a href="#迁移种类：同步迁移和异步迁移" class="headerlink" title="迁移种类：同步迁移和异步迁移"></a>迁移种类：同步迁移和异步迁移</h5><p>同步迁移：在数据从源 server 发送给目的 server 的过程中，源 server 是阻塞的，无法处理新的请求操作。这种比较简单，但是迁移过程会设计多个操作，包括数据在源 server 序列化、网络传输、在目的 server 反序列化，以及在源 server 删除，如果是一个bigKey，就会导致阻塞时间过长。</p>
+<p>异步迁移：当源 server 把数据发送给目的 server 后，就可以处理其他请求操作了，不用等到目的 server 的命令执行完。目的server收到数据并反序列化保存到本地后，给源server发送一个ACK消息，这时源server删除数据。在这个过程中，目标数据被设置为只读，也就不会出现迁移完数据不一致的情况。</p>
+<p>异步迁移对于bigKey采用拆分指令的方式。即对于bigKey中的每一个元素采用一条指令进行迁移，而不是把整个bigKey序列化然后迁移。避免了因序列化bigKey而导致的源server阻塞。</p>
+<p>此外，当 bigkey 迁移了一部分数据后，如果 Codis 发生故障，就会导致 bigkey 的一部分元素在源 server，而另一部分元素在目的 server，这就破坏了迁移的原子性。</p>
+<p>所以，Codis 会在目标 server 上，给 bigkey 的元素设置一个临时过期时间。如果迁移过程中发生故障，那么，目标 server 上的 key 会在过期后被删除，不会影响迁移的原子性。当正常完成迁移后，bigkey 元素的临时过期时间会被删除。</p>
+<h4 id="增加codis-proxy"><a href="#增加codis-proxy" class="headerlink" title="增加codis proxy"></a>增加codis proxy</h4><p>启动一个新的proxy，直接使用codis dashboard加入集群即可。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321105733398.png" alt="image-20230321105733398"></p>
+<h3 id="怎么保证集群可靠性"><a href="#怎么保证集群可靠性" class="headerlink" title="怎么保证集群可靠性"></a>怎么保证集群可靠性</h3><h4 id="codis-server-的可靠性"><a href="#codis-server-的可靠性" class="headerlink" title="codis server 的可靠性"></a>codis server 的可靠性</h4><p>Codis 就使用主从集群来保证 codis server 的可靠性。简单来说就是，Codis 给每个 server 配置从库，并使用哨兵机制进行监控，当发生故障时，主从库可以进行切换，从而保证了 server 的可靠性。</p>
+<p>在这种配置情况下，每个 server 就成为了一个 server group，每个 group 中是一主多从的 server。数据分布使用的 Slot，也是按照 group 的粒度进行分配的。同时，codis proxy 在转发请求时，也是按照数据所在的 Slot 和 group 的对应关系，把写请求发到相应 group 的主库，读请求发到 group 中的主库或从库上。</p>
+<h4 id="codis-proxy-和-Zookeeper的可靠性"><a href="#codis-proxy-和-Zookeeper的可靠性" class="headerlink" title="codis proxy 和 Zookeeper的可靠性"></a>codis proxy 和 Zookeeper的可靠性</h4><p>proxy 上的信息源头都是来自 Zookeeper（例如路由表）。而 Zookeeper 集群使用多个实例来保存数据，只要有超过半数的 Zookeeper 实例可以正常工作， Zookeeper 集群就可以提供服务，也可以保证这些数据的可靠性。</p>
+<h4 id="Codis-和-Redis-Cluster对比"><a href="#Codis-和-Redis-Cluster对比" class="headerlink" title="Codis 和 Redis Cluster对比"></a>Codis 和 Redis Cluster对比</h4><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321112450765.png" alt="image-20230321112450765"></p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E9%9B%86%E7%BE%A4/">集群</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2023/03/20/Redis%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%9A%84%E6%95%B0%E6%8D%AE%E4%B8%A2%E5%A4%B1%E9%97%AE%E9%A2%98/" title="Redis脑裂导致的数据丢失问题"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">Redis脑裂导致的数据丢失问题</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">12</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">11</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">2</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#codis%E9%9B%86%E7%BE%A4%E4%B8%AD%E5%8C%85%E5%90%AB%E7%9A%844%E4%B8%AA%E7%BB%84%E4%BB%B6"><span class="toc-number">1.</span> <span class="toc-text">codis集群中包含的4个组件</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Codis%E5%A4%84%E7%90%86%E8%AF%B7%E6%B1%82%E6%B5%81%E7%A8%8B"><span class="toc-number">2.</span> <span class="toc-text">Codis处理请求流程</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Codis%E5%85%B3%E9%94%AE%E6%8A%80%E6%9C%AF%E5%8E%9F%E7%90%86"><span class="toc-number">3.</span> <span class="toc-text">Codis关键技术原理</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E5%A6%82%E4%BD%95%E5%9C%A8%E9%9B%86%E7%BE%A4%E9%87%8C%E5%88%86%E5%B8%83"><span class="toc-number">3.1.</span> <span class="toc-text">数据如何在集群里分布</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Codis%E4%B8%8ERedis-Cluster%E6%98%A0%E5%B0%84%E5%8C%BA%E5%88%AB"><span class="toc-number">4.</span> <span class="toc-text">Codis与Redis Cluster映射区别</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#Codis%E5%A6%82%E4%BD%95%E8%BF%9B%E8%A1%8C%E6%89%A9%E5%AE%B9%E5%92%8C%E6%95%B0%E6%8D%AE%E8%BF%81%E7%A7%BB"><span class="toc-number">5.</span> <span class="toc-text">Codis如何进行扩容和数据迁移</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A2%9E%E5%8A%A0codis-server"><span class="toc-number">5.1.</span> <span class="toc-text">增加codis server</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%95%B0%E6%8D%AE%E8%BF%81%E7%A7%BB%E8%BF%87%E7%A8%8B"><span class="toc-number">5.1.1.</span> <span class="toc-text">数据迁移过程</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#%E8%BF%81%E7%A7%BB%E7%A7%8D%E7%B1%BB%EF%BC%9A%E5%90%8C%E6%AD%A5%E8%BF%81%E7%A7%BB%E5%92%8C%E5%BC%82%E6%AD%A5%E8%BF%81%E7%A7%BB"><span class="toc-number">5.1.2.</span> <span class="toc-text">迁移种类：同步迁移和异步迁移</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A2%9E%E5%8A%A0codis-proxy"><span class="toc-number">5.2.</span> <span class="toc-text">增加codis proxy</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E9%9B%86%E7%BE%A4%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="toc-number">6.</span> <span class="toc-text">怎么保证集群可靠性</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#codis-server-%E7%9A%84%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="toc-number">6.1.</span> <span class="toc-text">codis server 的可靠性</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#codis-proxy-%E5%92%8C-Zookeeper%E7%9A%84%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="toc-number">6.2.</span> <span class="toc-text">codis proxy 和 Zookeeper的可靠性</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#Codis-%E5%92%8C-Redis-Cluster%E5%AF%B9%E6%AF%94"><span class="toc-number">6.3.</span> <span class="toc-text">Codis 和 Redis Cluster对比</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/" title="Redis集群方案如何选取">Redis集群方案如何选取</a><time datetime="2023-03-21T01:09:20.000Z" title="Created 2023-03-21 09:09:20">2023-03-21</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/03/20/Redis%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%9A%84%E6%95%B0%E6%8D%AE%E4%B8%A2%E5%A4%B1%E9%97%AE%E9%A2%98/" title="Redis脑裂导致的数据丢失问题">Redis脑裂导致的数据丢失问题</a><time datetime="2023-03-20T05:00:20.000Z" title="Created 2023-03-20 13:00:20">2023-03-20</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/03/19/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/" title="虚拟机类加载机制之类加载器">虚拟机类加载机制之类加载器</a><time datetime="2023-03-19T03:28:02.000Z" title="Created 2023-03-19 11:28:02">2023-03-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/03/19/Redis%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/" title="Redis主从同步与故障切换的一些问题">Redis主从同步与故障切换的一些问题</a><time datetime="2023-03-19T03:06:29.000Z" title="Created 2023-03-19 11:06:29">2023-03-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/03/18/%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E4%B9%8BRedis%E8%83%BD%E5%90%A6%E5%AE%9E%E7%8E%B0ACID%E5%B1%9E%E6%80%A7/" title="事务机制之Redis能否实现ACID属性">事务机制之Redis能否实现ACID属性</a><time datetime="2023-03-18T07:31:37.000Z" title="Created 2023-03-18 15:31:37">2023-03-18</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div></body></html>
