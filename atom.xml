@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-03-22T08:06:14.981Z</updated>
+  <updated>2023-03-23T02:24:16.566Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>redis如何避免数据倾斜</title>
+    <link href="http://example.com/2023/03/23/redis%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%95%B0%E6%8D%AE%E5%80%BE%E6%96%9C/"/>
+    <id>http://example.com/2023/03/23/redis%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%95%B0%E6%8D%AE%E5%80%BE%E6%96%9C/</id>
+    <published>2023-03-23T02:17:49.000Z</published>
+    <updated>2023-03-23T02:24:16.566Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="数据倾斜分类"><a href="#数据倾斜分类" class="headerlink" title="数据倾斜分类"></a>数据倾斜分类</h3><h4 id="数据量倾斜"><a href="#数据量倾斜" class="headerlink" title="数据量倾斜"></a>数据量倾斜</h4><p>在某些情况下，实例上的数据分布不均衡，某个实例上的数据特别多。</p><h5 id="造成原因"><a href="#造成原因" class="headerlink" title="造成原因"></a>造成原因</h5><p>1、bigKey</p><p>bigkey 的 value 值很大（String 类型），或者是 bigkey 保存了大量集合元素（集合类型），会导致这个实例的数据量增加，内存资源消耗也相应增加。bigkey 的操作一般都会造成实例 IO 线程阻塞，如果 bigkey 的访问量比较大，就会影响到这个实例上的其它请求被处理的速度。</p><p>在生成数据时，尽量避免把过多的数据保存在同一个键值对中，如果bigKey是一个集合，我们可以把bigKey拆分成多个小的集合类型，分散保存在不同实例。</p><p>2、slot分配不均衡</p><p>如果集群运维人员没有均衡地分配 Slot，就会有大量的数据被分配到同一个 Slot 中，而同一个 Slot 只会在一个实例上分布，这就会导致，大量数据被集中到一个实例上，造成数据倾斜。</p><p>比如说，集群中有5个实例，而实例1的硬件配置比较好，可能分配人员就给实例1多分配了几个Slot。但并不知道数据和Slot的对应关系，这种做法就有可能导致大量数据被映射到实例1的slot上。</p><p>在分配前，可以避免把过多的slot分配到一个实例上。如果已经分配了的，可以查看是否把同一个实例上分配了过多的slot，如果分配就将部分slot进行迁移。</p><p>3、Hash Tag</p><p>Hash Tag 是指加在键值对 key 中的一对花括号{}。这对括号会把 key 的一部分括起来，客户端在计算 key 的 CRC16 值时，只对 Hash Tag 花括号中的 key 内容进行计算。如果没用 Hash Tag 的话，客户端计算整个 key 的 CRC16 的值。</p><p>假设 key 是 user:profile:3231，我们把其中的 3231 作为 Hash Tag，此时，key 就变成了 user:profile:{3231}。当客户端计算这个 key 的 CRC16 值时，就只会计算 3231 的 CRC16 值。</p><p>使用 Hash Tag 的好处是，如果不同 key 的 Hash Tag 内容都是一样的，那么，这些 key 对应的数据会被映射到同一个 Slot 中，同时会被分配到同一个实例上。</p><p>Hash Tag主要是用在 Redis Cluster 和 Codis 中，支持事务操作和范围查询。因为 Redis Cluster 和 Codis 本身并不支持<strong>跨实例的事务操作和范围查询（多个Redis进行范围查询或者事务操作）</strong>，当业务应用有这些需求时，就只能先把这些数据读取到业务层进行事务处理，或者是逐个查询每个实例，得到范围查询的结果。我们可以使用 Hash Tag 把要执行事务操作或是范围查询的数据映射到同一个实例上，这样就能很轻松地实现事务或范围查询了。</p><h4 id="数据访问倾斜"><a href="#数据访问倾斜" class="headerlink" title="数据访问倾斜"></a>数据访问倾斜</h4><p>虽然每个集群实例上的数据量相差不大，但是某个实例上的数据是热点数据，被访问得非常频繁。</p><p>发生数据访问倾斜的根本原因，就是实例上存在热点数据。我们可以采用热点数据多副本的方法来应对。具体就是在每一个副本key中增加一个随机前缀，让它和其他副本分配到不同的slot中。<strong>热点数据多副本方法只能针对只读的热点数据</strong>。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;数据倾斜分类&quot;&gt;&lt;a href=&quot;#数据倾斜分类&quot; class=&quot;headerlink&quot; title=&quot;数据倾斜分类&quot;&gt;&lt;/a&gt;数据倾斜分类&lt;/h3&gt;&lt;h4 id=&quot;数据量倾斜&quot;&gt;&lt;a href=&quot;#数据量倾斜&quot; class=&quot;headerlink&quot; title=</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
+    
+    
+    <category term="数据分布优化" scheme="http://example.com/tags/%E6%95%B0%E6%8D%AE%E5%88%86%E5%B8%83%E4%BC%98%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis为什么可以支撑秒杀场景</title>
@@ -264,6 +288,30 @@
     
     
     <category term="缓存一致性" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Redis数据库结构</title>
+    <link href="http://example.com/2022/11/11/Redis%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84/"/>
+    <id>http://example.com/2022/11/11/Redis%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84/</id>
+    <published>2022-11-11T05:42:10.000Z</published>
+    <updated>2023-03-23T06:46:14.157Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h3><figure class="highlight c"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">// 一个数组，保存着服务器中所有的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 服务器数据库的数量</span></span><br><span class="line">    <span class="type">int</span> dbnum;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> &#123;</span></span><br><span class="line">    <span class="comment">// 记录客户端当前正在使用的数据库</span></span><br><span class="line">   redisDb *db;</span><br><span class="line">    </span><br><span class="line">&#125; redisClient;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></span><br><span class="line">    <span class="comment">// 数据库键空间，保存着数据库中的所有键值对</span></span><br><span class="line">    dict *dict;</span><br><span class="line">    </span><br><span class="line">&#125; redisDb;</span><br></pre></td></tr></table></figure><p>一个具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323111004847.png" alt="image-20230323111004847"></p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112244296.png"></p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112514862.png" alt="image-20230323112514862"></p><p>总的来说，就是一个redis实例，会有一个redisServer结构体，该结构体中db是一个数组，数组每一个元素代表一个数据库，每个db结构体就是一个具体的存放键值对的数据库。每一个redisClient结构体代表了一个客户端，该客户端指针会指向redisServer结构体db数组中的一个，代表使用该数据库。其中dict就是用户直接看到的数据库。</p><h3 id="数据库键的一些操作"><a href="#数据库键的一些操作" class="headerlink" title="数据库键的一些操作"></a>数据库键的一些操作</h3><h4 id="读写键空间时的维护操作"><a href="#读写键空间时的维护操作" class="headerlink" title="读写键空间时的维护操作"></a>读写键空间时的维护操作</h4><p>1、在读取一个键后，服务器会根据键是否命中来更新服务器键空间命中次数或者见空间不命中的次数。</p><p>2、在读取一个键后，服务器会更新键的LRU（最后一次使用）时间，这个值可以用于计算闲置时间。</p><p>3、如果服务器读取一个键发现已经过期，则会删除该键。</p><p>4、如果客户端使用watch命令监视某个键，那么服务器对被监视的键进行修改后，会标记其为脏键。</p><p>5、服务器每修改一个键后，都会对脏键计数器的值加1，这个计数器会触发服务器的持久化以及赋值操作。</p><p>6、如果服务器开启了数据库通知功能，对键进行修改后，会按配置发送给相应的数据库通知。</p><h4 id="设置键的生存时间或过期时间"><a href="#设置键的生存时间或过期时间" class="headerlink" title="设置键的生存时间或过期时间"></a>设置键的生存时间或过期时间</h4><h5 id="如何保存过期时间"><a href="#如何保存过期时间" class="headerlink" title="如何保存过期时间"></a>如何保存过期时间</h5><p>redisDb结构的expires字典保存了数据库中所有键的过期时间，我们称之为过期字典。</p><p>过期字典的键是一个指针，指向键空间中的某个键对象。值是一个long long类型的整数，保存了过期时间。</p><p>具体如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323141113896.png" alt="image-20230323141113896"></p><p>expires指向另外的一个字典，这个字典里面存储了每一个值的过期时间。</p><h5 id="如何判断键是否过期"><a href="#如何判断键是否过期" class="headerlink" title="如何判断键是否过期"></a>如何判断键是否过期</h5><p>首先看过期字典中是否含有该键，如果存在，获取过期时间，与当前时间对比做判断，如果小于当前时间，则说明过期。</p><h4 id="过期键删除策略"><a href="#过期键删除策略" class="headerlink" title="过期键删除策略"></a>过期键删除策略</h4><h5 id="定时删除"><a href="#定时删除" class="headerlink" title="定时删除"></a>定时删除</h5><p>在设置键过期时间的同时，创建一个定时器，让定时器在键过期时立即执行对键的删除。</p><p>优点：对内存友好，过期后会被立马删除。</p><p>缺点：对cpu不友好，如果过期键设置的太多，则定时器会占用太多的cpu资源。</p><h5 id="惰性删除"><a href="#惰性删除" class="headerlink" title="惰性删除"></a>惰性删除</h5><p>只有在用到该键时，才取检查它是否过期，过期则删除，否则返回。</p><p>优点：不占用cpu资源。不会影响到redis处理客户端的请求。</p><p>缺点：会造成内存泄漏。如果一个键过期，它如果没有被再次访问，则无法删除。</p><h5 id="定期删除"><a href="#定期删除" class="headerlink" title="定期删除"></a>定期删除</h5><p>每隔一段时间，程序就检查一次数据库，删除里面的过期键，至于检查多少以及删除多少，由算法决定。</p><p>该算法的好坏取决于设定，不能太频繁的去删除，导致cpu资源浪费在了检索以及删除过期数据，也不能太长时间不删除导致里面很多过期数据。</p><h4 id="Redis过期键删除策略"><a href="#Redis过期键删除策略" class="headerlink" title="Redis过期键删除策略"></a>Redis过期键删除策略</h4><p>redis是将惰性删除和定期删除这两种策略配合使用。</p><p>惰性删除就是每次读写数据库命令执行前，都会调用一个函数检查键是否过期。</p><p>定期删除函数每次运行时，都会抽取一定量的随机键进行检查，并删除其中过期的键。有一个全局变量current_db会记录当前检查的进度，下次定期删除时会从这里开始。当服务器中数据都被检查一边时，这个值会被设置为0。</p><h4 id="AOF和RDB以及复制对过期键的处理"><a href="#AOF和RDB以及复制对过期键的处理" class="headerlink" title="AOF和RDB以及复制对过期键的处理"></a>AOF和RDB以及复制对过期键的处理</h4><h5 id="生成RDB文件"><a href="#生成RDB文件" class="headerlink" title="生成RDB文件"></a>生成RDB文件</h5><p>在执行SAVE或者BGSAVE命令创建一个RDB文件时，会对数据库的键进行检查，已经过期的不会写入RDB文件。</p><h5 id="载入RDB文件"><a href="#载入RDB文件" class="headerlink" title="载入RDB文件"></a>载入RDB文件</h5><p>如果以主服务器的模式加载RDB文件，则会对键进行检查，过期的不会载入。</p><p>如果以从服务器模式运行，则会保留所有键，不论是否过期。</p><h5 id="AOF文件写入"><a href="#AOF文件写入" class="headerlink" title="AOF文件写入"></a>AOF文件写入</h5><p>当服务器采用AOF模式持久化，如果数据库某个键过期，但是还没被删除，则对AOF文件没有影响，但是删除时会向AOF文件中追加该记录被删除的命令。</p><h5 id="AOF重写"><a href="#AOF重写" class="headerlink" title="AOF重写"></a>AOF重写</h5><p>AOF重写的过程中会进行检查，过期键不会保留。</p><h5 id="复制"><a href="#复制" class="headerlink" title="复制"></a>复制</h5><p>当服务器运行在复制模式下，从服务对过期键删除动作由主服务器控制：</p><p>1、主服务器删除一个过期键后，会向所有从服务器发送一条命令，通知其删除。</p><p>2、从服务器在接受到读命令时，尽管碰到过期键也不会删除，而是返回。（这本书创作时对应的redis版本最高为3.0，而后续高版本的redis在某些配置下会删除从服务上的过期键，但是删除从服务器数据后并不会主动删除主服务器的过期数据）</p><p>3、从服务器接收到主服务命令后才会删除过期键。</p><p>这样设置的目的是为了保存数据的一致性。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;具体结构&quot;&gt;&lt;a href=&quot;#具体结构&quot; class=&quot;headerlink&quot; title=&quot;具体结构&quot;&gt;&lt;/a&gt;具体结构&lt;/h3&gt;&lt;figure class=&quot;highlight c&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;s</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
+    
+    
+    <category term="Redis设计与实现" scheme="http://example.com/tags/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
     
   </entry>
   
