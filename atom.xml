@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-03-26T11:51:34.887Z</updated>
+  <updated>2023-03-25T05:11:38.746Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,32 +15,6 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
-  
-  <entry>
-    <title>Redis事件</title>
-    <link href="http://example.com/2023/11/16/Redis%E4%BA%8B%E4%BB%B6/"/>
-    <id>http://example.com/2023/11/16/Redis%E4%BA%8B%E4%BB%B6/</id>
-    <published>2023-11-16T06:35:01.000Z</published>
-    <updated>2023-03-26T11:51:34.887Z</updated>
-    
-    <content type="html"><![CDATA[<p>Redis服务器是事件驱动程序，服务器需要处理以下两类事件：</p><p>1、文件事件。</p><p>Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就是通过监听并处理这些事件来完成网络通信的。</p><p>2、时间时间。</p><p>Redis服务器中一些操作需要在给定时间点执行，而时间事件就是服务器对这类定时操作的抽象。</p><h2 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h2><p>文件事件处理器采用I&#x2F;O多路复用程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。当被监听的套接字准备好执行连接应答，读取，写入，关闭等操作时，与操作对应的文件事件就会产生，这时文件事件处理器就会根据套接字关联好的事件处理器来处理这些事件。</p><h3 id="文件事件处理器的构成"><a href="#文件事件处理器的构成" class="headerlink" title="文件事件处理器的构成"></a>文件事件处理器的构成</h3><p>有四个部分：</p><p>1、套接字</p><p>2、I&#x2F;O多路复用程序</p><p>3、文件事件分派器</p><p>4、事件处理器</p><p>具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326145626574.png" alt="image-20230326145626574"></p><p>其中，I&#x2F;O多路复用程序监听多个套接字，并向文件事件分派器传递那些产生事件的套接字。尽管多个文件事件会并发出现，但是I&#x2F;O多路复用程序总是将所有产生事件的套接字放到一个队列中，然后以有序，同步，每次一个套接字的方式向文件事件分派器传送套接字。</p><p>文件事件分派器接受I&#x2F;O多路复用传过来的套接字，根据套接字产生的事件，传给对应的事件处理器。</p><h3 id="I-x2F-O多路复用的实现"><a href="#I-x2F-O多路复用的实现" class="headerlink" title="I&#x2F;O多路复用的实现"></a>I&#x2F;O多路复用的实现</h3><p>Redis的I&#x2F;O多路复用的实现是通过包装select，epoll，evport和kqueue这些I&#x2F;O多路复用函数库来实现的。</p><h3 id="事件的类型"><a href="#事件的类型" class="headerlink" title="事件的类型"></a>事件的类型</h3><p>I&#x2F;O多路复用程序可以监听多个套接字的AE_READABLE和AE_WRITABLE事件。</p><p>当套接字变得可读（客户端对套接字执行write或者close操作）或者有新的可应答套接字出现（客户端对套接字执行connect操作），套接字产生AE_READABLE事件。</p><p>当套接字变得可写（客户端执行read操作），套接字产生AE_WRITABLE事件。</p><p>如果同时产生上面这两种事件，那么会先处理AE_READABLE事件，然后才处理AE_WRITABLE事件。</p><h3 id="文件事件的处理器"><a href="#文件事件的处理器" class="headerlink" title="文件事件的处理器"></a>文件事件的处理器</h3><p>Redis为文件事件编写了多个处理器，这些处理器分别用于实现不同的网络通信需求。</p><h4 id="1、连接应答处理器"><a href="#1、连接应答处理器" class="headerlink" title="1、连接应答处理器"></a>1、连接应答处理器</h4><p>当Redis服务器进行初始化的时候，程序会将这个连接应答处理器和服务器套接字的AE_READABLE事件关联起来，当有客户端连接服务器时，套接字就会产生AE_READABLE事件，引发连接应答处理器执行。</p><h4 id="2、命令请求处理器"><a href="#2、命令请求处理器" class="headerlink" title="2、命令请求处理器"></a>2、命令请求处理器</h4><p>当一个客户端通过连接应答处理器成功连接到服务器后，服务器会将客户端套接字的AE_READABLE事件和命令请求处理器关联起来，当客户端向服务器发送命令请求时，就会产生AE_READABLE事件，引发命令请求处理器执行，并执行相应的套接字读入操作。</p><h4 id="3、命令回复处理器"><a href="#3、命令回复处理器" class="headerlink" title="3、命令回复处理器"></a>3、命令回复处理器</h4><p>当服务器有命令回复要传送给客户端时，服务器就会将客户端套接字的AE_WRITABLE事件和命令处理器关联起来，当客户端准备好接收服务器传回的命令回复时，就会产生AE_WRITABLE事件，引发相应的套接字写入操作。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326191604556.png" alt="image-20230326191604556"></p><h2 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h2><p>redis的时间事件分为两种：</p><p>1、定时事件：让一段程序在指定的时间之后执行一次。</p><p>2、周期性事件：让一段程序每隔指定时间就执行一次。</p><p>一个时间事件主要由以下三部分组成：</p><p>id：服务器为时间事件创建的全局唯一ID（标识号）。</p><p>when：记录了时间事件到达时间。</p><p>timeProc：时间事件处理器，当时间事件到达时，服务器就会调用相应的处理器来处理事件。</p><p>因为存储时间事件的链表并不按照事件排序，所以说每次处理时都需要遍历整个链表，才能找到那些事件需要处理。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;Redis服务器是事件驱动程序，服务器需要处理以下两类事件：&lt;/p&gt;
-&lt;p&gt;1、文件事件。&lt;/p&gt;
-&lt;p&gt;Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
-    
-    <category term="Redis事件" scheme="http://example.com/tags/Redis%E4%BA%8B%E4%BB%B6/"/>
-    
-  </entry>
   
   <entry>
     <title>AOF持久化设计</title>
@@ -515,6 +489,32 @@
     
     
     <category term="缓存一致性" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Redis事件</title>
+    <link href="http://example.com/2022/11/16/Redis%E4%BA%8B%E4%BB%B6/"/>
+    <id>http://example.com/2022/11/16/Redis%E4%BA%8B%E4%BB%B6/</id>
+    <published>2022-11-16T06:35:01.000Z</published>
+    <updated>2023-03-27T03:44:35.143Z</updated>
+    
+    <content type="html"><![CDATA[<p>Redis服务器是事件驱动程序，服务器需要处理以下两类事件：</p><p>1、文件事件。</p><p>Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就是通过监听并处理这些事件来完成网络通信的。</p><p>2、时间时间。</p><p>Redis服务器中一些操作需要在给定时间点执行，而时间事件就是服务器对这类定时操作的抽象。</p><h2 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h2><p>文件事件处理器采用I&#x2F;O多路复用程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。当被监听的套接字准备好执行连接应答，读取，写入，关闭等操作时，与操作对应的文件事件就会产生，这时文件事件处理器就会根据套接字关联好的事件处理器来处理这些事件。</p><h3 id="文件事件处理器的构成"><a href="#文件事件处理器的构成" class="headerlink" title="文件事件处理器的构成"></a>文件事件处理器的构成</h3><p>有四个部分：</p><p>1、套接字</p><p>2、I&#x2F;O多路复用程序</p><p>3、文件事件分派器</p><p>4、事件处理器</p><p>具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326145626574.png" alt="image-20230326145626574"></p><p>其中，I&#x2F;O多路复用程序监听多个套接字，并向文件事件分派器传递那些产生事件的套接字。尽管多个文件事件会并发出现，但是I&#x2F;O多路复用程序总是将所有产生事件的套接字放到一个队列中，然后以有序，同步，每次一个套接字的方式向文件事件分派器传送套接字。</p><p>文件事件分派器接受I&#x2F;O多路复用传过来的套接字，根据套接字产生的事件，传给对应的事件处理器。</p><h3 id="I-x2F-O多路复用的实现"><a href="#I-x2F-O多路复用的实现" class="headerlink" title="I&#x2F;O多路复用的实现"></a>I&#x2F;O多路复用的实现</h3><p>Redis的I&#x2F;O多路复用的实现是通过包装select，epoll，evport和kqueue这些I&#x2F;O多路复用函数库来实现的。</p><h3 id="事件的类型"><a href="#事件的类型" class="headerlink" title="事件的类型"></a>事件的类型</h3><p>I&#x2F;O多路复用程序可以监听多个套接字的AE_READABLE和AE_WRITABLE事件。</p><p>当套接字变得可读（客户端对套接字执行write或者close操作）或者有新的可应答套接字出现（客户端对套接字执行connect操作），套接字产生AE_READABLE事件。</p><p>当套接字变得可写（客户端执行read操作），套接字产生AE_WRITABLE事件。</p><p>如果同时产生上面这两种事件，那么会先处理AE_READABLE事件，然后才处理AE_WRITABLE事件。</p><h3 id="文件事件的处理器"><a href="#文件事件的处理器" class="headerlink" title="文件事件的处理器"></a>文件事件的处理器</h3><p>Redis为文件事件编写了多个处理器，这些处理器分别用于实现不同的网络通信需求。</p><h4 id="1、连接应答处理器"><a href="#1、连接应答处理器" class="headerlink" title="1、连接应答处理器"></a>1、连接应答处理器</h4><p>当Redis服务器进行初始化的时候，程序会将这个连接应答处理器和服务器套接字的AE_READABLE事件关联起来，当有客户端连接服务器时，套接字就会产生AE_READABLE事件，引发连接应答处理器执行。</p><h4 id="2、命令请求处理器"><a href="#2、命令请求处理器" class="headerlink" title="2、命令请求处理器"></a>2、命令请求处理器</h4><p>当一个客户端通过连接应答处理器成功连接到服务器后，服务器会将客户端套接字的AE_READABLE事件和命令请求处理器关联起来，当客户端向服务器发送命令请求时，就会产生AE_READABLE事件，引发命令请求处理器执行，并执行相应的套接字读入操作。</p><h4 id="3、命令回复处理器"><a href="#3、命令回复处理器" class="headerlink" title="3、命令回复处理器"></a>3、命令回复处理器</h4><p>当服务器有命令回复要传送给客户端时，服务器就会将客户端套接字的AE_WRITABLE事件和命令处理器关联起来，当客户端准备好接收服务器传回的命令回复时，就会产生AE_WRITABLE事件，引发相应的套接字写入操作。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326191604556.png" alt="image-20230326191604556"></p><h2 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h2><p>redis的时间事件分为两种：</p><p>1、定时事件：让一段程序在指定的时间之后执行一次。</p><p>2、周期性事件：让一段程序每隔指定时间就执行一次。</p><p>一个时间事件主要由以下三部分组成：</p><p>id：服务器为时间事件创建的全局唯一ID（标识号）。</p><p>when：记录了时间事件到达时间。</p><p>timeProc：时间事件处理器，当时间事件到达时，服务器就会调用相应的处理器来处理事件。</p><p>因为存储时间事件的链表并不按照事件排序，所以说每次处理时都需要遍历整个链表，才能找到那些事件需要处理。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;Redis服务器是事件驱动程序，服务器需要处理以下两类事件：&lt;/p&gt;
+&lt;p&gt;1、文件事件。&lt;/p&gt;
+&lt;p&gt;Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
+    
+    
+    <category term="Redis事件" scheme="http://example.com/tags/Redis%E4%BA%8B%E4%BB%B6/"/>
     
   </entry>
   
