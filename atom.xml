@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-03-28T05:18:20.596Z</updated>
+  <updated>2023-03-29T07:27:29.731Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,11 +17,38 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>一条sql语句是如何执行的</title>
+    <title>一条sql更新语句是如何执行的</title>
+    <link href="http://example.com/2023/03/29/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/"/>
+    <id>http://example.com/2023/03/29/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</id>
+    <published>2023-03-29T01:13:28.000Z</published>
+    <updated>2023-03-29T07:27:29.731Z</updated>
+    
+    <content type="html"><![CDATA[<p>一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。</p><h2 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log(重做日志)"></a>redo log(重做日志)</h2><p>在MySQL中，如果每一次更新都要写进磁盘，而磁盘又需要找到对应记录的位置，然后再更新，整个过程I&#x2F;O成本，查找都很高，所以MySQL采用WAL技术，全称是Write-Ahead Logging，关键点就是先写日志，然后再写磁盘。</p><p>具体做法是，当有一条记录需要更新的时候，InnoDB引擎就会先把记录写到redo log里面，并更新内存，这个时候更新就算完成了。同时，InnoDB引擎会在适当的时候，将这个操作记录更新到磁盘里面，而这个更新往往是在系统比较空闲的时候。</p><p>而InnoDB的redo log大小是固定的，可以进行配置，如果被写满，那么就会从头开始写。可以理解为一个循环队列，如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329094715314.png" alt="image-20230329094715314"></p><p>write pos是当前记录的位置，一边写一边后移，写到第3号文件末尾后就回到0号文件开头。checkpoint是当前要擦除的位置，也是往后推移并且循环的，擦除记录前要把记录更新到数据文件。write pos和checkpoint之间的位置就是空闲的，可以用来记录操作。如果write pos追上checkpoint，就表示写满了，需要清除一些记录，再继续写。</p><p>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为<strong>crash-safe</strong>。</p><h2 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog(归档日志)"></a>binlog(归档日志)</h2><p>上面提到的redo log是属于引擎层的日志，是InnoDB特有的。而binlog，则是Server层自己的日志。</p><h3 id="这两种日志的区别"><a href="#这两种日志的区别" class="headerlink" title="这两种日志的区别"></a>这两种日志的区别</h3><p>1、redo log记录的是对某一个数据页所做的修改，它主要目的是防止数据库宕机重启后有部分修改没来得及同步到磁盘，可以去redo log中查找然后写入磁盘（因为修改数据时采用先写日志，然后修改内存，并不会立即去修改磁盘中的数据）。最简单的说法，他其实是为了保证数据库数据的持久性与完整性。</p><p>而binlog则记录了所有对数据库所作的修改，最简单理解就是记录了sql语句，以及对应语句的反向，比如执行delete操作，它不仅会记录这个delete，还会生成对应的insert语句，我们可以用它来将数据恢复到之前的某一时刻。其实就是数据库备份，主备，主主，主从都需要依赖binlog。</p><p>2、redo log 是循环写，而binlog是追加写（不会覆盖之前的）。</p><p>3、redo log是InnoDB特有的，binlog是MySQL的Server层实现的。</p><h2 id="执行一条update语句的流程"><a href="#执行一条update语句的流程" class="headerlink" title="执行一条update语句的流程"></a>执行一条update语句的流程</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure><p>1、执行器会先找ID&#x3D;2这一行，该数据页本来就在内存当中，就直接返回给执行器，否则先从磁盘读入内存，再返回。</p><p>2、执行器拿到行数据，进行修改，然后调用引擎接口写入这行数据。</p><p>3、引擎将新输入的数据写入内存，同时将操作更新到redo log，此时redo log 处于prepare转来。然后告知执行器执行完了，随时可以提交事务。</p><p>4、执行器生成这个binlog操作，并发binlog写入磁盘。</p><p>5、执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交状态。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329150131900.png" alt="image-20230329150131900"></p><p>最后三步，将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。</p><h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure><p>仍然采用这个例子，假设在执行语句前，c 的值是0。如果我们不采用两阶段提交，先写redo log，然后binlog 或者先写binlog，然后再写redo log。</p><p>两阶段提交主要是为了保证两个日志的数据一致性。</p><h3 id="先写redo-log后写binlog"><a href="#先写redo-log后写binlog" class="headerlink" title="先写redo log后写binlog"></a>先写redo log后写binlog</h3><p>假设在redo log写完，binlog 还没写完，MySQL异常重启，这时重启之后，我们可以根据redo log把数据库的值恢复到1，但是binlog没写完就崩溃了，所以没有这条记录，如果用binlog进行恢复，那么值就是0。</p><h3 id="先写binlog后写redo-log"><a href="#先写binlog后写redo-log" class="headerlink" title="先写binlog后写redo log"></a>先写binlog后写redo log</h3><p>如果binlog写完然后崩溃，但是redo log没写，所以崩溃恢复后的值还是0，但是binlog里面已经记录了把0改为1这条操作，导致数据不一致。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。&lt;/p&gt;
+&lt;h2 id=&quot;redo-log-重做日志&quot;&gt;&lt;a href=&quot;#redo-log-重做日志&quot; class=&quot;headerl</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="redo log" scheme="http://example.com/tags/redo-log/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>一条sql查询语句是如何执行的</title>
     <link href="http://example.com/2023/03/28/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/"/>
     <id>http://example.com/2023/03/28/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</id>
     <published>2023-03-28T02:59:59.000Z</published>
-    <updated>2023-03-28T05:18:20.596Z</updated>
+    <updated>2023-03-29T01:12:46.821Z</updated>
     
     <content type="html"><![CDATA[<h2 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h2><p>Mysql的架构图如下所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230328110656604.png" alt="image-20230328110656604"></p><p>上图架构中的查询缓存，在myssql8.0及其以上版本已经被移除。</p><p>MySQL可以分为<strong>Server层</strong>和<strong>存储引擎层</strong>两部分。</p><p>Server层包括连接器、查询缓存、分析器、优化器、执行器等，涵盖MySQL的大多数核心服务功能，以及所有的内置函数（如日期、时间、数学和加密函数等），所有跨存储引擎的功能都在这一层实现，比如存储过程、触发器、视图等。</p><p>而存储引擎层负责数据的存储和提取。其架构模式是插件式的，支持InnoDB、MyISAM、Memory等多个存储引擎。现在最常用的存储引擎是InnoDB，它从MySQL 5.5.5版本开始成为了默认存储引擎。</p><h3 id="连接器"><a href="#连接器" class="headerlink" title="连接器"></a>连接器</h3><p>连接器是负责客户端和MySQL进行连接的，在连接器这里会验证用户输入的账号和密码，以及对应的权限。</p><p>连接完成后，如果客户端太长时间没有动静，连接器就会将它断开。这个时间由wait_timeout控制，默认8小时。</p><p>数据库里面，长连接是指连接成功后，如果客户端持续有请求，则一直使用同一个连接。短连接则是指每次执行完很少的几次查询就断开连接，下次查询再重新建立一个。</p><h3 id="分析器"><a href="#分析器" class="headerlink" title="分析器"></a>分析器</h3><p>这一步的主要工作就是检查sql语法是否正确。首先是词法分析，然后是语法分析。这一步也会检查这条sql的目的是什么。一般的语法错误，比如找不到一个字段，找不到某张表，都是这个阶段检测出来的。</p><h3 id="优化器"><a href="#优化器" class="headerlink" title="优化器"></a>优化器</h3><p>优化器是在表里面有多个索引的时候，决定使用哪个索引；或者在一个语句有多表关联（join）的时候，决定各个表的连接顺序。</p><h3 id="执行器"><a href="#执行器" class="headerlink" title="执行器"></a>执行器</h3><p>执行阶段会先判断是否有权限，如果没有，则会返回错误。</p><p>比如下面的语句：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from T where ID=10;</span><br></pre></td></tr></table></figure><p>如果id字段没有索引，那么大概的流程是下面的样子：</p><ol><li>调用InnoDB引擎接口取这个表的第一行，判断ID值是不是10，如果不是则跳过，如果是则将这行存在结果集中；</li><li>调用引擎接口取“下一行”，重复相同的判断逻辑，直到取到这个表的最后一行。</li><li>执行器将上述遍历过程中所有满足条件的行组成的记录集作为结果集返回给客户端。</li></ol>]]></content>
     
@@ -489,30 +516,6 @@
     
     
     <category term="分布式锁" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何解决Redis缓存与数据库不一致</title>
-    <link href="http://example.com/2023/03/16/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E4%B8%8D%E4%B8%80%E8%87%B4/"/>
-    <id>http://example.com/2023/03/16/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E4%B8%8D%E4%B8%80%E8%87%B4/</id>
-    <published>2023-03-16T11:32:39.000Z</published>
-    <updated>2023-03-16T12:45:43.008Z</updated>
-    
-    <content type="html"><![CDATA[<h4 id="1、什么是缓存一致性"><a href="#1、什么是缓存一致性" class="headerlink" title="1、什么是缓存一致性"></a>1、什么是缓存一致性</h4><p>分为两种情况，如果缓存中存在数据，那么缓存中的数据与数据库数据一致，如果缓存中没有数据 ，那么数据库中的数据就要是最新的。可能针对第二点有的人会有一些疑问，我的理解是，如果数据的修改是在缓存中进行，当缓存满后这些数据被淘汰时才写入数据库，然后清除这部分数据。如果写入数据库发生问题，而缓存又被清除，那么这里就发生了缓存不一致的问题，因为数据库中的数据不是最新的。</p><h4 id="2、缓存不一致的原因"><a href="#2、缓存不一致的原因" class="headerlink" title="2、缓存不一致的原因"></a>2、缓存不一致的原因</h4><p>以下几种情况会导致缓存不一致：</p><p>1、如果业务采用<strong>异步写回策略</strong>，即上面提到的，修改数据时只将数据在缓存中修改，并不去修改数据库，等到数据从缓存中淘汰，再写入数据库。这种策略下如果写入数据库异常，就会导致不一致。</p><p>2、删除数据时（不考虑并发）。假设应用<strong>先删除缓存中的数据</strong>，然后<strong>再删除数据库中</strong>的数据，此时如果缓存删除成功，然后数据库删除失败，那么下次访问，会先走缓存，缓存未命中，然后去数据库查询，但是数据库查到的是旧值，导致不一致。</p><p>如果是先删除数据库中的数据，再删除缓存，此时一种情况数据库删除成功，缓存删除失败，那么会导致数据库中的值是新的，而缓存中的值是旧的，而查询又先走缓存，也是不一致的情况。</p><p>3、考虑并发的情况。</p><p>​1）、<strong>先更数据库，再更缓存，写+读并发</strong>。假如线程A删除缓存值后，还没来得及写数据库（假设遇到网络延迟或者执行被中断），线程B又读取数据，此时会遇到缓存未命中，那么线程B会去数据库进行查询，然后将数据写入缓存当中（注意，这里写入缓存的数据是旧的值）。当B写入缓存成功后，线程A删除数据库的值。虽然线程A和线程B的操作都成功了，但是此时却发生了缓存不一致的问题。</p><p>​2）、<strong>先更缓存，再更数据库，写+读并发</strong>。如果线程A删除了数据库，还没来得及删除缓存，线程B进行了读取，那么线程B会直接从缓存中读取到旧的数据。这种情况下，会有短暂的数据不一致问题，因为线程A很快会删除缓存中的值，此时后续线程会发生缓存未命中，然后去数据库查询最新的值。这种情况会出现短暂的不一致，但是对业务影响不大。</p><p>​3）、<strong>先更新数据库，再更新缓存，写+写并发</strong>。线程A和B同时更新一条数据，更新数据库顺序是先A后B，但是更新缓存数据因一些原因变成了先B后A，就会导致不一致。</p><p>​4）、<strong>先更新缓存，再更新数据库，写+写并发</strong>。与场景3类似，更新缓存的顺序和更新数据库的顺序不一样，就会导致数据不一致。</p><h4 id="3、如何解决缓存不一致"><a href="#3、如何解决缓存不一致" class="headerlink" title="3、如何解决缓存不一致"></a>3、如何解决缓存不一致</h4><p>如果不考虑高并发，我们可以采用<strong>重试机制</strong>。</p><p>具体来说，可以把要删改的数据先存入<strong>消息队列</strong>（如rabbitmq）当中，当应用删除失败，则取队列中取出要删除的数据进行重新尝试，如果成功，则从队列中移除元素。但高并发场景下这种解决方法不行，原因下文会解释。</p><p>在高并发场景下，分两种情况：</p><p>1、如果业务设计先删除缓存，再更新数据库</p><p>参考上边并发情况第一条，先更数据库，再更缓存，写+读并发的情况。</p><p>针对这种情况，一种解决方案就是<strong>延迟双删</strong>。即让线程A在操作完数据库之后，过一小段时间再去删除一次缓存。</p><p>但这种情况不可避免的会导致一小段时间内，用户读到的数据是错误的。</p><p>2、业务设计是先删除数据库数据，再删除缓存。</p><p>参考上述并发情况第二条，先更缓存，再更数据库，写+读并发。</p><p>结合以上两种方案，其实都会出现短暂的缓存不一致，而方案一不加处理则会导致很长时间的不一致，而且延迟多久进行删除时间也不好确定，所以如果不是特别的场景，个人更倾向于采用第二种方案。</p><p>这种解决方案适合于那些数据不敏感的场景。</p><p>3、针对写+写的并发，需要采用加锁的方式，保证一个线程修改完成后，再执行第二个线程的操作。也可以将修改数据库的操作以及修改redis的操作放入一个队列当中，保证他们的执行顺序。但是使用队列可能会导致中间过程会出现部分时刻的数据不一致，但是可以保证最终的一致性。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h4 id=&quot;1、什么是缓存一致性&quot;&gt;&lt;a href=&quot;#1、什么是缓存一致性&quot; class=&quot;headerlink&quot; title=&quot;1、什么是缓存一致性&quot;&gt;&lt;/a&gt;1、什么是缓存一致性&lt;/h4&gt;&lt;p&gt;分为两种情况，如果缓存中存在数据，那么缓存中的数据与数据库数据一致，如果缓存</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
-    
-    <category term="缓存一致性" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98%E4%B8%80%E8%87%B4%E6%80%A7/"/>
     
   </entry>
   
