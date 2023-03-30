@@ -38,53 +38,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Java先行发生原则</title>
-    <url>/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p>
-<p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p>
-<p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p>
-<p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p>
-<p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p>
-<p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p>
-<p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p>
-<p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p>
-<p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p>
-<p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>内存模型</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Cluster规模对于通信的影响</title>
-    <url>/2023/03/24/Cluster%E8%A7%84%E6%A8%A1%E5%AF%B9%E4%BA%8E%E9%80%9A%E4%BF%A1%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
-    <content><![CDATA[<h3 id="实例通信方法和对集群规模的影响"><a href="#实例通信方法和对集群规模的影响" class="headerlink" title="实例通信方法和对集群规模的影响"></a>实例通信方法和对集群规模的影响</h3><p>redis官方给出了Redis Cluster的规模上限为1000个实例，其中一个限制实例规模的因素就是<strong>实例间的通信会随着实例规模的增加而增大</strong>，因此在实例超过一定规模后，实例增加吞吐量反而会下降。</p>
-<p>Redis Cluster 运行时，每个实例都会保存slot和实例的对应关系，以及自身的状态信息。为了让集群中每个实例都知道其他实例的状态，所以实例之间需要进行通信，采用的是Gossip 协议。</p>
-<h4 id="Gossip-协议原理"><a href="#Gossip-协议原理" class="headerlink" title="Gossip 协议原理"></a>Gossip 协议原理</h4><p>1、每个实例之间会按照一定的频率，从集群中随机挑选一些实例，把 PING 消息发送给挑选出来的实例，用来检测这些实例是否在线，并交换彼此的状态信息。PING 消息中封装了发送消息的实例自身的状态信息、部分其它实例的状态信息，以及 Slot 映射表。</p>
-<p>2、一个实例在接收到 PING 消息后，会给发送 PING 消息的实例，发送一个 PONG 消息。PONG 消息包含的内容和 PING 消息一样。</p>
-<p>Gossip 协议可以保证在一段时间后，集群中的每一个实例都能获得其它所有实例的状态信息。</p>
-<p>不难看出，实例间使用 Gossip 协议进行通信时，通信开销受到<strong>通信消息大小</strong>和<strong>通信频率</strong>这两方面的影响。信息越大，频率越高，影响越大。</p>
-<p>Redis Cluster 的实例启动后，默认会每秒从本地的实例列表中随机选出 5 个实例，再从这 5 个实例中找出一个最久没有通信的实例，把 PING 消息发送给该实例。但是这样会导致<strong>有些实例一直没有被发送 PING 消息，导致它们维护的集群状态已经过期了</strong>。</p>
-<p>为了避免这种情况，Redis Cluster 的实例会按照每 100ms 一次的频率，扫描本地的实例列表，如果发现有实例最近一次接收 PONG 消息的时间，已经大于配置项 cluster-node-timeout 的一半了（cluster-node-timeout&#x2F;2），就会立刻给该实例发送 PING 消息，更新这个实例上的集群状态信息。</p>
-<p>以上频率加上每一次ping，pong所包含信息的大小，多实例的通信占用带宽可能会很多。</p>
-<h3 id="如何降低实例间的通信开销"><a href="#如何降低实例间的通信开销" class="headerlink" title="如何降低实例间的通信开销"></a>如何降低实例间的通信开销</h3><p>针对以上分析，降低开销的办法一方面可以降低实例传输的大小，另一方面可以降低通信频率。</p>
-<p>降低大小不可取，因为降低大小只能减少传输的字段，无法保证实例之间传输足够的信息来维持集群运行。</p>
-<p>所以只能通过降低通信频率。可以修改cluster-node-timeout 这个配置项。</p>
-<p>配置项 cluster-node-timeout 定义了集群实例被判断为故障的心跳超时时间，默认是 15 秒。如果 cluster-node-timeout 值比较小，那么，在大规模集群中，就会比较频繁地出现 PONG 消息接收超时的情况，从而导致实例每秒要执行 10 次“给 PONG 消息超时的实例发送 PING 消息”这个操作。</p>
-<p>所以，为了避免过多的心跳消息挤占集群带宽，我们可以调大 cluster-node-timeout 值，比如说调大到 20 秒或 25 秒。这样一来， PONG 消息接收超时的情况就会有所缓解，单实例也不用频繁地每秒执行 10 次心跳发送操作了。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>集群</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Java与线程</title>
     <url>/2023/03/25/Java%E4%B8%8E%E7%BA%BF%E7%A8%8B/</url>
     <content><![CDATA[<h2 id="线程的实现"><a href="#线程的实现" class="headerlink" title="线程的实现"></a>线程的实现</h2><p>线程是比进程更轻量级的调度执行单位，线程的引入可以把一个进程的资源分配和执行调度分开， 各个线程既可以共享进程资源（内存地址，I&#x2F;O等），又可以独立调度。</p>
@@ -131,6 +84,53 @@
       </tags>
   </entry>
   <entry>
+    <title>Cluster规模对于通信的影响</title>
+    <url>/2023/03/24/Cluster%E8%A7%84%E6%A8%A1%E5%AF%B9%E4%BA%8E%E9%80%9A%E4%BF%A1%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
+    <content><![CDATA[<h3 id="实例通信方法和对集群规模的影响"><a href="#实例通信方法和对集群规模的影响" class="headerlink" title="实例通信方法和对集群规模的影响"></a>实例通信方法和对集群规模的影响</h3><p>redis官方给出了Redis Cluster的规模上限为1000个实例，其中一个限制实例规模的因素就是<strong>实例间的通信会随着实例规模的增加而增大</strong>，因此在实例超过一定规模后，实例增加吞吐量反而会下降。</p>
+<p>Redis Cluster 运行时，每个实例都会保存slot和实例的对应关系，以及自身的状态信息。为了让集群中每个实例都知道其他实例的状态，所以实例之间需要进行通信，采用的是Gossip 协议。</p>
+<h4 id="Gossip-协议原理"><a href="#Gossip-协议原理" class="headerlink" title="Gossip 协议原理"></a>Gossip 协议原理</h4><p>1、每个实例之间会按照一定的频率，从集群中随机挑选一些实例，把 PING 消息发送给挑选出来的实例，用来检测这些实例是否在线，并交换彼此的状态信息。PING 消息中封装了发送消息的实例自身的状态信息、部分其它实例的状态信息，以及 Slot 映射表。</p>
+<p>2、一个实例在接收到 PING 消息后，会给发送 PING 消息的实例，发送一个 PONG 消息。PONG 消息包含的内容和 PING 消息一样。</p>
+<p>Gossip 协议可以保证在一段时间后，集群中的每一个实例都能获得其它所有实例的状态信息。</p>
+<p>不难看出，实例间使用 Gossip 协议进行通信时，通信开销受到<strong>通信消息大小</strong>和<strong>通信频率</strong>这两方面的影响。信息越大，频率越高，影响越大。</p>
+<p>Redis Cluster 的实例启动后，默认会每秒从本地的实例列表中随机选出 5 个实例，再从这 5 个实例中找出一个最久没有通信的实例，把 PING 消息发送给该实例。但是这样会导致<strong>有些实例一直没有被发送 PING 消息，导致它们维护的集群状态已经过期了</strong>。</p>
+<p>为了避免这种情况，Redis Cluster 的实例会按照每 100ms 一次的频率，扫描本地的实例列表，如果发现有实例最近一次接收 PONG 消息的时间，已经大于配置项 cluster-node-timeout 的一半了（cluster-node-timeout&#x2F;2），就会立刻给该实例发送 PING 消息，更新这个实例上的集群状态信息。</p>
+<p>以上频率加上每一次ping，pong所包含信息的大小，多实例的通信占用带宽可能会很多。</p>
+<h3 id="如何降低实例间的通信开销"><a href="#如何降低实例间的通信开销" class="headerlink" title="如何降低实例间的通信开销"></a>如何降低实例间的通信开销</h3><p>针对以上分析，降低开销的办法一方面可以降低实例传输的大小，另一方面可以降低通信频率。</p>
+<p>降低大小不可取，因为降低大小只能减少传输的字段，无法保证实例之间传输足够的信息来维持集群运行。</p>
+<p>所以只能通过降低通信频率。可以修改cluster-node-timeout 这个配置项。</p>
+<p>配置项 cluster-node-timeout 定义了集群实例被判断为故障的心跳超时时间，默认是 15 秒。如果 cluster-node-timeout 值比较小，那么，在大规模集群中，就会比较频繁地出现 PONG 消息接收超时的情况，从而导致实例每秒要执行 10 次“给 PONG 消息超时的实例发送 PING 消息”这个操作。</p>
+<p>所以，为了避免过多的心跳消息挤占集群带宽，我们可以调大 cluster-node-timeout 值，比如说调大到 20 秒或 25 秒。这样一来， PONG 消息接收超时的情况就会有所缓解，单实例也不用频繁地每秒执行 10 次心跳发送操作了。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>集群</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java先行发生原则</title>
+    <url>/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p>
+<p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p>
+<p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p>
+<p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p>
+<p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p>
+<p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p>
+<p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p>
+<p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p>
+<p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p>
+<p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>内存模型</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java内存模型的可见性、原子性和有序性</title>
     <url>/2023/03/24/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%A7%81%E6%80%A7%E3%80%81%E5%8E%9F%E5%AD%90%E6%80%A7%E5%92%8C%E6%9C%89%E5%BA%8F%E6%80%A7/</url>
     <content><![CDATA[<h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h2><p>由Java内存模型来直接保证的原子性变量操作包括read、load、assign、use、store和write这六个，我们大致可以认为，基本数据类型的<strong>访问</strong>、<strong>读写</strong>都是具备原子性的。这里的访问和读写只是包括了访问一个变量的值以及给变量赋值，像i++这种操作并不是原子性的。还要注意long 和double的非原子协定，但是这个概率发生很小，可以忽略。</p>
@@ -150,6 +150,84 @@
       <tags>
         <tag>Jvm</tag>
         <tag>内存模型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java线程安全</title>
+    <url>/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/</url>
+    <content><![CDATA[<h2 id="Java中的线程安全"><a href="#Java中的线程安全" class="headerlink" title="Java中的线程安全"></a>Java中的线程安全</h2><p>一个比较严格的线程安全定义：当多个线程同时访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要进行额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果，那就称这个对象是线程安全的</p>
+<p>Java语言中的各种操作的共享数据可以分为以下五类：不可变，绝对线程安全，相对线程安全，线程兼容和线程对立。</p>
+<h3 id="不可变"><a href="#不可变" class="headerlink" title="不可变"></a>不可变</h3><p>不可变的对象，他的线程一定是安全的。</p>
+<h3 id="绝对线程安全"><a href="#绝对线程安全" class="headerlink" title="绝对线程安全"></a>绝对线程安全</h3><p>绝对线程安全需要满足上面提到的定义。而Java API中提到的线程安全的类，大多都是相对线程安全。比如说Vector是一个线程安全的容器，因为他的add(), get(), size()的方法都是用synchronized修饰的。尽管这样，并不意味着它永远不需要同步手段。</p>
+<p>比如以下代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> Vector&lt;Integer&gt; vector = <span class="keyword">new</span> <span class="title class_">Vector</span>&lt;Integer&gt;();</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">	<span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">			vector.add(i);</span><br><span class="line">		&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">removeThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    vector.remove(i);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">printThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    System.out.println((vector.get(i)));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">		removeThread.start();</span><br><span class="line">		printThread.start();</span><br><span class="line">        </span><br><span class="line">		<span class="comment">//不要同时产生过多的线程，否则会导致操作系统假死</span></span><br><span class="line">		<span class="keyword">while</span> (Thread.activeCount() &gt; <span class="number">20</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码运行之后就会报错，原因是如果一个线程在错误的时间删除一个元素，那么其他元素在获取对应下标时就会报错。虽然它的get和remove都是原子操作，但是原子操作组合原子操作并不一定是原子操作。</p>
+<p>当调用vector.size()获取大小时，它确实是原子性的。但是后续循环中，vector中的元素会被删除，导致get操作获取错误的下标。</p>
+<p>所以说在操作这些容器时，还是需要手动加锁。</p>
+<h3 id="相对线程安全"><a href="#相对线程安全" class="headerlink" title="相对线程安全"></a>相对线程安全</h3><p>相对线程安全就是我们通常意义上所说的安全，它需要保证对这个对象单次的操作是线程安全的，我们在调用的时候不需要进行额外的操作，但是对于特定顺序的调用，就需要额外操作的同步手段来保证。</p>
+<h3 id="线程兼容"><a href="#线程兼容" class="headerlink" title="线程兼容"></a>线程兼容</h3><p>线程兼容是指对象本身不是线程安全的，但是可以通过在调用端使用一些同步手段来保证线程安全。比如HashMap， ArrayList等。</p>
+<h3 id="线程对立"><a href="#线程对立" class="headerlink" title="线程对立"></a>线程对立</h3><p>线程对立是指不管调用端是否采取了同步措施，都无法在多线程环境中并发使用代码。</p>
+<h2 id="线程安全的实现方法"><a href="#线程安全的实现方法" class="headerlink" title="线程安全的实现方法"></a>线程安全的实现方法</h2><h3 id="1、互斥同步"><a href="#1、互斥同步" class="headerlink" title="1、互斥同步"></a>1、互斥同步</h3><p>互斥同步在多个线程访问共享数据时，保证共享数据在同一时刻只被一条线程使用。</p>
+<p>Java中最基本的互斥同步手段就是synchronized关键字，这是一种快结构的同步语法。synchronized关键字经过Javac编译之后，会在同步块的前后分别形成monitorenter和monitorexit这两个字节码指令。这两个字节码指令都需要一个reference类型的参数来指明要锁定和解锁的对象。</p>
+<p>如果Java源码中的synchronized明确指定了对象参数，那就以这个对象的引用作为reference；如果没有明确指定，那将根据synchronized修饰的方法类型（如实例方法或类方法），来决定是取代码所在的对象实例还是取类型对应的Class对象来作为线程要持有的锁。</p>
+<p>在执行monitorenter时，会先尝试获取锁，如果对象没有被锁定，或者当前线程已经持有了那个对象的锁，就把锁的计数加一，而在执行monitorexit时就会把锁的计数器减一。计数器为0，释放锁。如果获取锁失败，就会被阻塞，直到请求锁定的对象上面的锁被释放。</p>
+<p>这也就意味着，synchronized修饰的变量，一个线程获取锁后，可以在上面加很多把锁，也不会造成死锁，而且不可被中断。</p>
+<p>除了synchronized关键字以外，jdk5以后，提供了JUC包的Lock接口，可以让用于以非块结构实现互斥同步。</p>
+<p>ReentrantLock是Lock接口最常见的实现，它也是可重入锁，但是与synchronized有一定的区别，主要是以下三点：</p>
+<p>1、等待可中断：当持有锁的线程长时间没有释放锁时，等待这把锁的线程可以选择放弃等待，而synchronized修饰的却不可以（获取锁失败会被阻塞）。</p>
+<p>2、公平锁：多个线程等待锁，会按照申请锁的顺序依次获得。ReentrantLock默认情况下是非公平锁，一旦开启公平锁，会影响性能。</p>
+<p>3、绑定多个条件：是指一个ReentrantLock对象可以同时绑定多个Condition对象。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="type">Lock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">Condition</span> <span class="variable">c1</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c2</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c3</span> <span class="operator">=</span> lock.newCondition();</span><br></pre></td></tr></table></figure>
+
+<p>这段代码就相当于把lock绑定了三个Condition，可以通过c1或者c2，在不同的情况下是一个线程休眠或者唤醒一个线程。而synchronized想要关联多个条件，则需要添加多个锁。</p>
+<h3 id="2、非阻塞同步"><a href="#2、非阻塞同步" class="headerlink" title="2、非阻塞同步"></a>2、非阻塞同步</h3><p>互斥同步不可避免的面临线程唤醒时带来的性能开销，这种也成为阻塞同步。互斥同步可以理解为一种悲观锁，即不加锁就一定会出问题，所以无论是否出现竞争，都会加锁，这会导致用户态切换到核心态的转换、维护锁计数器和检查是否有阻塞的线程等待唤醒。</p>
+<p>随着硬件发展，有了另一种方案，基于冲突检测的乐观并发策略，即不管风险，直接进行操作，如果没有其他线程竞争，则执行成功，否则就一直尝试，直到没有竞争。这种方案不需要把线程阻塞挂起，因此也成为非阻塞同步。</p>
+<p>JDK5之后，java类库开始使用CAS操作。CAS指令需要有三个操作数，分别是内存位置，旧的预期值以及准备设置的新值。当该指令执行时，仅当内存位置的值符合预期值时，才会用新的值去更新内存位置的值。</p>
+<p>但是CAS检查并不一定能保证该值没有被修改过，例如一个值本来是1，在执行CAS操作时，它的值被改为了2，然后又被改为了1，虽然检查时还是1，但是值已经被修改了。</p>
+<p>JUC包对此做了修改，控制变量的版本来保证没有被修改过。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>线程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL事务隔离</title>
+    <url>/2023/03/30/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</url>
+    <content><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p>
+<h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p>
+<h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p>
+<p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p>
+<p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p>
+<p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p>
+<p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p>
+<p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p>
+<p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p>
+<p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p>
+<p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p>
+<h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p>
+<p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p>
+<p>读未提交没有试图的概念，它永远返回最新值。</p>
+<p>串行化是通过加锁避免并行访问。</p>
+<h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p>
+<p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p>
+<p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p>
+<h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p>
+<p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p>
+<p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>事务</tag>
       </tags>
   </entry>
   <entry>
@@ -335,50 +413,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis事件</title>
-    <url>/2022/11/16/Redis%E4%BA%8B%E4%BB%B6/</url>
-    <content><![CDATA[<p>Redis服务器是事件驱动程序，服务器需要处理以下两类事件：</p>
-<p>1、文件事件。</p>
-<p>Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就是通过监听并处理这些事件来完成网络通信的。</p>
-<p>2、时间时间。</p>
-<p>Redis服务器中一些操作需要在给定时间点执行，而时间事件就是服务器对这类定时操作的抽象。</p>
-<h2 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h2><p>文件事件处理器采用I&#x2F;O多路复用程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。当被监听的套接字准备好执行连接应答，读取，写入，关闭等操作时，与操作对应的文件事件就会产生，这时文件事件处理器就会根据套接字关联好的事件处理器来处理这些事件。</p>
-<h3 id="文件事件处理器的构成"><a href="#文件事件处理器的构成" class="headerlink" title="文件事件处理器的构成"></a>文件事件处理器的构成</h3><p>有四个部分：</p>
-<p>1、套接字</p>
-<p>2、I&#x2F;O多路复用程序</p>
-<p>3、文件事件分派器</p>
-<p>4、事件处理器</p>
-<p>具体结构如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326145626574.png" alt="image-20230326145626574"></p>
-<p>其中，I&#x2F;O多路复用程序监听多个套接字，并向文件事件分派器传递那些产生事件的套接字。尽管多个文件事件会并发出现，但是I&#x2F;O多路复用程序总是将所有产生事件的套接字放到一个队列中，然后以有序，同步，每次一个套接字的方式向文件事件分派器传送套接字。</p>
-<p>文件事件分派器接受I&#x2F;O多路复用传过来的套接字，根据套接字产生的事件，传给对应的事件处理器。</p>
-<h3 id="I-x2F-O多路复用的实现"><a href="#I-x2F-O多路复用的实现" class="headerlink" title="I&#x2F;O多路复用的实现"></a>I&#x2F;O多路复用的实现</h3><p>Redis的I&#x2F;O多路复用的实现是通过包装select，epoll，evport和kqueue这些I&#x2F;O多路复用函数库来实现的。</p>
-<h3 id="事件的类型"><a href="#事件的类型" class="headerlink" title="事件的类型"></a>事件的类型</h3><p>I&#x2F;O多路复用程序可以监听多个套接字的AE_READABLE和AE_WRITABLE事件。</p>
-<p>当套接字变得可读（客户端对套接字执行write或者close操作）或者有新的可应答套接字出现（客户端对套接字执行connect操作），套接字产生AE_READABLE事件。</p>
-<p>当套接字变得可写（客户端执行read操作），套接字产生AE_WRITABLE事件。</p>
-<p>如果同时产生上面这两种事件，那么会先处理AE_READABLE事件，然后才处理AE_WRITABLE事件。</p>
-<h3 id="文件事件的处理器"><a href="#文件事件的处理器" class="headerlink" title="文件事件的处理器"></a>文件事件的处理器</h3><p>Redis为文件事件编写了多个处理器，这些处理器分别用于实现不同的网络通信需求。</p>
-<h4 id="1、连接应答处理器"><a href="#1、连接应答处理器" class="headerlink" title="1、连接应答处理器"></a>1、连接应答处理器</h4><p>当Redis服务器进行初始化的时候，程序会将这个连接应答处理器和服务器套接字的AE_READABLE事件关联起来，当有客户端连接服务器时，套接字就会产生AE_READABLE事件，引发连接应答处理器执行。</p>
-<h4 id="2、命令请求处理器"><a href="#2、命令请求处理器" class="headerlink" title="2、命令请求处理器"></a>2、命令请求处理器</h4><p>当一个客户端通过连接应答处理器成功连接到服务器后，服务器会将客户端套接字的AE_READABLE事件和命令请求处理器关联起来，当客户端向服务器发送命令请求时，就会产生AE_READABLE事件，引发命令请求处理器执行，并执行相应的套接字读入操作。</p>
-<h4 id="3、命令回复处理器"><a href="#3、命令回复处理器" class="headerlink" title="3、命令回复处理器"></a>3、命令回复处理器</h4><p>当服务器有命令回复要传送给客户端时，服务器就会将客户端套接字的AE_WRITABLE事件和命令处理器关联起来，当客户端准备好接收服务器传回的命令回复时，就会产生AE_WRITABLE事件，引发相应的套接字写入操作。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326191604556.png" alt="image-20230326191604556"></p>
-<h2 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h2><p>redis的时间事件分为两种：</p>
-<p>1、定时事件：让一段程序在指定的时间之后执行一次。</p>
-<p>2、周期性事件：让一段程序每隔指定时间就执行一次。</p>
-<p>一个时间事件主要由以下三部分组成：</p>
-<p>id：服务器为时间事件创建的全局唯一ID（标识号）。</p>
-<p>when：记录了时间事件到达时间。</p>
-<p>timeProc：时间事件处理器，当时间事件到达时，服务器就会调用相应的处理器来处理事件。</p>
-<p>因为存储时间事件的链表并不按照事件排序，所以说每次处理时都需要遍历整个链表，才能找到那些事件需要处理。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>Redis设计与实现</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>如何解决Redis缓存与数据库不一致</title>
     <url>/2023/03/16/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E4%B8%8D%E4%B8%80%E8%87%B4/</url>
     <content><![CDATA[<h4 id="1、什么是缓存一致性"><a href="#1、什么是缓存一致性" class="headerlink" title="1、什么是缓存一致性"></a>1、什么是缓存一致性</h4><p>分为两种情况，如果缓存中存在数据，那么缓存中的数据与数据库数据一致，如果缓存中没有数据 ，那么数据库中的数据就要是最新的。可能针对第二点有的人会有一些疑问，我的理解是，如果数据的修改是在缓存中进行，当缓存满后这些数据被淘汰时才写入数据库，然后清除这部分数据。如果写入数据库发生问题，而缓存又被清除，那么这里就发生了缓存不一致的问题，因为数据库中的数据不是最新的。</p>
@@ -409,6 +443,42 @@
       </categories>
       <tags>
         <tag>缓存一致性</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis如何解决缓存雪崩、击穿、穿透</title>
+    <url>/2023/03/30/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E3%80%81%E5%87%BB%E7%A9%BF%E3%80%81%E7%A9%BF%E9%80%8F/</url>
+    <content><![CDATA[<h2 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h2><p>缓存雪崩是指大量的应用请求无法在 Redis 缓存中进行处理，紧接着，应用将大量请求发送到数据库层，导致数据库层的压力激增。</p>
+<h3 id="原因以及解决办法"><a href="#原因以及解决办法" class="headerlink" title="原因以及解决办法"></a>原因以及解决办法</h3><p><strong>1、缓存中有大量数据同时过期，导致大量请求无法得到处理</strong>。</p>
+<p>解决方案：</p>
+<p>​	1）可以避免给数据设置相同的过期时间，如果业务需要，可以给这个过期时间增加一个小的随机数，使其过期时间相差1~3分钟，这样可以避免大量的key同时过期。</p>
+<p>​	2）我们还可以通过<strong>服务降级</strong>，指发生缓存雪崩时，针对不同的数据采取不同的处理方式。</p>
+<p>​		当业务应用访问的是非核心数据时，<strong>暂时停止从缓存中查询这些数据</strong>，而是直接返回预定义信息、空值或是错误信息；</p>
+<p>​		当业务应用访问的是核心数据时，仍然允许查询缓存，如果缓存缺失，也可以继续通过数据库读取。</p>
+<p><strong>2、Redis 缓存实例发生故障宕机了</strong></p>
+<p>解决方案：</p>
+<p>​	1）在业务系统中实现服务熔断或请求限流机制。在发生缓存雪崩时，为了避免影响整个系统，我们可以将这部分请求不做处理，直接返回错误，以免导致整个系统崩溃。</p>
+<p>​	2）提前预防。通过主从节点的方式构建 Redis 缓存高可靠集群。如果 Redis 缓存的主节点故障宕机了，从节点还可以切换成为主节点</p>
+<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存击穿是指，针对某个访问非常频繁的热点数据的请求，无法在缓存中进行处理，紧接着，访问该数据的大量请求，一下子都发送到了后端数据库，导致了数据库压力激增，会影响数据库处理其他请求。</p>
+<p>发生这种情况的原因有两种，一是热点数据自动过期，应对办法就是不设过期时间。二是开发人员误删热点数据。</p>
+<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><p>缓存穿透是指要访问的数据既不在 Redis 缓存中，也不在数据库中，导致请求在访问缓存时，发生缓存缺失，再去访问数据库时，发现数据库中也没有要访问的数据。</p>
+<p>两种情况：</p>
+<p>1、业务层误操作：缓存中的数据和数据库中的数据被误删除了，所以缓存和数据库中都没有数据；</p>
+<p>2、恶意攻击：专门访问数据库中没有的数据。</p>
+<p>解决方案：</p>
+<p>1、缓存空值或缺省值。</p>
+<p>一旦发生缓存穿透，我们就可以针对查询的数据，在 Redis 中缓存一个空值或是和业务层协商确定的缺省值。紧接着，应用发送的后续请求再进行查询时，就可以直接从 Redis 中读取空值或缺省值，返回给业务应用了，避免了把大量请求发送给数据库处理，保持了数据库的正常运行。</p>
+<p>2、使用布隆过滤器快速判断数据是否存在，避免从数据库中查询数据是否存在，减轻数据库压力。</p>
+<p>布隆过滤器由一个初值都为 0 的 bit 数组和 N 个哈希函数组成，可以用来快速判断某个数据是否存在。</p>
+<p>正是基于布隆过滤器的快速检测特性，我们可以在把数据写入数据库时，使用布隆过滤器做个标记。当缓存缺失后，应用查询数据库时，可以通过查询布隆过滤器快速判断数据是否存在。如果不存在，就不用再去数据库中查询了。</p>
+<p>3、在请求入口的前端进行请求检测</p>
+<p>缓存穿透的一个原因是有大量的恶意请求访问不存在的数据，所以，一个有效的应对方案是在请求入口前端，对业务系统接收到的请求进行合法性检测，把恶意的请求（例如请求参数不合理、请求参数是非法值、请求字段不存在）直接过滤掉，不让它们访问后端缓存和数据库。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>缓存失效</tag>
       </tags>
   </entry>
   <entry>
@@ -489,6 +559,50 @@
       </tags>
   </entry>
   <entry>
+    <title>Redis事件</title>
+    <url>/2022/11/16/Redis%E4%BA%8B%E4%BB%B6/</url>
+    <content><![CDATA[<p>Redis服务器是事件驱动程序，服务器需要处理以下两类事件：</p>
+<p>1、文件事件。</p>
+<p>Redis服务器通过套接字与客户端或者其他Redis服务器进行连接，而文件事件就是服务器对套接字的抽象。服务器与客户端或其他服务器的通信会产生相应的文件事件，而服务器就是通过监听并处理这些事件来完成网络通信的。</p>
+<p>2、时间时间。</p>
+<p>Redis服务器中一些操作需要在给定时间点执行，而时间事件就是服务器对这类定时操作的抽象。</p>
+<h2 id="文件事件"><a href="#文件事件" class="headerlink" title="文件事件"></a>文件事件</h2><p>文件事件处理器采用I&#x2F;O多路复用程序来同时监听多个套接字，并根据套接字目前执行的任务来为套接字关联不同的事件处理器。当被监听的套接字准备好执行连接应答，读取，写入，关闭等操作时，与操作对应的文件事件就会产生，这时文件事件处理器就会根据套接字关联好的事件处理器来处理这些事件。</p>
+<h3 id="文件事件处理器的构成"><a href="#文件事件处理器的构成" class="headerlink" title="文件事件处理器的构成"></a>文件事件处理器的构成</h3><p>有四个部分：</p>
+<p>1、套接字</p>
+<p>2、I&#x2F;O多路复用程序</p>
+<p>3、文件事件分派器</p>
+<p>4、事件处理器</p>
+<p>具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326145626574.png" alt="image-20230326145626574"></p>
+<p>其中，I&#x2F;O多路复用程序监听多个套接字，并向文件事件分派器传递那些产生事件的套接字。尽管多个文件事件会并发出现，但是I&#x2F;O多路复用程序总是将所有产生事件的套接字放到一个队列中，然后以有序，同步，每次一个套接字的方式向文件事件分派器传送套接字。</p>
+<p>文件事件分派器接受I&#x2F;O多路复用传过来的套接字，根据套接字产生的事件，传给对应的事件处理器。</p>
+<h3 id="I-x2F-O多路复用的实现"><a href="#I-x2F-O多路复用的实现" class="headerlink" title="I&#x2F;O多路复用的实现"></a>I&#x2F;O多路复用的实现</h3><p>Redis的I&#x2F;O多路复用的实现是通过包装select，epoll，evport和kqueue这些I&#x2F;O多路复用函数库来实现的。</p>
+<h3 id="事件的类型"><a href="#事件的类型" class="headerlink" title="事件的类型"></a>事件的类型</h3><p>I&#x2F;O多路复用程序可以监听多个套接字的AE_READABLE和AE_WRITABLE事件。</p>
+<p>当套接字变得可读（客户端对套接字执行write或者close操作）或者有新的可应答套接字出现（客户端对套接字执行connect操作），套接字产生AE_READABLE事件。</p>
+<p>当套接字变得可写（客户端执行read操作），套接字产生AE_WRITABLE事件。</p>
+<p>如果同时产生上面这两种事件，那么会先处理AE_READABLE事件，然后才处理AE_WRITABLE事件。</p>
+<h3 id="文件事件的处理器"><a href="#文件事件的处理器" class="headerlink" title="文件事件的处理器"></a>文件事件的处理器</h3><p>Redis为文件事件编写了多个处理器，这些处理器分别用于实现不同的网络通信需求。</p>
+<h4 id="1、连接应答处理器"><a href="#1、连接应答处理器" class="headerlink" title="1、连接应答处理器"></a>1、连接应答处理器</h4><p>当Redis服务器进行初始化的时候，程序会将这个连接应答处理器和服务器套接字的AE_READABLE事件关联起来，当有客户端连接服务器时，套接字就会产生AE_READABLE事件，引发连接应答处理器执行。</p>
+<h4 id="2、命令请求处理器"><a href="#2、命令请求处理器" class="headerlink" title="2、命令请求处理器"></a>2、命令请求处理器</h4><p>当一个客户端通过连接应答处理器成功连接到服务器后，服务器会将客户端套接字的AE_READABLE事件和命令请求处理器关联起来，当客户端向服务器发送命令请求时，就会产生AE_READABLE事件，引发命令请求处理器执行，并执行相应的套接字读入操作。</p>
+<h4 id="3、命令回复处理器"><a href="#3、命令回复处理器" class="headerlink" title="3、命令回复处理器"></a>3、命令回复处理器</h4><p>当服务器有命令回复要传送给客户端时，服务器就会将客户端套接字的AE_WRITABLE事件和命令处理器关联起来，当客户端准备好接收服务器传回的命令回复时，就会产生AE_WRITABLE事件，引发相应的套接字写入操作。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230326191604556.png" alt="image-20230326191604556"></p>
+<h2 id="时间事件"><a href="#时间事件" class="headerlink" title="时间事件"></a>时间事件</h2><p>redis的时间事件分为两种：</p>
+<p>1、定时事件：让一段程序在指定的时间之后执行一次。</p>
+<p>2、周期性事件：让一段程序每隔指定时间就执行一次。</p>
+<p>一个时间事件主要由以下三部分组成：</p>
+<p>id：服务器为时间事件创建的全局唯一ID（标识号）。</p>
+<p>when：记录了时间事件到达时间。</p>
+<p>timeProc：时间事件处理器，当时间事件到达时，服务器就会调用相应的处理器来处理事件。</p>
+<p>因为存储时间事件的链表并不按照事件排序，所以说每次处理时都需要遍历整个链表，才能找到那些事件需要处理。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>Redis设计与实现</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis对象</title>
     <url>/2022/11/09/Redis%E5%AF%B9%E8%B1%A1/</url>
     <content><![CDATA[<h3 id="Redis中有那些对象"><a href="#Redis中有那些对象" class="headerlink" title="Redis中有那些对象"></a>Redis中有那些对象</h3><p>redis中有简单动态字符串（SDS），双端链表，字典，压缩列表，整数集合等数据结构，但是redis并没有直接采用这些数据结构来构成键值对数据库，而是基于这些数据结构创建了一个对象系统。包含了<strong>字符串对象</strong>，<strong>列表对象</strong>，<strong>哈希对象</strong>，<strong>集合对象</strong>，<strong>有序集合对象</strong>。而且redis对象系统还实现了基于<strong>引用计数器</strong>的内存回收机制，并且通过引用计数技术实现了对象共享。</p>
@@ -547,6 +661,57 @@
 <p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202217608.png" alt="image-20230322202217608"></p>
 <p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202233639.png" alt="image-20230322202233639"></p>
 <p>当有序集合元素数量小于128个，同时所有元素成员长度小于64字节时，使用ziplist编码，否则使用skiplist编码。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>Redis设计与实现</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis数据库结构</title>
+    <url>/2022/11/11/Redis%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84/</url>
+    <content><![CDATA[<h3 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">// 一个数组，保存着服务器中所有的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 服务器数据库的数量</span></span><br><span class="line">    <span class="type">int</span> dbnum;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> &#123;</span></span><br><span class="line">    <span class="comment">// 记录客户端当前正在使用的数据库</span></span><br><span class="line">   	redisDb *db;</span><br><span class="line">    </span><br><span class="line">&#125; redisClient;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></span><br><span class="line">    <span class="comment">// 数据库键空间，保存着数据库中的所有键值对</span></span><br><span class="line">    dict *dict;</span><br><span class="line">    </span><br><span class="line">&#125; redisDb;</span><br></pre></td></tr></table></figure>
+
+<p>一个具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323111004847.png" alt="image-20230323111004847"></p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112244296.png"></p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112514862.png" alt="image-20230323112514862"></p>
+<p>总的来说，就是一个redis实例，会有一个redisServer结构体，该结构体中db是一个数组，数组每一个元素代表一个数据库，每个db结构体就是一个具体的存放键值对的数据库。每一个redisClient结构体代表了一个客户端，该客户端指针会指向redisServer结构体db数组中的一个，代表使用该数据库。其中dict就是用户直接看到的数据库。</p>
+<h3 id="数据库键的一些操作"><a href="#数据库键的一些操作" class="headerlink" title="数据库键的一些操作"></a>数据库键的一些操作</h3><h4 id="读写键空间时的维护操作"><a href="#读写键空间时的维护操作" class="headerlink" title="读写键空间时的维护操作"></a>读写键空间时的维护操作</h4><p>1、在读取一个键后，服务器会根据键是否命中来更新服务器键空间命中次数或者见空间不命中的次数。</p>
+<p>2、在读取一个键后，服务器会更新键的LRU（最后一次使用）时间，这个值可以用于计算闲置时间。</p>
+<p>3、如果服务器读取一个键发现已经过期，则会删除该键。</p>
+<p>4、如果客户端使用watch命令监视某个键，那么服务器对被监视的键进行修改后，会标记其为脏键。</p>
+<p>5、服务器每修改一个键后，都会对脏键计数器的值加1，这个计数器会触发服务器的持久化以及赋值操作。</p>
+<p>6、如果服务器开启了数据库通知功能，对键进行修改后，会按配置发送给相应的数据库通知。</p>
+<h4 id="设置键的生存时间或过期时间"><a href="#设置键的生存时间或过期时间" class="headerlink" title="设置键的生存时间或过期时间"></a>设置键的生存时间或过期时间</h4><h5 id="如何保存过期时间"><a href="#如何保存过期时间" class="headerlink" title="如何保存过期时间"></a>如何保存过期时间</h5><p>redisDb结构的expires字典保存了数据库中所有键的过期时间，我们称之为过期字典。</p>
+<p>过期字典的键是一个指针，指向键空间中的某个键对象。值是一个long long类型的整数，保存了过期时间。</p>
+<p>具体如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323141113896.png" alt="image-20230323141113896"></p>
+<p>expires指向另外的一个字典，这个字典里面存储了每一个值的过期时间。</p>
+<h5 id="如何判断键是否过期"><a href="#如何判断键是否过期" class="headerlink" title="如何判断键是否过期"></a>如何判断键是否过期</h5><p>首先看过期字典中是否含有该键，如果存在，获取过期时间，与当前时间对比做判断，如果小于当前时间，则说明过期。</p>
+<h4 id="过期键删除策略"><a href="#过期键删除策略" class="headerlink" title="过期键删除策略"></a>过期键删除策略</h4><h5 id="定时删除"><a href="#定时删除" class="headerlink" title="定时删除"></a>定时删除</h5><p>在设置键过期时间的同时，创建一个定时器，让定时器在键过期时立即执行对键的删除。</p>
+<p>优点：对内存友好，过期后会被立马删除。</p>
+<p>缺点：对cpu不友好，如果过期键设置的太多，则定时器会占用太多的cpu资源。</p>
+<h5 id="惰性删除"><a href="#惰性删除" class="headerlink" title="惰性删除"></a>惰性删除</h5><p>只有在用到该键时，才取检查它是否过期，过期则删除，否则返回。</p>
+<p>优点：不占用cpu资源。不会影响到redis处理客户端的请求。</p>
+<p>缺点：会造成内存泄漏。如果一个键过期，它如果没有被再次访问，则无法删除。</p>
+<h5 id="定期删除"><a href="#定期删除" class="headerlink" title="定期删除"></a>定期删除</h5><p>每隔一段时间，程序就检查一次数据库，删除里面的过期键，至于检查多少以及删除多少，由算法决定。</p>
+<p>该算法的好坏取决于设定，不能太频繁的去删除，导致cpu资源浪费在了检索以及删除过期数据，也不能太长时间不删除导致里面很多过期数据。</p>
+<h4 id="Redis过期键删除策略"><a href="#Redis过期键删除策略" class="headerlink" title="Redis过期键删除策略"></a>Redis过期键删除策略</h4><p>redis是将惰性删除和定期删除这两种策略配合使用。</p>
+<p>惰性删除就是每次读写数据库命令执行前，都会调用一个函数检查键是否过期。</p>
+<p>定期删除函数每次运行时，都会抽取一定量的随机键进行检查，并删除其中过期的键。有一个全局变量current_db会记录当前检查的进度，下次定期删除时会从这里开始。当服务器中数据都被检查一边时，这个值会被设置为0。</p>
+<h4 id="AOF和RDB以及复制对过期键的处理"><a href="#AOF和RDB以及复制对过期键的处理" class="headerlink" title="AOF和RDB以及复制对过期键的处理"></a>AOF和RDB以及复制对过期键的处理</h4><h5 id="生成RDB文件"><a href="#生成RDB文件" class="headerlink" title="生成RDB文件"></a>生成RDB文件</h5><p>在执行SAVE或者BGSAVE命令创建一个RDB文件时，会对数据库的键进行检查，已经过期的不会写入RDB文件。</p>
+<h5 id="载入RDB文件"><a href="#载入RDB文件" class="headerlink" title="载入RDB文件"></a>载入RDB文件</h5><p>如果以主服务器的模式加载RDB文件，则会对键进行检查，过期的不会载入。</p>
+<p>如果以从服务器模式运行，则会保留所有键，不论是否过期。</p>
+<h5 id="AOF文件写入"><a href="#AOF文件写入" class="headerlink" title="AOF文件写入"></a>AOF文件写入</h5><p>当服务器采用AOF模式持久化，如果数据库某个键过期，但是还没被删除，则对AOF文件没有影响，但是删除时会向AOF文件中追加该记录被删除的命令。</p>
+<h5 id="AOF重写"><a href="#AOF重写" class="headerlink" title="AOF重写"></a>AOF重写</h5><p>AOF重写的过程中会进行检查，过期键不会保留。</p>
+<h5 id="复制"><a href="#复制" class="headerlink" title="复制"></a>复制</h5><p>当服务器运行在复制模式下，从服务对过期键删除动作由主服务器控制：</p>
+<p>1、主服务器删除一个过期键后，会向所有从服务器发送一条命令，通知其删除。</p>
+<p>2、从服务器在接受到读命令时，尽管碰到过期键也不会删除，而是返回。（这本书创作时对应的redis版本最高为3.0，而后续高版本的redis在某些配置下会删除从服务上的过期键，但是删除从服务器数据后并不会主动删除主服务器的过期数据）</p>
+<p>3、从服务器接收到主服务命令后才会删除过期键。</p>
+<p>这样设置的目的是为了保存数据的一致性。</p>
 ]]></content>
       <categories>
         <category>Redis</category>
@@ -637,48 +802,25 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis数据库结构</title>
-    <url>/2022/11/11/Redis%E6%95%B0%E6%8D%AE%E5%BA%93%E7%BB%93%E6%9E%84/</url>
-    <content><![CDATA[<h3 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">// 一个数组，保存着服务器中所有的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 服务器数据库的数量</span></span><br><span class="line">    <span class="type">int</span> dbnum;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisClient</span> &#123;</span></span><br><span class="line">    <span class="comment">// 记录客户端当前正在使用的数据库</span></span><br><span class="line">   	redisDb *db;</span><br><span class="line">    </span><br><span class="line">&#125; redisClient;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisDb</span> &#123;</span></span><br><span class="line">    <span class="comment">// 数据库键空间，保存着数据库中的所有键值对</span></span><br><span class="line">    dict *dict;</span><br><span class="line">    </span><br><span class="line">&#125; redisDb;</span><br></pre></td></tr></table></figure>
+    <title>Redis设计之基本数据结构（一）</title>
+    <url>/2022/11/05/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%80%EF%BC%89/</url>
+    <content><![CDATA[<h3 id="简单动态字符串SDS"><a href="#简单动态字符串SDS" class="headerlink" title="简单动态字符串SDS"></a>简单动态字符串SDS</h3><h4 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h4><p>1、保存数据库中字符串的值</p>
+<p>2、AOF中的缓冲区以及客户端状态中的缓冲区</p>
+<h4 id="具体结构代码"><a href="#具体结构代码" class="headerlink" title="具体结构代码"></a>具体结构代码</h4><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">	<span class="comment">// 记录buf数组中已经使用字节的数量</span></span><br><span class="line">    <span class="comment">// 等于SDS所保存字符串的长度</span></span><br><span class="line">    <span class="type">int</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录buf数组中未使用字节的数量</span></span><br><span class="line">    <span class="type">int</span> <span class="built_in">free</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字节数组，用于保存字符串</span></span><br><span class="line">    <span class="type">char</span> buf[];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>一个具体结构如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323111004847.png" alt="image-20230323111004847"></p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112244296.png"></p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323112514862.png" alt="image-20230323112514862"></p>
-<p>总的来说，就是一个redis实例，会有一个redisServer结构体，该结构体中db是一个数组，数组每一个元素代表一个数据库，每个db结构体就是一个具体的存放键值对的数据库。每一个redisClient结构体代表了一个客户端，该客户端指针会指向redisServer结构体db数组中的一个，代表使用该数据库。其中dict就是用户直接看到的数据库。</p>
-<h3 id="数据库键的一些操作"><a href="#数据库键的一些操作" class="headerlink" title="数据库键的一些操作"></a>数据库键的一些操作</h3><h4 id="读写键空间时的维护操作"><a href="#读写键空间时的维护操作" class="headerlink" title="读写键空间时的维护操作"></a>读写键空间时的维护操作</h4><p>1、在读取一个键后，服务器会根据键是否命中来更新服务器键空间命中次数或者见空间不命中的次数。</p>
-<p>2、在读取一个键后，服务器会更新键的LRU（最后一次使用）时间，这个值可以用于计算闲置时间。</p>
-<p>3、如果服务器读取一个键发现已经过期，则会删除该键。</p>
-<p>4、如果客户端使用watch命令监视某个键，那么服务器对被监视的键进行修改后，会标记其为脏键。</p>
-<p>5、服务器每修改一个键后，都会对脏键计数器的值加1，这个计数器会触发服务器的持久化以及赋值操作。</p>
-<p>6、如果服务器开启了数据库通知功能，对键进行修改后，会按配置发送给相应的数据库通知。</p>
-<h4 id="设置键的生存时间或过期时间"><a href="#设置键的生存时间或过期时间" class="headerlink" title="设置键的生存时间或过期时间"></a>设置键的生存时间或过期时间</h4><h5 id="如何保存过期时间"><a href="#如何保存过期时间" class="headerlink" title="如何保存过期时间"></a>如何保存过期时间</h5><p>redisDb结构的expires字典保存了数据库中所有键的过期时间，我们称之为过期字典。</p>
-<p>过期字典的键是一个指针，指向键空间中的某个键对象。值是一个long long类型的整数，保存了过期时间。</p>
-<p>具体如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230323141113896.png" alt="image-20230323141113896"></p>
-<p>expires指向另外的一个字典，这个字典里面存储了每一个值的过期时间。</p>
-<h5 id="如何判断键是否过期"><a href="#如何判断键是否过期" class="headerlink" title="如何判断键是否过期"></a>如何判断键是否过期</h5><p>首先看过期字典中是否含有该键，如果存在，获取过期时间，与当前时间对比做判断，如果小于当前时间，则说明过期。</p>
-<h4 id="过期键删除策略"><a href="#过期键删除策略" class="headerlink" title="过期键删除策略"></a>过期键删除策略</h4><h5 id="定时删除"><a href="#定时删除" class="headerlink" title="定时删除"></a>定时删除</h5><p>在设置键过期时间的同时，创建一个定时器，让定时器在键过期时立即执行对键的删除。</p>
-<p>优点：对内存友好，过期后会被立马删除。</p>
-<p>缺点：对cpu不友好，如果过期键设置的太多，则定时器会占用太多的cpu资源。</p>
-<h5 id="惰性删除"><a href="#惰性删除" class="headerlink" title="惰性删除"></a>惰性删除</h5><p>只有在用到该键时，才取检查它是否过期，过期则删除，否则返回。</p>
-<p>优点：不占用cpu资源。不会影响到redis处理客户端的请求。</p>
-<p>缺点：会造成内存泄漏。如果一个键过期，它如果没有被再次访问，则无法删除。</p>
-<h5 id="定期删除"><a href="#定期删除" class="headerlink" title="定期删除"></a>定期删除</h5><p>每隔一段时间，程序就检查一次数据库，删除里面的过期键，至于检查多少以及删除多少，由算法决定。</p>
-<p>该算法的好坏取决于设定，不能太频繁的去删除，导致cpu资源浪费在了检索以及删除过期数据，也不能太长时间不删除导致里面很多过期数据。</p>
-<h4 id="Redis过期键删除策略"><a href="#Redis过期键删除策略" class="headerlink" title="Redis过期键删除策略"></a>Redis过期键删除策略</h4><p>redis是将惰性删除和定期删除这两种策略配合使用。</p>
-<p>惰性删除就是每次读写数据库命令执行前，都会调用一个函数检查键是否过期。</p>
-<p>定期删除函数每次运行时，都会抽取一定量的随机键进行检查，并删除其中过期的键。有一个全局变量current_db会记录当前检查的进度，下次定期删除时会从这里开始。当服务器中数据都被检查一边时，这个值会被设置为0。</p>
-<h4 id="AOF和RDB以及复制对过期键的处理"><a href="#AOF和RDB以及复制对过期键的处理" class="headerlink" title="AOF和RDB以及复制对过期键的处理"></a>AOF和RDB以及复制对过期键的处理</h4><h5 id="生成RDB文件"><a href="#生成RDB文件" class="headerlink" title="生成RDB文件"></a>生成RDB文件</h5><p>在执行SAVE或者BGSAVE命令创建一个RDB文件时，会对数据库的键进行检查，已经过期的不会写入RDB文件。</p>
-<h5 id="载入RDB文件"><a href="#载入RDB文件" class="headerlink" title="载入RDB文件"></a>载入RDB文件</h5><p>如果以主服务器的模式加载RDB文件，则会对键进行检查，过期的不会载入。</p>
-<p>如果以从服务器模式运行，则会保留所有键，不论是否过期。</p>
-<h5 id="AOF文件写入"><a href="#AOF文件写入" class="headerlink" title="AOF文件写入"></a>AOF文件写入</h5><p>当服务器采用AOF模式持久化，如果数据库某个键过期，但是还没被删除，则对AOF文件没有影响，但是删除时会向AOF文件中追加该记录被删除的命令。</p>
-<h5 id="AOF重写"><a href="#AOF重写" class="headerlink" title="AOF重写"></a>AOF重写</h5><p>AOF重写的过程中会进行检查，过期键不会保留。</p>
-<h5 id="复制"><a href="#复制" class="headerlink" title="复制"></a>复制</h5><p>当服务器运行在复制模式下，从服务对过期键删除动作由主服务器控制：</p>
-<p>1、主服务器删除一个过期键后，会向所有从服务器发送一条命令，通知其删除。</p>
-<p>2、从服务器在接受到读命令时，尽管碰到过期键也不会删除，而是返回。（这本书创作时对应的redis版本最高为3.0，而后续高版本的redis在某些配置下会删除从服务上的过期键，但是删除从服务器数据后并不会主动删除主服务器的过期数据）</p>
-<p>3、从服务器接收到主服务命令后才会删除过期键。</p>
-<p>这样设置的目的是为了保存数据的一致性。</p>
+<p>因为C语言的字符串在每次赋值前都需要申请空间，而且获取长度需要遍历整个字符串，所以Redis采用上述设计。</p>
+<h4 id="SDS的好处"><a href="#SDS的好处" class="headerlink" title="SDS的好处"></a>SDS的好处</h4><p>1、可以在O(1)的时间复杂度之内获取到字符串的长度。</p>
+<p>2、杜绝缓冲区的溢出。</p>
+<p>​	SDS的API每次操作SDS时，会先检查SDS空间是否满足，如果不满足会将空间扩展至足够的大小，然后才执行实际的修改。</p>
+<p>3、减少修改字符串时带来的内存分配的次数。在C语言中，每一次修改字符串都需要重新分配内存空间，而SDS采用空间预分配和惰性删除来减少分配次数</p>
+<p>​	1）空间预分配：如果需要对SDS进行扩容，如果扩容后SDS的长度小于1mb，那么就会额外分配len长度的空间。比如原来10kb，扩容后30kb，小于1mb，就会多分配30kb。如果大于1mb，就会额外分配1mb。</p>
+<p>​	2）惰性删除：当需要缩短字符串时，SDS并不会了立即释放多余的空间，而是使用free字段来记录这些空间，等到下一次分配时使用。同时也提供了API进行真正的释放这些空间。</p>
+<h3 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><p>1、发布与订阅</p>
+<p>2、慢查询</p>
+<p>3、监视器</p>
+<p>4、构建客户端输出缓冲区</p>
+<h4 id="链表以及链表节点的实现"><a href="#链表以及链表节点的实现" class="headerlink" title="链表以及链表节点的实现"></a>链表以及链表节点的实现</h4><p>链表的每一个节点结构体</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 链表每个节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 前置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">prev</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 后置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">next</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点的值</span></span><br><span class="line">    <span class="type">void</span> *val;</span><br><span class="line">&#125; listNode;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 整个链表</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 表头节点</span></span><br><span class="line">    listNode *head;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 表尾节点</span></span><br><span class="line">    listNode *tail;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 链表所包含节点的数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点复制函数</span></span><br><span class="line">    <span class="type">void</span> *(*dup) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值释放函数</span></span><br><span class="line">    <span class="type">void</span> (*<span class="built_in">free</span>) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值对比函数</span></span><br><span class="line">    <span class="type">int</span> (*match) &#123;<span class="type">void</span> *ptr, <span class="type">void</span> * key;&#125;</span><br><span class="line">&#125; <span class="built_in">list</span>;</span><br></pre></td></tr></table></figure>
 ]]></content>
       <categories>
         <category>Redis</category>
@@ -711,53 +853,6 @@
       </categories>
       <tags>
         <tag>数据一致性</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Redis集群方案之Codis</title>
-    <url>/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/</url>
-    <content><![CDATA[<h3 id="codis集群中包含的4个组件"><a href="#codis集群中包含的4个组件" class="headerlink" title="codis集群中包含的4个组件"></a>codis集群中包含的4个组件</h3><p>1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。</p>
-<p>2、codis proxy：接收客户端请求，并把请求转发给 codis server。</p>
-<p>3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。</p>
-<p>4、codis dashboard 和 codis fe：共同组成了集群管理工具。其中，codis dashboard 负责执行集群管理工作，包括增删 codis server、codis proxy 和进行数据迁移。而 codis fe 负责提供 dashboard 的 Web 操作界面，便于我们直接在 Web 界面上进行集群管理。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321095144355.png" alt="image-20230321095144355"></p>
-<h3 id="Codis处理请求流程"><a href="#Codis处理请求流程" class="headerlink" title="Codis处理请求流程"></a>Codis处理请求流程</h3><p>1、首先使用codis dashboard 设置 codis server 和 codis proxy 的访问地址。</p>
-<p>2、客户端与coids proxy建立连接。codis proxy本身支持Redis的RESP交互协议，所以与codis proxy建立连接与原生Redis没有区别。</p>
-<p>3、coids proxy接受到请求后，会查询请求数据和coids proxy的映射关系，然后把请求转发给对应的coids server，处理完后会把结果返回给coids proxy，然后由代理（coids proxy）返回给客户端。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321100625064.png" alt="image-20230321100625064"></p>
-<h3 id="Codis关键技术原理"><a href="#Codis关键技术原理" class="headerlink" title="Codis关键技术原理"></a>Codis关键技术原理</h3><h4 id="数据如何在集群里分布"><a href="#数据如何在集群里分布" class="headerlink" title="数据如何在集群里分布"></a>数据如何在集群里分布</h4><p>在 Codis 集群中，一个数据应该保存在哪个 codis server 上，这是通过逻辑槽（Slot）映射来完成的。</p>
-<p>coids集群又1024个Slot，编号0-1023，我们可以手动把这些Slot分给codis server，也可以使用dashboard进行自动分配。</p>
-<p>当客户端要读写数据时，会使用 CRC32 算法计算数据 key 的哈希值，并把这个哈希值对 1024 取模。而取模后的值，则对应 Slot 的编号。此时，根据第一步分配的 Slot 和 server 对应关系，我们就可以知道数据保存在哪个 server 上了。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321101725696.png" alt="image-20230321101725696"></p>
-<p>数据 key 和 Slot 的映射关系是客户端在读写数据前直接通过 CRC32 计算得到的，而 Slot 和 codis server 的映射关系是通过分配完成的，所以就需要用一个存储系统保存下来。</p>
-<p>Slot 和 codis server 的映射关系称为数据路由表（简称路由表）。我们在 codis dashboard 上分配好路由表后，dashboard 会把路由表发送给 codis proxy，同时，dashboard 也会把路由表保存在 Zookeeper 中。codis-proxy 会把路由表缓存在本地，当它接收到客户端请求后，直接查询本地的路由表，就可以完成正确的请求转发了。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321102745604.png" alt="image-20230321102745604"></p>
-<h3 id="Codis与Redis-Cluster映射区别"><a href="#Codis与Redis-Cluster映射区别" class="headerlink" title="Codis与Redis Cluster映射区别"></a>Codis与Redis Cluster映射区别</h3><p>Codis 中的路由表是我们通过 codis dashboard 分配和修改的，并被保存在 Zookeeper 集群中。一旦路由表被修改，codis dashbaord 就会把修改后的路由表发送给 codis proxy，然后proxy就可以进行转发。</p>
-<p>在 Redis Cluster 中，数据路由表是通过每个实例相互间的通信传递的，最后会在每个实例上保存一份。当数据路由信息发生变化时，就需要在所有实例间通过网络消息进行传递。</p>
-<h3 id="Codis如何进行扩容和数据迁移"><a href="#Codis如何进行扩容和数据迁移" class="headerlink" title="Codis如何进行扩容和数据迁移"></a>Codis如何进行扩容和数据迁移</h3><p>扩容包括增加 codis server 和增加 codis proxy。</p>
-<h4 id="增加codis-server"><a href="#增加codis-server" class="headerlink" title="增加codis server"></a>增加codis server</h4><p>1、增加codis server，将他们加入集群。</p>
-<p>2、把部分数据迁移到新的 server。</p>
-<h5 id="数据迁移过程"><a href="#数据迁移过程" class="headerlink" title="数据迁移过程"></a>数据迁移过程</h5><p>1、在源 server 上，Codis 从要迁移的 Slot 中随机选择一个数据，发送给目的 server。</p>
-<p>比如原来有server 1，2，3。现在新添加了一个4，这一步就是从1或2或3中随机选一个数据发送给4。</p>
-<p>2、目的 server 确认收到数据后，会给源 server 返回确认消息。这时，源 server 会在本地将刚才迁移的数据删除。</p>
-<p>3、第一步和第二步就是单个数据的迁移过程。Codis 会不断重复这个迁移过程，直到要迁移的 Slot 中的数据全部迁移完成。</p>
-<h5 id="迁移种类：同步迁移和异步迁移"><a href="#迁移种类：同步迁移和异步迁移" class="headerlink" title="迁移种类：同步迁移和异步迁移"></a>迁移种类：同步迁移和异步迁移</h5><p>同步迁移：在数据从源 server 发送给目的 server 的过程中，源 server 是阻塞的，无法处理新的请求操作。这种比较简单，但是迁移过程会设计多个操作，包括数据在源 server 序列化、网络传输、在目的 server 反序列化，以及在源 server 删除，如果是一个bigKey，就会导致阻塞时间过长。</p>
-<p>异步迁移：当源 server 把数据发送给目的 server 后，就可以处理其他请求操作了，不用等到目的 server 的命令执行完。目的server收到数据并反序列化保存到本地后，给源server发送一个ACK消息，这时源server删除数据。在这个过程中，目标数据被设置为只读，也就不会出现迁移完数据不一致的情况。</p>
-<p>异步迁移对于bigKey采用拆分指令的方式。即对于bigKey中的每一个元素采用一条指令进行迁移，而不是把整个bigKey序列化然后迁移。避免了因序列化bigKey而导致的源server阻塞。</p>
-<p>此外，当 bigkey 迁移了一部分数据后，如果 Codis 发生故障，就会导致 bigkey 的一部分元素在源 server，而另一部分元素在目的 server，这就破坏了迁移的原子性。</p>
-<p>所以，Codis 会在目标 server 上，给 bigkey 的元素设置一个临时过期时间。如果迁移过程中发生故障，那么，目标 server 上的 key 会在过期后被删除，不会影响迁移的原子性。当正常完成迁移后，bigkey 元素的临时过期时间会被删除。</p>
-<h4 id="增加codis-proxy"><a href="#增加codis-proxy" class="headerlink" title="增加codis proxy"></a>增加codis proxy</h4><p>启动一个新的proxy，直接使用codis dashboard加入集群即可。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321105733398.png" alt="image-20230321105733398"></p>
-<h3 id="怎么保证集群可靠性"><a href="#怎么保证集群可靠性" class="headerlink" title="怎么保证集群可靠性"></a>怎么保证集群可靠性</h3><h4 id="codis-server-的可靠性"><a href="#codis-server-的可靠性" class="headerlink" title="codis server 的可靠性"></a>codis server 的可靠性</h4><p>Codis 就使用主从集群来保证 codis server 的可靠性。简单来说就是，Codis 给每个 server 配置从库，并使用哨兵机制进行监控，当发生故障时，主从库可以进行切换，从而保证了 server 的可靠性。</p>
-<p>在这种配置情况下，每个 server 就成为了一个 server group，每个 group 中是一主多从的 server。数据分布使用的 Slot，也是按照 group 的粒度进行分配的。同时，codis proxy 在转发请求时，也是按照数据所在的 Slot 和 group 的对应关系，把写请求发到相应 group 的主库，读请求发到 group 中的主库或从库上。</p>
-<h4 id="codis-proxy-和-Zookeeper的可靠性"><a href="#codis-proxy-和-Zookeeper的可靠性" class="headerlink" title="codis proxy 和 Zookeeper的可靠性"></a>codis proxy 和 Zookeeper的可靠性</h4><p>proxy 上的信息源头都是来自 Zookeeper（例如路由表）。而 Zookeeper 集群使用多个实例来保存数据，只要有超过半数的 Zookeeper 实例可以正常工作， Zookeeper 集群就可以提供服务，也可以保证这些数据的可靠性。</p>
-<h4 id="Codis-和-Redis-Cluster对比"><a href="#Codis-和-Redis-Cluster对比" class="headerlink" title="Codis 和 Redis Cluster对比"></a>Codis 和 Redis Cluster对比</h4><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321112450765.png" alt="image-20230321112450765"></p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>集群</tag>
       </tags>
   </entry>
   <entry>
@@ -814,70 +909,84 @@
       </tags>
   </entry>
   <entry>
-    <title>一条sql更新语句是如何执行的</title>
-    <url>/2023/03/29/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
-    <content><![CDATA[<p>一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。</p>
-<h2 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log(重做日志)"></a>redo log(重做日志)</h2><p>在MySQL中，如果每一次更新都要写进磁盘，而磁盘又需要找到对应记录的位置，然后再更新，整个过程I&#x2F;O成本，查找都很高，所以MySQL采用WAL技术，全称是Write-Ahead Logging，关键点就是先写日志，然后再写磁盘。</p>
-<p>具体做法是，当有一条记录需要更新的时候，InnoDB引擎就会先把记录写到redo log里面，并更新内存，这个时候更新就算完成了。同时，InnoDB引擎会在适当的时候，将这个操作记录更新到磁盘里面，而这个更新往往是在系统比较空闲的时候。</p>
-<p>而InnoDB的redo log大小是固定的，可以进行配置，如果被写满，那么就会从头开始写。可以理解为一个循环队列，如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329094715314.png" alt="image-20230329094715314"></p>
-<p>write pos是当前记录的位置，一边写一边后移，写到第3号文件末尾后就回到0号文件开头。checkpoint是当前要擦除的位置，也是往后推移并且循环的，擦除记录前要把记录更新到数据文件。write pos和checkpoint之间的位置就是空闲的，可以用来记录操作。如果write pos追上checkpoint，就表示写满了，需要清除一些记录，再继续写。</p>
-<p>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为<strong>crash-safe</strong>。</p>
-<h2 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog(归档日志)"></a>binlog(归档日志)</h2><p>上面提到的redo log是属于引擎层的日志，是InnoDB特有的。而binlog，则是Server层自己的日志。</p>
-<h3 id="这两种日志的区别"><a href="#这两种日志的区别" class="headerlink" title="这两种日志的区别"></a>这两种日志的区别</h3><p>1、redo log记录的是对某一个数据页所做的修改，它主要目的是防止数据库宕机重启后有部分修改没来得及同步到磁盘，可以去redo log中查找然后写入磁盘（因为修改数据时采用先写日志，然后修改内存，并不会立即去修改磁盘中的数据）。最简单的说法，他其实是为了保证数据库数据的持久性与完整性。</p>
-<p>而binlog则记录了所有对数据库所作的修改，最简单理解就是记录了sql语句，以及对应语句的反向，比如执行delete操作，它不仅会记录这个delete，还会生成对应的insert语句，我们可以用它来将数据恢复到之前的某一时刻。其实就是数据库备份，主备，主主，主从都需要依赖binlog。</p>
-<p>2、redo log 是循环写，而binlog是追加写（不会覆盖之前的）。</p>
-<p>3、redo log是InnoDB特有的，binlog是MySQL的Server层实现的。</p>
-<h2 id="执行一条update语句的流程"><a href="#执行一条update语句的流程" class="headerlink" title="执行一条update语句的流程"></a>执行一条update语句的流程</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+    <title>Volatile关键字</title>
+    <url>/2023/03/23/Volatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
+    <content><![CDATA[<h3 id="内存模型对volatile的特殊处理"><a href="#内存模型对volatile的特殊处理" class="headerlink" title="内存模型对volatile的特殊处理"></a>内存模型对volatile的特殊处理</h3><p>当一个变量被定义成volatile之后，它将具备两项特性：</p>
+<p>特征一、保证此变量对所有线程的可见性，这里的“可见性”是指当一条线程修改了这个变量的值，新值对于其他线程来说是可以立即得知的。</p>
+<p>而普通变量并不能做到这一点，普通变量的值在线程间传递时均需要通过主内存来完成。比如A修改了一个值，这个值要写回主内存，而线程B只有在A写回主内存后并且读取主内存，才会得知该值改变了。</p>
+<p>volatile变量在各个线程的工作内存中是不存在一致性问题的（从物理存储的角度看，各个线程的工作内存中volatile变量也可以存在不一致的情况，但由于每次使用之前都要先刷新，执行引擎看不到不一致的情况，因此可以认为不存在一致性问题），但是<strong>Java里面的运算操作符并非原子操作</strong>，这导致volatile变量的运算在并发下一样是不安全的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">VolatileTest</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">race</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">increase</span><span class="params">()</span> &#123;</span><br><span class="line">		race++;</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">THREADS_COUNT</span> <span class="operator">=</span> <span class="number">20</span>;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		Thread[] threads = <span class="keyword">new</span> <span class="title class_">Thread</span>[THREADS_COUNT];</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; THREADS_COUNT; i++) &#123;</span><br><span class="line">		threads[i] = <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">			<span class="meta">@Override</span></span><br><span class="line">			<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">				<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">					increase();</span><br><span class="line">				&#125;</span><br><span class="line">        	&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">		threads[i].start();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 等待所有累加线程都结束</span></span><br><span class="line">	<span class="keyword">while</span> (Thread.activeCount() &gt; <span class="number">1</span>)</span><br><span class="line">		Thread.<span class="keyword">yield</span>();</span><br><span class="line">		System.out.println(race);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>1、执行器会先找ID&#x3D;2这一行，该数据页本来就在内存当中，就直接返回给执行器，否则先从磁盘读入内存，再返回。</p>
-<p>2、执行器拿到行数据，进行修改，然后调用引擎接口写入这行数据。</p>
-<p>3、引擎将新输入的数据写入内存，同时将操作更新到redo log，此时redo log 处于prepare转来。然后告知执行器执行完了，随时可以提交事务。</p>
-<p>4、执行器生成这个binlog操作，并发binlog写入磁盘。</p>
-<p>5、执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交状态。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329150131900.png" alt="image-20230329150131900"></p>
-<p>最后三步，将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。</p>
-<h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+<p>这段代码开了20个线程来对race变量进行++，但是会发现每次运行都是不一样的数。volatile关键字保证了race被取到操作栈顶时是正确的，但是在执行race++操作时，由于++操作不是原子进行的。反编译后increase（）方法代码如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">increase</span><span class="params">()</span>;</span><br><span class="line">Code:</span><br><span class="line">Stack=<span class="number">2</span>, Locals=<span class="number">0</span>, Args_size=<span class="number">0</span></span><br><span class="line"><span class="number">0</span>: getstatic #<span class="number">13</span>; <span class="comment">//Field race:I</span></span><br><span class="line"><span class="number">3</span>: iconst_1</span><br><span class="line"><span class="number">4</span>: iadd</span><br><span class="line"><span class="number">5</span>: putstatic #<span class="number">13</span>; <span class="comment">//Field race:I</span></span><br><span class="line"><span class="number">8</span>: <span class="keyword">return</span></span><br><span class="line">LineNumberTable:</span><br><span class="line">line <span class="number">14</span>: <span class="number">0</span></span><br><span class="line">line <span class="number">15</span>: <span class="number">8</span></span><br></pre></td></tr></table></figure>
 
-<p>仍然采用这个例子，假设在执行语句前，c 的值是0。如果我们不采用两阶段提交，先写redo log，然后binlog 或者先写binlog，然后再写redo log。</p>
-<p>两阶段提交主要是为了保证两个日志的数据一致性。</p>
-<h3 id="先写redo-log后写binlog"><a href="#先写redo-log后写binlog" class="headerlink" title="先写redo log后写binlog"></a>先写redo log后写binlog</h3><p>假设在redo log写完，binlog 还没写完，MySQL异常重启，这时重启之后，我们可以根据redo log把数据库的值恢复到1，但是binlog没写完就崩溃了，所以没有这条记录，如果用binlog进行恢复，那么值就是0。</p>
-<h3 id="先写binlog后写redo-log"><a href="#先写binlog后写redo-log" class="headerlink" title="先写binlog后写redo log"></a>先写binlog后写redo log</h3><p>如果binlog写完然后崩溃，但是redo log没写，所以崩溃恢复后的值还是0，但是binlog里面已经记录了把0改为1这条操作，导致数据不一致。</p>
+<p>这步++有4个命令，在中途会被中断，然后其他线程会对race进行修改，而中断完之后再回来执行，就有可能把旧值写到race。</p>
+<p>由于volatile关键字只能保证可见性，所以<strong>不符合</strong>以下场景中需要加锁来保证原子性：</p>
+<p>​	1）运算结果并不依赖变量的当前值，或者能够确保只有单一的线程修改变量的值。</p>
+<p>​	2）变量不需要与其他的状态变量共同参与不变约束。</p>
+<p>特征二、<strong>volatile变量禁止指令重排序优化</strong>，普通的变量仅会保证在该方法的执行过程中所有依赖赋值结果的地方都能获取到正确的结果，而不能保证变量赋值操作的顺序与程序代码中的执行顺序一致。</p>
+<p>使用volatile修饰的变量，在进行编译后会生成一个内存屏障（与垃圾回收那里的内存屏障不同），表示重排序时，屏障后面的指令不能出现再屏障之前。当只有一个处理器时，并不需要屏障，但是当有多个，则需要屏障来保证一致性。</p>
+<p>从硬件上讲，指令重排序指处理器采用了允许将多条指令不按程序的顺序分开发送给各个相应的电路单元进行处理，并不是指可以任意排序，因为要保证运行结果与正序运行一致。</p>
+<h3 id="一些其他的规定"><a href="#一些其他的规定" class="headerlink" title="一些其他的规定"></a>一些其他的规定</h3><p>1、使用volatile修饰的关键字还有一些规定：只有当线程T对变量V执行的前一个动作是load的时候，线程T才能对变量V执行use动作；并且，只有当线程T对变量V执行的后一个动作是use的时候，线程T才能对变量V执行load动作。线程T对变量V的use动作可以认为是和线程T对变量V的load、read动作相关联的，必须连续且一起出现。</p>
+<p>这条规则要求在工作内存中，每次使用V前都必须先<strong>从主内存刷新最新的值</strong>，<strong>用于保证能看见其他线程对变量V所做的修改</strong>。</p>
+<p>2、只有当线程T对变量V执行的前一个动作是assign的时候，线程T才能对变量V执行store动作；并且，只有当线程T对变量V执行的后一个动作是store的时候，线程T才能对变量V执行assign动作。线程T对变量V的assign动作可以认为是和线程T对变量V的store、write动作相关联的，必须连续且一起出现。</p>
+<p>这条规则要求在工作内存中，每次修改V后都必须<strong>立刻同步回主内存中</strong>，用于保证其他线程可以看到自己对变量V所做的修改。</p>
+<p>3、假定动作A是线程T对变量V实施的use或assign动作，假定动作F是和动作A相关联的load或store动作，假定动作P是和动作F相应的对变量V的read或write动作；与此类似，假定动作B是线程T对变量W实施的use或assign动作，假定动作G是和动作B相关联的load或store动作，假定动作Q是和动作G相应的对变量W的read或write动作。如果A先于B，那么P先于Q。</p>
+<p>这条规则要求volatile修饰的变量不会被指令重排序优化，从而保证代码的执行顺序与程序的顺序相同。</p>
+<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>volatile关键字其实只是保证了在每个线程之间可以感知到数据的变化。使用volatile修饰的关键字，在每次使用时都会刷新，拿到最新的值。而且对该关键字修改可以直接让其他线程感知到，并不需要像普通关键字，先由线程A的工作内存写入主内存，然后线程B从主内存读取才能感知到数据的变化。另一特性就是使用volatile修饰的关键字不会受指令重排序的影响。</p>
 ]]></content>
       <categories>
-        <category>MySQL</category>
+        <category>Java</category>
       </categories>
       <tags>
-        <tag>MySQL45讲</tag>
-        <tag>redo log</tag>
+        <tag>线程</tag>
       </tags>
   </entry>
   <entry>
-    <title>Redis设计之基本数据结构（一）</title>
-    <url>/2022/11/05/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%80%EF%BC%89/</url>
-    <content><![CDATA[<h3 id="简单动态字符串SDS"><a href="#简单动态字符串SDS" class="headerlink" title="简单动态字符串SDS"></a>简单动态字符串SDS</h3><h4 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h4><p>1、保存数据库中字符串的值</p>
-<p>2、AOF中的缓冲区以及客户端状态中的缓冲区</p>
-<h4 id="具体结构代码"><a href="#具体结构代码" class="headerlink" title="具体结构代码"></a>具体结构代码</h4><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">	<span class="comment">// 记录buf数组中已经使用字节的数量</span></span><br><span class="line">    <span class="comment">// 等于SDS所保存字符串的长度</span></span><br><span class="line">    <span class="type">int</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录buf数组中未使用字节的数量</span></span><br><span class="line">    <span class="type">int</span> <span class="built_in">free</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字节数组，用于保存字符串</span></span><br><span class="line">    <span class="type">char</span> buf[];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>因为C语言的字符串在每次赋值前都需要申请空间，而且获取长度需要遍历整个字符串，所以Redis采用上述设计。</p>
-<h4 id="SDS的好处"><a href="#SDS的好处" class="headerlink" title="SDS的好处"></a>SDS的好处</h4><p>1、可以在O(1)的时间复杂度之内获取到字符串的长度。</p>
-<p>2、杜绝缓冲区的溢出。</p>
-<p>​	SDS的API每次操作SDS时，会先检查SDS空间是否满足，如果不满足会将空间扩展至足够的大小，然后才执行实际的修改。</p>
-<p>3、减少修改字符串时带来的内存分配的次数。在C语言中，每一次修改字符串都需要重新分配内存空间，而SDS采用空间预分配和惰性删除来减少分配次数</p>
-<p>​	1）空间预分配：如果需要对SDS进行扩容，如果扩容后SDS的长度小于1mb，那么就会额外分配len长度的空间。比如原来10kb，扩容后30kb，小于1mb，就会多分配30kb。如果大于1mb，就会额外分配1mb。</p>
-<p>​	2）惰性删除：当需要缩短字符串时，SDS并不会了立即释放多余的空间，而是使用free字段来记录这些空间，等到下一次分配时使用。同时也提供了API进行真正的释放这些空间。</p>
-<h3 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><p>1、发布与订阅</p>
-<p>2、慢查询</p>
-<p>3、监视器</p>
-<p>4、构建客户端输出缓冲区</p>
-<h4 id="链表以及链表节点的实现"><a href="#链表以及链表节点的实现" class="headerlink" title="链表以及链表节点的实现"></a>链表以及链表节点的实现</h4><p>链表的每一个节点结构体</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 链表每个节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 前置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">prev</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 后置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">next</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点的值</span></span><br><span class="line">    <span class="type">void</span> *val;</span><br><span class="line">&#125; listNode;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 整个链表</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 表头节点</span></span><br><span class="line">    listNode *head;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 表尾节点</span></span><br><span class="line">    listNode *tail;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 链表所包含节点的数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点复制函数</span></span><br><span class="line">    <span class="type">void</span> *(*dup) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值释放函数</span></span><br><span class="line">    <span class="type">void</span> (*<span class="built_in">free</span>) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值对比函数</span></span><br><span class="line">    <span class="type">int</span> (*match) &#123;<span class="type">void</span> *ptr, <span class="type">void</span> * key;&#125;</span><br><span class="line">&#125; <span class="built_in">list</span>;</span><br></pre></td></tr></table></figure>
+    <title>Redis集群方案之Codis</title>
+    <url>/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/</url>
+    <content><![CDATA[<h3 id="codis集群中包含的4个组件"><a href="#codis集群中包含的4个组件" class="headerlink" title="codis集群中包含的4个组件"></a>codis集群中包含的4个组件</h3><p>1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。</p>
+<p>2、codis proxy：接收客户端请求，并把请求转发给 codis server。</p>
+<p>3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。</p>
+<p>4、codis dashboard 和 codis fe：共同组成了集群管理工具。其中，codis dashboard 负责执行集群管理工作，包括增删 codis server、codis proxy 和进行数据迁移。而 codis fe 负责提供 dashboard 的 Web 操作界面，便于我们直接在 Web 界面上进行集群管理。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321095144355.png" alt="image-20230321095144355"></p>
+<h3 id="Codis处理请求流程"><a href="#Codis处理请求流程" class="headerlink" title="Codis处理请求流程"></a>Codis处理请求流程</h3><p>1、首先使用codis dashboard 设置 codis server 和 codis proxy 的访问地址。</p>
+<p>2、客户端与coids proxy建立连接。codis proxy本身支持Redis的RESP交互协议，所以与codis proxy建立连接与原生Redis没有区别。</p>
+<p>3、coids proxy接受到请求后，会查询请求数据和coids proxy的映射关系，然后把请求转发给对应的coids server，处理完后会把结果返回给coids proxy，然后由代理（coids proxy）返回给客户端。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321100625064.png" alt="image-20230321100625064"></p>
+<h3 id="Codis关键技术原理"><a href="#Codis关键技术原理" class="headerlink" title="Codis关键技术原理"></a>Codis关键技术原理</h3><h4 id="数据如何在集群里分布"><a href="#数据如何在集群里分布" class="headerlink" title="数据如何在集群里分布"></a>数据如何在集群里分布</h4><p>在 Codis 集群中，一个数据应该保存在哪个 codis server 上，这是通过逻辑槽（Slot）映射来完成的。</p>
+<p>coids集群又1024个Slot，编号0-1023，我们可以手动把这些Slot分给codis server，也可以使用dashboard进行自动分配。</p>
+<p>当客户端要读写数据时，会使用 CRC32 算法计算数据 key 的哈希值，并把这个哈希值对 1024 取模。而取模后的值，则对应 Slot 的编号。此时，根据第一步分配的 Slot 和 server 对应关系，我们就可以知道数据保存在哪个 server 上了。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321101725696.png" alt="image-20230321101725696"></p>
+<p>数据 key 和 Slot 的映射关系是客户端在读写数据前直接通过 CRC32 计算得到的，而 Slot 和 codis server 的映射关系是通过分配完成的，所以就需要用一个存储系统保存下来。</p>
+<p>Slot 和 codis server 的映射关系称为数据路由表（简称路由表）。我们在 codis dashboard 上分配好路由表后，dashboard 会把路由表发送给 codis proxy，同时，dashboard 也会把路由表保存在 Zookeeper 中。codis-proxy 会把路由表缓存在本地，当它接收到客户端请求后，直接查询本地的路由表，就可以完成正确的请求转发了。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321102745604.png" alt="image-20230321102745604"></p>
+<h3 id="Codis与Redis-Cluster映射区别"><a href="#Codis与Redis-Cluster映射区别" class="headerlink" title="Codis与Redis Cluster映射区别"></a>Codis与Redis Cluster映射区别</h3><p>Codis 中的路由表是我们通过 codis dashboard 分配和修改的，并被保存在 Zookeeper 集群中。一旦路由表被修改，codis dashbaord 就会把修改后的路由表发送给 codis proxy，然后proxy就可以进行转发。</p>
+<p>在 Redis Cluster 中，数据路由表是通过每个实例相互间的通信传递的，最后会在每个实例上保存一份。当数据路由信息发生变化时，就需要在所有实例间通过网络消息进行传递。</p>
+<h3 id="Codis如何进行扩容和数据迁移"><a href="#Codis如何进行扩容和数据迁移" class="headerlink" title="Codis如何进行扩容和数据迁移"></a>Codis如何进行扩容和数据迁移</h3><p>扩容包括增加 codis server 和增加 codis proxy。</p>
+<h4 id="增加codis-server"><a href="#增加codis-server" class="headerlink" title="增加codis server"></a>增加codis server</h4><p>1、增加codis server，将他们加入集群。</p>
+<p>2、把部分数据迁移到新的 server。</p>
+<h5 id="数据迁移过程"><a href="#数据迁移过程" class="headerlink" title="数据迁移过程"></a>数据迁移过程</h5><p>1、在源 server 上，Codis 从要迁移的 Slot 中随机选择一个数据，发送给目的 server。</p>
+<p>比如原来有server 1，2，3。现在新添加了一个4，这一步就是从1或2或3中随机选一个数据发送给4。</p>
+<p>2、目的 server 确认收到数据后，会给源 server 返回确认消息。这时，源 server 会在本地将刚才迁移的数据删除。</p>
+<p>3、第一步和第二步就是单个数据的迁移过程。Codis 会不断重复这个迁移过程，直到要迁移的 Slot 中的数据全部迁移完成。</p>
+<h5 id="迁移种类：同步迁移和异步迁移"><a href="#迁移种类：同步迁移和异步迁移" class="headerlink" title="迁移种类：同步迁移和异步迁移"></a>迁移种类：同步迁移和异步迁移</h5><p>同步迁移：在数据从源 server 发送给目的 server 的过程中，源 server 是阻塞的，无法处理新的请求操作。这种比较简单，但是迁移过程会设计多个操作，包括数据在源 server 序列化、网络传输、在目的 server 反序列化，以及在源 server 删除，如果是一个bigKey，就会导致阻塞时间过长。</p>
+<p>异步迁移：当源 server 把数据发送给目的 server 后，就可以处理其他请求操作了，不用等到目的 server 的命令执行完。目的server收到数据并反序列化保存到本地后，给源server发送一个ACK消息，这时源server删除数据。在这个过程中，目标数据被设置为只读，也就不会出现迁移完数据不一致的情况。</p>
+<p>异步迁移对于bigKey采用拆分指令的方式。即对于bigKey中的每一个元素采用一条指令进行迁移，而不是把整个bigKey序列化然后迁移。避免了因序列化bigKey而导致的源server阻塞。</p>
+<p>此外，当 bigkey 迁移了一部分数据后，如果 Codis 发生故障，就会导致 bigkey 的一部分元素在源 server，而另一部分元素在目的 server，这就破坏了迁移的原子性。</p>
+<p>所以，Codis 会在目标 server 上，给 bigkey 的元素设置一个临时过期时间。如果迁移过程中发生故障，那么，目标 server 上的 key 会在过期后被删除，不会影响迁移的原子性。当正常完成迁移后，bigkey 元素的临时过期时间会被删除。</p>
+<h4 id="增加codis-proxy"><a href="#增加codis-proxy" class="headerlink" title="增加codis proxy"></a>增加codis proxy</h4><p>启动一个新的proxy，直接使用codis dashboard加入集群即可。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321105733398.png" alt="image-20230321105733398"></p>
+<h3 id="怎么保证集群可靠性"><a href="#怎么保证集群可靠性" class="headerlink" title="怎么保证集群可靠性"></a>怎么保证集群可靠性</h3><h4 id="codis-server-的可靠性"><a href="#codis-server-的可靠性" class="headerlink" title="codis server 的可靠性"></a>codis server 的可靠性</h4><p>Codis 就使用主从集群来保证 codis server 的可靠性。简单来说就是，Codis 给每个 server 配置从库，并使用哨兵机制进行监控，当发生故障时，主从库可以进行切换，从而保证了 server 的可靠性。</p>
+<p>在这种配置情况下，每个 server 就成为了一个 server group，每个 group 中是一主多从的 server。数据分布使用的 Slot，也是按照 group 的粒度进行分配的。同时，codis proxy 在转发请求时，也是按照数据所在的 Slot 和 group 的对应关系，把写请求发到相应 group 的主库，读请求发到 group 中的主库或从库上。</p>
+<h4 id="codis-proxy-和-Zookeeper的可靠性"><a href="#codis-proxy-和-Zookeeper的可靠性" class="headerlink" title="codis proxy 和 Zookeeper的可靠性"></a>codis proxy 和 Zookeeper的可靠性</h4><p>proxy 上的信息源头都是来自 Zookeeper（例如路由表）。而 Zookeeper 集群使用多个实例来保存数据，只要有超过半数的 Zookeeper 实例可以正常工作， Zookeeper 集群就可以提供服务，也可以保证这些数据的可靠性。</p>
+<h4 id="Codis-和-Redis-Cluster对比"><a href="#Codis-和-Redis-Cluster对比" class="headerlink" title="Codis 和 Redis Cluster对比"></a>Codis 和 Redis Cluster对比</h4><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321112450765.png" alt="image-20230321112450765"></p>
 ]]></content>
       <categories>
         <category>Redis</category>
       </categories>
       <tags>
-        <tag>Redis设计与实现</tag>
+        <tag>集群</tag>
       </tags>
   </entry>
   <entry>
@@ -939,6 +1048,45 @@
       </tags>
   </entry>
   <entry>
+    <title>一条sql更新语句是如何执行的</title>
+    <url>/2023/03/29/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
+    <content><![CDATA[<p>一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。</p>
+<h2 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log(重做日志)"></a>redo log(重做日志)</h2><p>在MySQL中，如果每一次更新都要写进磁盘，而磁盘又需要找到对应记录的位置，然后再更新，整个过程I&#x2F;O成本，查找都很高，所以MySQL采用WAL技术，全称是Write-Ahead Logging，关键点就是先写日志，然后再写磁盘。</p>
+<p>具体做法是，当有一条记录需要更新的时候，InnoDB引擎就会先把记录写到redo log里面，并更新内存，这个时候更新就算完成了。同时，InnoDB引擎会在适当的时候，将这个操作记录更新到磁盘里面，而这个更新往往是在系统比较空闲的时候。</p>
+<p>而InnoDB的redo log大小是固定的，可以进行配置，如果被写满，那么就会从头开始写。可以理解为一个循环队列，如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329094715314.png" alt="image-20230329094715314"></p>
+<p>write pos是当前记录的位置，一边写一边后移，写到第3号文件末尾后就回到0号文件开头。checkpoint是当前要擦除的位置，也是往后推移并且循环的，擦除记录前要把记录更新到数据文件。write pos和checkpoint之间的位置就是空闲的，可以用来记录操作。如果write pos追上checkpoint，就表示写满了，需要清除一些记录，再继续写。</p>
+<p>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为<strong>crash-safe</strong>。</p>
+<h2 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog(归档日志)"></a>binlog(归档日志)</h2><p>上面提到的redo log是属于引擎层的日志，是InnoDB特有的。而binlog，则是Server层自己的日志。</p>
+<h3 id="这两种日志的区别"><a href="#这两种日志的区别" class="headerlink" title="这两种日志的区别"></a>这两种日志的区别</h3><p>1、redo log记录的是对某一个数据页所做的修改，它主要目的是防止数据库宕机重启后有部分修改没来得及同步到磁盘，可以去redo log中查找然后写入磁盘（因为修改数据时采用先写日志，然后修改内存，并不会立即去修改磁盘中的数据）。最简单的说法，他其实是为了保证数据库数据的持久性与完整性。</p>
+<p>而binlog则记录了所有对数据库所作的修改，最简单理解就是记录了sql语句，以及对应语句的反向，比如执行delete操作，它不仅会记录这个delete，还会生成对应的insert语句，我们可以用它来将数据恢复到之前的某一时刻。其实就是数据库备份，主备，主主，主从都需要依赖binlog。</p>
+<p>2、redo log 是循环写，而binlog是追加写（不会覆盖之前的）。</p>
+<p>3、redo log是InnoDB特有的，binlog是MySQL的Server层实现的。</p>
+<h2 id="执行一条update语句的流程"><a href="#执行一条update语句的流程" class="headerlink" title="执行一条update语句的流程"></a>执行一条update语句的流程</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+
+<p>1、执行器会先找ID&#x3D;2这一行，该数据页本来就在内存当中，就直接返回给执行器，否则先从磁盘读入内存，再返回。</p>
+<p>2、执行器拿到行数据，进行修改，然后调用引擎接口写入这行数据。</p>
+<p>3、引擎将新输入的数据写入内存，同时将操作更新到redo log，此时redo log 处于prepare转来。然后告知执行器执行完了，随时可以提交事务。</p>
+<p>4、执行器生成这个binlog操作，并发binlog写入磁盘。</p>
+<p>5、执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交状态。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329150131900.png" alt="image-20230329150131900"></p>
+<p>最后三步，将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。</p>
+<h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+
+<p>仍然采用这个例子，假设在执行语句前，c 的值是0。如果我们不采用两阶段提交，先写redo log，然后binlog 或者先写binlog，然后再写redo log。</p>
+<p>两阶段提交主要是为了保证两个日志的数据一致性。</p>
+<h3 id="先写redo-log后写binlog"><a href="#先写redo-log后写binlog" class="headerlink" title="先写redo log后写binlog"></a>先写redo log后写binlog</h3><p>假设在redo log写完，binlog 还没写完，MySQL异常重启，这时重启之后，我们可以根据redo log把数据库的值恢复到1，但是binlog没写完就崩溃了，所以没有这条记录，如果用binlog进行恢复，那么值就是0。</p>
+<h3 id="先写binlog后写redo-log"><a href="#先写binlog后写redo-log" class="headerlink" title="先写binlog后写redo log"></a>先写binlog后写redo log</h3><p>如果binlog写完然后崩溃，但是redo log没写，所以崩溃恢复后的值还是0，但是binlog里面已经记录了把0改为1这条操作，导致数据不一致。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>redo log</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis设计与实现之基本数据结构（二）</title>
     <url>/2022/11/06/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%BA%8C%EF%BC%89/</url>
     <content><![CDATA[<h3 id="字典"><a href="#字典" class="headerlink" title="字典"></a>字典</h3><h4 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h4><p>字典又称符号表、关联数组或映射，是一种用于保存键值对的抽象数据结构。</p>
@@ -974,40 +1122,6 @@
       </categories>
       <tags>
         <tag>Redis设计与实现</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Volatile关键字</title>
-    <url>/2023/03/23/Volatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
-    <content><![CDATA[<h3 id="内存模型对volatile的特殊处理"><a href="#内存模型对volatile的特殊处理" class="headerlink" title="内存模型对volatile的特殊处理"></a>内存模型对volatile的特殊处理</h3><p>当一个变量被定义成volatile之后，它将具备两项特性：</p>
-<p>特征一、保证此变量对所有线程的可见性，这里的“可见性”是指当一条线程修改了这个变量的值，新值对于其他线程来说是可以立即得知的。</p>
-<p>而普通变量并不能做到这一点，普通变量的值在线程间传递时均需要通过主内存来完成。比如A修改了一个值，这个值要写回主内存，而线程B只有在A写回主内存后并且读取主内存，才会得知该值改变了。</p>
-<p>volatile变量在各个线程的工作内存中是不存在一致性问题的（从物理存储的角度看，各个线程的工作内存中volatile变量也可以存在不一致的情况，但由于每次使用之前都要先刷新，执行引擎看不到不一致的情况，因此可以认为不存在一致性问题），但是<strong>Java里面的运算操作符并非原子操作</strong>，这导致volatile变量的运算在并发下一样是不安全的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">VolatileTest</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">volatile</span> <span class="type">int</span> <span class="variable">race</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">increase</span><span class="params">()</span> &#123;</span><br><span class="line">		race++;</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">int</span> <span class="variable">THREADS_COUNT</span> <span class="operator">=</span> <span class="number">20</span>;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		Thread[] threads = <span class="keyword">new</span> <span class="title class_">Thread</span>[THREADS_COUNT];</span><br><span class="line">		<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; THREADS_COUNT; i++) &#123;</span><br><span class="line">		threads[i] = <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">			<span class="meta">@Override</span></span><br><span class="line">			<span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">				<span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10000</span>; i++) &#123;</span><br><span class="line">					increase();</span><br><span class="line">				&#125;</span><br><span class="line">        	&#125;</span><br><span class="line">		&#125;);</span><br><span class="line">		threads[i].start();</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="comment">// 等待所有累加线程都结束</span></span><br><span class="line">	<span class="keyword">while</span> (Thread.activeCount() &gt; <span class="number">1</span>)</span><br><span class="line">		Thread.<span class="keyword">yield</span>();</span><br><span class="line">		System.out.println(race);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这段代码开了20个线程来对race变量进行++，但是会发现每次运行都是不一样的数。volatile关键字保证了race被取到操作栈顶时是正确的，但是在执行race++操作时，由于++操作不是原子进行的。反编译后increase（）方法代码如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">increase</span><span class="params">()</span>;</span><br><span class="line">Code:</span><br><span class="line">Stack=<span class="number">2</span>, Locals=<span class="number">0</span>, Args_size=<span class="number">0</span></span><br><span class="line"><span class="number">0</span>: getstatic #<span class="number">13</span>; <span class="comment">//Field race:I</span></span><br><span class="line"><span class="number">3</span>: iconst_1</span><br><span class="line"><span class="number">4</span>: iadd</span><br><span class="line"><span class="number">5</span>: putstatic #<span class="number">13</span>; <span class="comment">//Field race:I</span></span><br><span class="line"><span class="number">8</span>: <span class="keyword">return</span></span><br><span class="line">LineNumberTable:</span><br><span class="line">line <span class="number">14</span>: <span class="number">0</span></span><br><span class="line">line <span class="number">15</span>: <span class="number">8</span></span><br></pre></td></tr></table></figure>
-
-<p>这步++有4个命令，在中途会被中断，然后其他线程会对race进行修改，而中断完之后再回来执行，就有可能把旧值写到race。</p>
-<p>由于volatile关键字只能保证可见性，所以<strong>不符合</strong>以下场景中需要加锁来保证原子性：</p>
-<p>​	1）运算结果并不依赖变量的当前值，或者能够确保只有单一的线程修改变量的值。</p>
-<p>​	2）变量不需要与其他的状态变量共同参与不变约束。</p>
-<p>特征二、<strong>volatile变量禁止指令重排序优化</strong>，普通的变量仅会保证在该方法的执行过程中所有依赖赋值结果的地方都能获取到正确的结果，而不能保证变量赋值操作的顺序与程序代码中的执行顺序一致。</p>
-<p>使用volatile修饰的变量，在进行编译后会生成一个内存屏障（与垃圾回收那里的内存屏障不同），表示重排序时，屏障后面的指令不能出现再屏障之前。当只有一个处理器时，并不需要屏障，但是当有多个，则需要屏障来保证一致性。</p>
-<p>从硬件上讲，指令重排序指处理器采用了允许将多条指令不按程序的顺序分开发送给各个相应的电路单元进行处理，并不是指可以任意排序，因为要保证运行结果与正序运行一致。</p>
-<h3 id="一些其他的规定"><a href="#一些其他的规定" class="headerlink" title="一些其他的规定"></a>一些其他的规定</h3><p>1、使用volatile修饰的关键字还有一些规定：只有当线程T对变量V执行的前一个动作是load的时候，线程T才能对变量V执行use动作；并且，只有当线程T对变量V执行的后一个动作是use的时候，线程T才能对变量V执行load动作。线程T对变量V的use动作可以认为是和线程T对变量V的load、read动作相关联的，必须连续且一起出现。</p>
-<p>这条规则要求在工作内存中，每次使用V前都必须先<strong>从主内存刷新最新的值</strong>，<strong>用于保证能看见其他线程对变量V所做的修改</strong>。</p>
-<p>2、只有当线程T对变量V执行的前一个动作是assign的时候，线程T才能对变量V执行store动作；并且，只有当线程T对变量V执行的后一个动作是store的时候，线程T才能对变量V执行assign动作。线程T对变量V的assign动作可以认为是和线程T对变量V的store、write动作相关联的，必须连续且一起出现。</p>
-<p>这条规则要求在工作内存中，每次修改V后都必须<strong>立刻同步回主内存中</strong>，用于保证其他线程可以看到自己对变量V所做的修改。</p>
-<p>3、假定动作A是线程T对变量V实施的use或assign动作，假定动作F是和动作A相关联的load或store动作，假定动作P是和动作F相应的对变量V的read或write动作；与此类似，假定动作B是线程T对变量W实施的use或assign动作，假定动作G是和动作B相关联的load或store动作，假定动作Q是和动作G相应的对变量W的read或write动作。如果A先于B，那么P先于Q。</p>
-<p>这条规则要求volatile修饰的变量不会被指令重排序优化，从而保证代码的执行顺序与程序的顺序相同。</p>
-<h3 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h3><p>volatile关键字其实只是保证了在每个线程之间可以感知到数据的变化。使用volatile修饰的关键字，在每次使用时都会刷新，拿到最新的值。而且对该关键字修改可以直接让其他线程感知到，并不需要像普通关键字，先由线程A的工作内存写入主内存，然后线程B从主内存读取才能感知到数据的变化。另一特性就是使用volatile修饰的关键字不会受指令重排序的影响。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>线程</tag>
       </tags>
   </entry>
   <entry>
@@ -1085,56 +1199,6 @@
       <tags>
         <tag>消息队列</tag>
       </tags>
-  </entry>
-  <entry>
-    <title>如何避免单线程的Redis阻塞</title>
-    <url>/2023/03/26/%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E5%8D%95%E7%BA%BF%E7%A8%8B%E7%9A%84Redis%E9%98%BB%E5%A1%9E/</url>
-    <content><![CDATA[<h2 id="Redis有哪些阻塞点"><a href="#Redis有哪些阻塞点" class="headerlink" title="Redis有哪些阻塞点"></a>Redis有哪些阻塞点</h2><p><strong>客户端</strong>：网络 IO，键值对增删改查操作，数据库操作；</p>
-<p><strong>磁盘</strong>：生成 RDB 快照，记录 AOF 日志，AOF 日志重写；</p>
-<p><strong>主从节点</strong>：主库生成、传输 RDB 文件，从库接收 RDB 文件、清空数据库、加载 RDB 文件；</p>
-<p><strong>切片集群实例</strong>：向其他实例传输哈希槽信息，数据迁移。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304101219130.png" alt="image-20230304101219130"></p>
-<h3 id="一、和客户端交互时的阻塞点"><a href="#一、和客户端交互时的阻塞点" class="headerlink" title="一、和客户端交互时的阻塞点"></a>一、和客户端交互时的阻塞点</h3><p>Redis采用多路复用I&#x2F;O机制，避免了主线程一直处在等待网络连接或请求到来的状态，所以与客户端的网路通信不会是阻塞点。</p>
-<h4 id="1、查询时的阻塞"><a href="#1、查询时的阻塞" class="headerlink" title="1、查询时的阻塞"></a>1、查询时的阻塞</h4><p>而Reddis中涉及到集合的操作，复杂度通常为O(N)，例如集合元素全量查询操作 HGETALL、SMEMBERS，以及集合的聚合统计操作，例如求交、并和差集。这些操作可以作为 Redis 的<strong>第一个阻塞点：集合全量查询和聚合操作</strong>。</p>
-<h4 id="2、删除时的阻塞"><a href="#2、删除时的阻塞" class="headerlink" title="2、删除时的阻塞"></a>2、删除时的阻塞</h4><p>删除操作的本质是要释放键值对占用的内存空间，释放内存只是第一步，为了更加高效地管理内存空间，在应用程序释放内存时，<strong>操作系统需要把释放掉的内存块插入一个空闲内存块的链表</strong>，以便后续进行管理和再分配。这个过程本身需要一定时间，而且会阻塞当前释放内存的应用程序，所以，如果一下子释放了大量内存，空闲内存块链表操作时间就会增加，相应地就会造成 Redis 主线程的阻塞。</p>
-<p>典型的操作，删出bigKey。</p>
-<h4 id="3、清空数据库阻塞"><a href="#3、清空数据库阻塞" class="headerlink" title="3、清空数据库阻塞"></a>3、清空数据库阻塞</h4><p>在 Redis 的数据库级别操作中，清空数据库（例如 FLUSHDB 和 FLUSHALL 操作）必然也是一个潜在的阻塞风险，因为它涉及到删除和释放所有的键值对。</p>
-<h3 id="二、和磁盘交互时的阻塞点"><a href="#二、和磁盘交互时的阻塞点" class="headerlink" title="二、和磁盘交互时的阻塞点"></a>二、和磁盘交互时的阻塞点</h3><p>虽然redis的设计已经考虑到磁盘IO会带来阻塞，设计时采用子进程方式生成RDB快照文件，以及执行AOF日志重写操作，这两个操作由子进程负责执行，慢速的磁盘 IO 就不会阻塞主线程了。</p>
-<p>但是，Redis 直接记录 AOF 日志时，会根据不同的写回策略对数据做落盘保存。一个同步写磁盘的操作的耗时大约是 1～2ms，如果有大量的写操作需要记录在 AOF 日志中，并同步写回的话，就会阻塞主线程了。这就得到了 Redis 的<strong>第四个阻塞点了：AOF 日志同步写</strong>。</p>
-<h3 id="三、主从节点交互时的阻塞点"><a href="#三、主从节点交互时的阻塞点" class="headerlink" title="三、主从节点交互时的阻塞点"></a>三、主从节点交互时的阻塞点</h3><p>在主从集群中，主库需要生成 RDB 文件，并传输给从库。主库在复制的过程中，创建和传输 RDB 文件都是由子进程来完成的，不会阻塞主线程。但是，对于从库来说，它在接收了 RDB 文件后，需要使用 FLUSHDB 命令清空当前数据库，这就正好撞上了刚才我们分析的<strong>第三个阻塞点。</strong></p>
-<p>此外，从库在清空当前数据库后，还需要把 RDB 文件加载到内存，这个过程的快慢和 RDB 文件的大小密切相关，RDB 文件越大，加载过程越慢，所以，<strong>加载 RDB 文件就成为了 Redis 的第五个阻塞点</strong>。</p>
-<h3 id="四、切片集群实例交互时的阻塞点"><a href="#四、切片集群实例交互时的阻塞点" class="headerlink" title="四、切片集群实例交互时的阻塞点"></a>四、切片集群实例交互时的阻塞点</h3><p>当我们部署 Redis 切片集群时，每个 Redis 实例上分配的哈希槽信息需要在不同实例间进行传递，同时，当需要进行负载均衡或者有实例增删时，数据会在不同的实例间进行迁移。不过，哈希槽的信息量不大，而数据迁移是渐进式执行的，所以，一般来说，这两类操作对 Redis 主线程的阻塞风险不大。</p>
-<p>不过，如果使用了 Redis Cluster 方案，而且同时正好迁移的是 bigkey 的话，就会造成主线程的阻塞，因为 Redis Cluster 使用了同步迁移。</p>
-<h2 id="上述哪些阻塞点可以异步执行？"><a href="#上述哪些阻塞点可以异步执行？" class="headerlink" title="上述哪些阻塞点可以异步执行？"></a>上述哪些阻塞点可以异步执行？</h2><p>首先，异步执行的要求：如果一个操作能被异步执行，就意味着，它并不是 Redis 主线程的关键路径上的操作。我再解释下关键路径上的操作是啥。这就是说，客户端把请求发送给 Redis 后，等着 Redis 返回数据结果的操作。</p>
-<p>对于 Redis 来说，<strong>读操作是典型的关键路径操作</strong>，所以对于<strong>集合全量查询和聚合操作</strong>不能进行异步操作。</p>
-<p>删除操作并不需要给客户端返回具体的数据结果，所以不算是关键路径操作。而上述bigKey删除以及清空数据库都属于删除操作，并不在关键路径上。因此，我们可以使用后台子线程来异步执行删除操作。</p>
-<p>而对于AOF日志同步写来说，虽然需要保证落盘，这个操作需要实例等待，但是并不需要返回结果，所以可以用子进程来完成。</p>
-<p>从库加载RDB这个操作，主库想要对客户端提供数据存取服务，就必须要RDB文件全部加载，所以这个操作也数据关键路径的操作，不能用子进程来完成。</p>
-<h2 id="异步的子线程机制"><a href="#异步的子线程机制" class="headerlink" title="异步的子线程机制"></a>异步的子线程机制</h2><p>Redis 主线程启动后，会使用操作系统提供的 pthread_create 函数创建 3 个子线程，分别由它们负责 AOF 日志写操作、键值对删除以及文件关闭的异步执行。</p>
-<p>主线程通过一个链表形式的任务队列和子线程进行交互。当收到键值对删除和清空数据库的操作时，主线程会把这个操作封装成一个任务，放入到任务队列中，然后给客户端返回一个完成信息，表明删除已经完成。</p>
-<p>但实际上，这个时候删除还没有执行，等到后台子线程从任务队列中读取任务后，才开始实际删除键值对，并释放相应的内存空间。因此，我们把这种异步删除也称为惰性删除（lazy free）。此时，删除或清空操作不会阻塞主线程，这就避免了对主线程的性能影响。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304111048551.png" alt="image-20230304111048551"></p>
-<h2 id="有关lazy-free的一些细节"><a href="#有关lazy-free的一些细节" class="headerlink" title="有关lazy-free的一些细节"></a>有关lazy-free的一些细节</h2><p>1、lazy-free是4.0新增的功能，但是默认是关闭的，需要手动开启。</p>
-<p>2、手动开启lazy-free时，有4个选项可以控制，分别对应不同场景下，要不要开启异步释放内存机制： </p>
-<p>​	a) lazyfree-lazy-expire：key在过期删除时尝试<strong>异步释放内存</strong> </p>
-<p>​	b) lazyfree-lazy-eviction：内存达到maxmemory并设置了淘汰策略时尝试异步释放内存 </p>
-<p>​	c) lazyfree-lazy-server-del：执行RENAME&#x2F;MOVE等命令或需要覆盖一个key时，删除旧key尝试异步释放内存 </p>
-<p>​	d) replica-lazy-flush：主从全量同步，从库清空数据库时异步释放内存 </p>
-<p>3、即使开启了lazy-free，如果直接使用DEL命令还是会同步删除key，只有使用UNLINK命令才会可能异步删除key。 </p>
-<p>4、这也是最关键的一点，上面提到开启lazy-free的场景，除了replica-lazy-flush之外，其他情况都只是<strong>可能</strong>去异步释放key的内存，并不是每次必定异步释放内存的。 </p>
-<p>开启lazy-free后，Redis在释放一个key的内存时，首先会评估代价，如果释放内存的代价很小，那么就直接在主线程中操作了，没必要放到异步线程中执行（不同线程传递数据也会有性能消耗）。 </p>
-<h3 id="什么情况才会真正异步释放内存？"><a href="#什么情况才会真正异步释放内存？" class="headerlink" title="什么情况才会真正异步释放内存？"></a>什么情况才会真正异步释放内存？</h3><p>这和key的类型、编码方式、元素数量都有关系（详细可参考源码中的lazyfreeGetFreeEffort函数）： </p>
-<p>a) 当Hash&#x2F;Set底层采用哈希表存储（非ziplist&#x2F;int编码存储）时，并且元素数量超过64个 </p>
-<p>b) 当ZSet底层采用跳表存储（非ziplist编码存储）时，并且元素数量超过64个 </p>
-<p>c) 当List链表节点数量超过64个（注意，不是元素数量，而是链表节点的数量，List的实现是在每个节点包含了若干个元素的数据，这些元素采用ziplist存储） </p>
-<p>只有以上这些情况，在删除key释放内存时，才会真正放到异步线程中执行，其他情况一律还是在主线程操作。 </p>
-<p>也就是说String（不管内存占用多大）、List（少量元素）、Set（int编码存储）、Hash&#x2F;ZSet（ziplist编码存储）这些情况下的key在释放内存时，依旧在主线程中操作。 可见，即使开启了lazy-free，String类型的bigkey，在删除时依旧有阻塞主线程的风险。</p>
-<p>所以，即便Redis提供了lazy-free，尽量不要在Redis中存储bigkey。 个人理解Redis在设计评估释放内存的代价时，不是看key的内存占用有多少，而是关注释放内存时的工作量有多大。从上面分析基本能看出，如果需要释放的内存是连续的，Redis作者认为释放内存的代价比较低，就放在主线程做。如果释放的内存不连续（大量指针类型的数据），这个代价就比较高，所以才会放在异步线程中去执行。</p>
-<p><strong>Redis 6.0又提供一个选项：lazyfree-lazy-user-del。打开这个选项后，使用DEL和UNLINK就没有区别了。</strong></p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
   </entry>
   <entry>
     <title>如何使用Redis实现分布式锁</title>
@@ -1227,6 +1291,56 @@
         <tag>Jvm</tag>
         <tag>类加载器</tag>
       </tags>
+  </entry>
+  <entry>
+    <title>如何避免单线程的Redis阻塞</title>
+    <url>/2023/03/26/%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E5%8D%95%E7%BA%BF%E7%A8%8B%E7%9A%84Redis%E9%98%BB%E5%A1%9E/</url>
+    <content><![CDATA[<h2 id="Redis有哪些阻塞点"><a href="#Redis有哪些阻塞点" class="headerlink" title="Redis有哪些阻塞点"></a>Redis有哪些阻塞点</h2><p><strong>客户端</strong>：网络 IO，键值对增删改查操作，数据库操作；</p>
+<p><strong>磁盘</strong>：生成 RDB 快照，记录 AOF 日志，AOF 日志重写；</p>
+<p><strong>主从节点</strong>：主库生成、传输 RDB 文件，从库接收 RDB 文件、清空数据库、加载 RDB 文件；</p>
+<p><strong>切片集群实例</strong>：向其他实例传输哈希槽信息，数据迁移。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304101219130.png" alt="image-20230304101219130"></p>
+<h3 id="一、和客户端交互时的阻塞点"><a href="#一、和客户端交互时的阻塞点" class="headerlink" title="一、和客户端交互时的阻塞点"></a>一、和客户端交互时的阻塞点</h3><p>Redis采用多路复用I&#x2F;O机制，避免了主线程一直处在等待网络连接或请求到来的状态，所以与客户端的网路通信不会是阻塞点。</p>
+<h4 id="1、查询时的阻塞"><a href="#1、查询时的阻塞" class="headerlink" title="1、查询时的阻塞"></a>1、查询时的阻塞</h4><p>而Reddis中涉及到集合的操作，复杂度通常为O(N)，例如集合元素全量查询操作 HGETALL、SMEMBERS，以及集合的聚合统计操作，例如求交、并和差集。这些操作可以作为 Redis 的<strong>第一个阻塞点：集合全量查询和聚合操作</strong>。</p>
+<h4 id="2、删除时的阻塞"><a href="#2、删除时的阻塞" class="headerlink" title="2、删除时的阻塞"></a>2、删除时的阻塞</h4><p>删除操作的本质是要释放键值对占用的内存空间，释放内存只是第一步，为了更加高效地管理内存空间，在应用程序释放内存时，<strong>操作系统需要把释放掉的内存块插入一个空闲内存块的链表</strong>，以便后续进行管理和再分配。这个过程本身需要一定时间，而且会阻塞当前释放内存的应用程序，所以，如果一下子释放了大量内存，空闲内存块链表操作时间就会增加，相应地就会造成 Redis 主线程的阻塞。</p>
+<p>典型的操作，删出bigKey。</p>
+<h4 id="3、清空数据库阻塞"><a href="#3、清空数据库阻塞" class="headerlink" title="3、清空数据库阻塞"></a>3、清空数据库阻塞</h4><p>在 Redis 的数据库级别操作中，清空数据库（例如 FLUSHDB 和 FLUSHALL 操作）必然也是一个潜在的阻塞风险，因为它涉及到删除和释放所有的键值对。</p>
+<h3 id="二、和磁盘交互时的阻塞点"><a href="#二、和磁盘交互时的阻塞点" class="headerlink" title="二、和磁盘交互时的阻塞点"></a>二、和磁盘交互时的阻塞点</h3><p>虽然redis的设计已经考虑到磁盘IO会带来阻塞，设计时采用子进程方式生成RDB快照文件，以及执行AOF日志重写操作，这两个操作由子进程负责执行，慢速的磁盘 IO 就不会阻塞主线程了。</p>
+<p>但是，Redis 直接记录 AOF 日志时，会根据不同的写回策略对数据做落盘保存。一个同步写磁盘的操作的耗时大约是 1～2ms，如果有大量的写操作需要记录在 AOF 日志中，并同步写回的话，就会阻塞主线程了。这就得到了 Redis 的<strong>第四个阻塞点了：AOF 日志同步写</strong>。</p>
+<h3 id="三、主从节点交互时的阻塞点"><a href="#三、主从节点交互时的阻塞点" class="headerlink" title="三、主从节点交互时的阻塞点"></a>三、主从节点交互时的阻塞点</h3><p>在主从集群中，主库需要生成 RDB 文件，并传输给从库。主库在复制的过程中，创建和传输 RDB 文件都是由子进程来完成的，不会阻塞主线程。但是，对于从库来说，它在接收了 RDB 文件后，需要使用 FLUSHDB 命令清空当前数据库，这就正好撞上了刚才我们分析的<strong>第三个阻塞点。</strong></p>
+<p>此外，从库在清空当前数据库后，还需要把 RDB 文件加载到内存，这个过程的快慢和 RDB 文件的大小密切相关，RDB 文件越大，加载过程越慢，所以，<strong>加载 RDB 文件就成为了 Redis 的第五个阻塞点</strong>。</p>
+<h3 id="四、切片集群实例交互时的阻塞点"><a href="#四、切片集群实例交互时的阻塞点" class="headerlink" title="四、切片集群实例交互时的阻塞点"></a>四、切片集群实例交互时的阻塞点</h3><p>当我们部署 Redis 切片集群时，每个 Redis 实例上分配的哈希槽信息需要在不同实例间进行传递，同时，当需要进行负载均衡或者有实例增删时，数据会在不同的实例间进行迁移。不过，哈希槽的信息量不大，而数据迁移是渐进式执行的，所以，一般来说，这两类操作对 Redis 主线程的阻塞风险不大。</p>
+<p>不过，如果使用了 Redis Cluster 方案，而且同时正好迁移的是 bigkey 的话，就会造成主线程的阻塞，因为 Redis Cluster 使用了同步迁移。</p>
+<h2 id="上述哪些阻塞点可以异步执行？"><a href="#上述哪些阻塞点可以异步执行？" class="headerlink" title="上述哪些阻塞点可以异步执行？"></a>上述哪些阻塞点可以异步执行？</h2><p>首先，异步执行的要求：如果一个操作能被异步执行，就意味着，它并不是 Redis 主线程的关键路径上的操作。我再解释下关键路径上的操作是啥。这就是说，客户端把请求发送给 Redis 后，等着 Redis 返回数据结果的操作。</p>
+<p>对于 Redis 来说，<strong>读操作是典型的关键路径操作</strong>，所以对于<strong>集合全量查询和聚合操作</strong>不能进行异步操作。</p>
+<p>删除操作并不需要给客户端返回具体的数据结果，所以不算是关键路径操作。而上述bigKey删除以及清空数据库都属于删除操作，并不在关键路径上。因此，我们可以使用后台子线程来异步执行删除操作。</p>
+<p>而对于AOF日志同步写来说，虽然需要保证落盘，这个操作需要实例等待，但是并不需要返回结果，所以可以用子进程来完成。</p>
+<p>从库加载RDB这个操作，主库想要对客户端提供数据存取服务，就必须要RDB文件全部加载，所以这个操作也数据关键路径的操作，不能用子进程来完成。</p>
+<h2 id="异步的子线程机制"><a href="#异步的子线程机制" class="headerlink" title="异步的子线程机制"></a>异步的子线程机制</h2><p>Redis 主线程启动后，会使用操作系统提供的 pthread_create 函数创建 3 个子线程，分别由它们负责 AOF 日志写操作、键值对删除以及文件关闭的异步执行。</p>
+<p>主线程通过一个链表形式的任务队列和子线程进行交互。当收到键值对删除和清空数据库的操作时，主线程会把这个操作封装成一个任务，放入到任务队列中，然后给客户端返回一个完成信息，表明删除已经完成。</p>
+<p>但实际上，这个时候删除还没有执行，等到后台子线程从任务队列中读取任务后，才开始实际删除键值对，并释放相应的内存空间。因此，我们把这种异步删除也称为惰性删除（lazy free）。此时，删除或清空操作不会阻塞主线程，这就避免了对主线程的性能影响。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304111048551.png" alt="image-20230304111048551"></p>
+<h2 id="有关lazy-free的一些细节"><a href="#有关lazy-free的一些细节" class="headerlink" title="有关lazy-free的一些细节"></a>有关lazy-free的一些细节</h2><p>1、lazy-free是4.0新增的功能，但是默认是关闭的，需要手动开启。</p>
+<p>2、手动开启lazy-free时，有4个选项可以控制，分别对应不同场景下，要不要开启异步释放内存机制： </p>
+<p>​	a) lazyfree-lazy-expire：key在过期删除时尝试<strong>异步释放内存</strong> </p>
+<p>​	b) lazyfree-lazy-eviction：内存达到maxmemory并设置了淘汰策略时尝试异步释放内存 </p>
+<p>​	c) lazyfree-lazy-server-del：执行RENAME&#x2F;MOVE等命令或需要覆盖一个key时，删除旧key尝试异步释放内存 </p>
+<p>​	d) replica-lazy-flush：主从全量同步，从库清空数据库时异步释放内存 </p>
+<p>3、即使开启了lazy-free，如果直接使用DEL命令还是会同步删除key，只有使用UNLINK命令才会可能异步删除key。 </p>
+<p>4、这也是最关键的一点，上面提到开启lazy-free的场景，除了replica-lazy-flush之外，其他情况都只是<strong>可能</strong>去异步释放key的内存，并不是每次必定异步释放内存的。 </p>
+<p>开启lazy-free后，Redis在释放一个key的内存时，首先会评估代价，如果释放内存的代价很小，那么就直接在主线程中操作了，没必要放到异步线程中执行（不同线程传递数据也会有性能消耗）。 </p>
+<h3 id="什么情况才会真正异步释放内存？"><a href="#什么情况才会真正异步释放内存？" class="headerlink" title="什么情况才会真正异步释放内存？"></a>什么情况才会真正异步释放内存？</h3><p>这和key的类型、编码方式、元素数量都有关系（详细可参考源码中的lazyfreeGetFreeEffort函数）： </p>
+<p>a) 当Hash&#x2F;Set底层采用哈希表存储（非ziplist&#x2F;int编码存储）时，并且元素数量超过64个 </p>
+<p>b) 当ZSet底层采用跳表存储（非ziplist编码存储）时，并且元素数量超过64个 </p>
+<p>c) 当List链表节点数量超过64个（注意，不是元素数量，而是链表节点的数量，List的实现是在每个节点包含了若干个元素的数据，这些元素采用ziplist存储） </p>
+<p>只有以上这些情况，在删除key释放内存时，才会真正放到异步线程中执行，其他情况一律还是在主线程操作。 </p>
+<p>也就是说String（不管内存占用多大）、List（少量元素）、Set（int编码存储）、Hash&#x2F;ZSet（ziplist编码存储）这些情况下的key在释放内存时，依旧在主线程中操作。 可见，即使开启了lazy-free，String类型的bigkey，在删除时依旧有阻塞主线程的风险。</p>
+<p>所以，即便Redis提供了lazy-free，尽量不要在Redis中存储bigkey。 个人理解Redis在设计评估释放内存的代价时，不是看key的内存占用有多少，而是关注释放内存时的工作量有多大。从上面分析基本能看出，如果需要释放的内存是连续的，Redis作者认为释放内存的代价比较低，就放在主线程做。如果释放的内存不连续（大量指针类型的数据），这个代价就比较高，所以才会放在异步线程中去执行。</p>
+<p><strong>Redis 6.0又提供一个选项：lazyfree-lazy-user-del。打开这个选项后，使用DEL和UNLINK就没有区别了。</strong></p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
   </entry>
   <entry>
     <title>虚拟机类加载机制之类加载时机</title>
