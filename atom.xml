@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-03-30T03:10:29.761Z</updated>
+  <updated>2023-03-31T06:22:33.153Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,62 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL索引</title>
+    <link href="http://example.com/2023/03/31/MySQL%E7%B4%A2%E5%BC%95/"/>
+    <id>http://example.com/2023/03/31/MySQL%E7%B4%A2%E5%BC%95/</id>
+    <published>2023-03-31T03:09:40.000Z</published>
+    <updated>2023-03-31T06:22:33.153Z</updated>
+    
+    <content type="html"><![CDATA[<p>索引的出现其实就是为了提高数据查询的效率。</p><h2 id="索引常见的模型"><a href="#索引常见的模型" class="headerlink" title="索引常见的模型"></a>索引常见的模型</h2><h3 id="哈希表"><a href="#哈希表" class="headerlink" title="哈希表"></a>哈希表</h3><p>适合等值查询，不适合范围查询。因为会出现哈希冲突，冲突后采用链地址法解决。就会导致发生冲突后要遍历整个链表。</p><h3 id="有序数组"><a href="#有序数组" class="headerlink" title="有序数组"></a>有序数组</h3><p>适合等值查询以及范围查询。有序数组在单值查询可以使用二分法快速查找，范围找到一个然后往左右遍历即可，但是它插入数据时要维护这个有序数组就比较麻烦，适合用于静态存储引擎。</p><h3 id="搜索树"><a href="#搜索树" class="headerlink" title="搜索树"></a>搜索树</h3><p>二叉搜索树的特点是：左边小，右边大（相对根节点）查找效率和二分一样，O(LogN)。但是为了保证这个效率，就需要保证它是平衡二叉树（考虑插入数据是正序或者倒序情况，会退化成链表），为了确保平衡，插入时间复杂度也是O(LogN)</p><p>多叉树：孩子节点从左到右依次递增。</p><p>二叉树搜索效率最高，但是往往采用多叉树，因为索引还要写入磁盘，意味着我们查询索引可能也要读取磁盘。考虑一种情况，100万数据量，那么二叉树高20，如果这些索引没有在内存当中，那么就需要去读取20个数据块。</p><p>每次从磁盘读取数据都是按照<strong>数据块</strong>来读取的，而不是仅仅查找那一条记录。而MySQL并不是一开始就把所有的索引都加载到内存当中，而是按需加载。MySQL有一个缓冲池，当需要访问索引时，会先在缓冲池中查看有没有，如果没有就从磁盘读取，然后写入缓冲池中。</p><p>N叉树的N一般是1200。考虑到树根的数据块总是在内存中，一个10亿行的表上一个整数字段的索引，查找一个值最多只需要访问3次磁盘。</p><h2 id="InnoDB索引模型"><a href="#InnoDB索引模型" class="headerlink" title="InnoDB索引模型"></a>InnoDB索引模型</h2><p>假如有如下表：</p><table><thead><tr><th>ID</th><th>k</th><th>name</th></tr></thead><tbody><tr><td>100</td><td>1</td><td>null</td></tr><tr><td>200</td><td>2</td><td>null</td></tr><tr><td>300</td><td>3</td><td>null</td></tr><tr><td>500</td><td>5</td><td>null</td></tr><tr><td>600</td><td>6</td><td>null</td></tr></tbody></table><p>其中ID是主键，k上有索引。那么它的索引结构大致如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230331104745662.png" alt="image-20230331104745662"></p><p>在InnoDB中，索引类型分为主键索引和非主键索引。</p><p>主键索引的<strong>叶子节点存的是整行数据</strong>。在InnoDB里，主键索引也被称为<strong>聚簇索引</strong>（clustered index）。</p><p>非主键索引的<strong>叶子节点内容是主键的值</strong>。在InnoDB里，非主键索引也被称为<strong>二级索引</strong>（secondary index）。</p><p>其中，如果是按照主键索引查询，那么只会搜索上图的第一颗树，然后找到对应记录直接返回行数据即可。但是如果是按照k这个索引来查询，那么会现根据k索引查找到对应数据的主键，然后去第一颗树中查找对应的实际数据。</p><h2 id="索引维护"><a href="#索引维护" class="headerlink" title="索引维护"></a>索引维护</h2><p>索引的插入可能会导致数据的其他数据的移位，在极端情况下，如果要插入的索引页满了，那么就会导致页分裂。这个页分裂的过程就是B+树页分裂的过程。</p><p>最重要的一点，B+树的索引是建立在数据所在的数据页上的，而不是直接建立在数据。其实通过索引找到数据页后，还要在数据页中去找具体的数据，才能返回。</p><h2 id="回表"><a href="#回表" class="headerlink" title="回表"></a>回表</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from T where k between 3 and 5</span><br></pre></td></tr></table></figure><p>首先在非主键索引树上找到k &#x3D; 3的值，取得ID &#x3D; 300，然后去主键索引树上查找ID &#x3D;  300所对应的具体值。然后在非主键索引树上找下一个值，k &#x3D; 5，找ID，然后拿ID去查主键索引。然后继续去下一个，发现k &#x3D; 6，大于5，查找结束。</p><p>这个从非主键索引查找完去主键索引查找的过程就叫做回表。</p><h2 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select ID from T where k between 3 and 5</span><br></pre></td></tr></table></figure><p>执行这个语句时，虽然会走非主键索引，但是索引的值存的是ID，即索引里面包含了所有要查询的数据，这就是覆盖索引。<strong>由于覆盖索引可以减少树的搜索次数，显著提升查询性能，所以使用覆盖索引是一个常用的性能优化手段。</strong></p><h2 id="最左前缀原则"><a href="#最左前缀原则" class="headerlink" title="最左前缀原则"></a>最左前缀原则</h2><p>比如我们建立了一个（姓名，年龄）的索引，那么它可以用来匹配按名字的查找，但是按照年龄就不行。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p><h2 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h2><p>比如我们已经建立了（姓名，年龄），此时要执行以下SQL：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from tuser where name like &#x27;张%&#x27; and age=10 and ismale=1;</span><br></pre></td></tr></table></figure><p>假如数据库表数据如下：</p><table><thead><tr><th>ID</th><th>name</th><th>age</th><th>ismale</th></tr></thead><tbody><tr><td>1</td><td>李四</td><td>2</td><td>1</td></tr><tr><td>2</td><td>123</td><td>10</td><td>1</td></tr><tr><td>3</td><td>张三</td><td>10</td><td>1</td></tr><tr><td>4</td><td>张三</td><td>10</td><td>1</td></tr><tr><td>5</td><td>张三</td><td>30</td><td>1</td></tr><tr><td>6</td><td>张六</td><td>40</td><td>0</td></tr></tbody></table><p>在执行这条语句时，如果没有索引下推，则每次按索引找到姓张的后，都需要回表去查看对应的一整行数据，来判断后两个字段是否一致。但是有了索引下推，可以在这里直接判断age是否满足条件，可以减少回表的次数。注意，这里的索引是联合索引，如果没有下推，即便是索引里有age字段，也不会进行判断。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;索引的出现其实就是为了提高数据查询的效率。&lt;/p&gt;
+&lt;h2 id=&quot;索引常见的模型&quot;&gt;&lt;a href=&quot;#索引常见的模型&quot; class=&quot;headerlink&quot; title=&quot;索引常见的模型&quot;&gt;&lt;/a&gt;索引常见的模型&lt;/h2&gt;&lt;h3 id=&quot;哈希表&quot;&gt;&lt;a href=&quot;#哈</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Java锁优化</title>
+    <link href="http://example.com/2023/03/30/Java%E9%94%81%E4%BC%98%E5%8C%96/"/>
+    <id>http://example.com/2023/03/30/Java%E9%94%81%E4%BC%98%E5%8C%96/</id>
+    <published>2023-03-30T07:07:59.000Z</published>
+    <updated>2023-03-30T11:22:02.751Z</updated>
+    
+    <content type="html"><![CDATA[<p>HostSpot虚拟机在 JDK 6 中实现了大量的锁优化技术，比如说适应性自旋，锁消除，锁膨胀，轻量级锁，偏向锁等。</p><h2 id="自旋锁与自适应自旋"><a href="#自旋锁与自适应自旋" class="headerlink" title="自旋锁与自适应自旋"></a>自旋锁与自适应自旋</h2><h3 id="自旋锁"><a href="#自旋锁" class="headerlink" title="自旋锁"></a>自旋锁</h3><p>由于Java线程设计的原因，把一个线程挂机或者恢复都需要由用户态切换到核心态，这些都会给Java虚拟机带来很大的压力。但是由于现在用户的cpu都是多核的，可以让多个任务并行运行，所有很多共享数据锁的持有时间是很短的，如果因为这么短的时间就让一个线程挂起再恢复，很不值当。可以让一个线程等一小会儿，但不放弃处理时间，看看持有锁的线程是否很快会释放。而等的这个过程，我们只需要让线程忙循环（自旋），这就是自旋锁。</p><p>自旋锁并不能代替阻塞。如果持有锁的时间很短，那么自旋锁效率就很高，如果持有很长，自旋的线程占用着cpu却没有做有用的事，导致资源浪费。所以自旋锁一般设置循环次数，如果超过还没获取到锁，就挂起。</p><h3 id="自适应自旋"><a href="#自适应自旋" class="headerlink" title="自适应自旋"></a>自适应自旋</h3><p>JDK6中引入了自适应自旋，这时候自旋的次数不再是固定的了，改变为由上一次获取锁的时间以及锁持有者的状态来决定的。</p><p>如果在同一个对象上，自旋等待刚刚获取到锁，并且持有锁的线程正在运行，那么虚拟机就会认为这次自旋也会成功，而且允许这次自旋的持续时间长一点。</p><p>另一方面，如果获取的较少，那么可能会直接掠过。</p><h2 id="消除锁"><a href="#消除锁" class="headerlink" title="消除锁"></a>消除锁</h2><p>指的是虚拟机即时编译器在运行时，对那些检测到不可能存在共享数据竞争的锁进行消除。主要判定依据来源于逃逸分析的数据支持。</p><p>如果一段代码，在堆上的所有数据都不会逃逸出去被其他线程访问到，那么就可以把它们当作栈上的数据对待。</p><p>注意，这里的加的锁可能并不是程序员自己加的，可能是调用某些方法，而这些方法内部有同步块，而虚拟机会对这些方法内部的同步块所加的锁进行消除。</p><p>比如如下代码：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> String <span class="title function_">add</span><span class="params">(String str1, String str2)</span> &#123;</span><br><span class="line">    <span class="keyword">return</span> str1 + str2;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 上面的那段代码在执行时会被优化为如下写法</span></span><br><span class="line"><span class="keyword">public</span> String <span class="title function_">add</span><span class="params">(String str1, String str2)</span> &#123;</span><br><span class="line">    <span class="type">StringBuilder</span> <span class="variable">sb</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StringBuilder</span>();</span><br><span class="line">    sb.append(str1);</span><br><span class="line">    sb.append(str2);</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">return</span> sb.toString();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>StringBuilder的append方法内有同步块，所以会导致加锁，但是经过判定不需要这把锁，就会进行消除。因为这里没有其他线程会往该对象中添加数据。</p><h2 id="锁粗化"><a href="#锁粗化" class="headerlink" title="锁粗化"></a>锁粗化</h2><p>如果加锁释放锁的动作频繁执行，比如说在一个循环中，那么会影响性能，这时候就不能按照把锁的粒度尽可能缩小的原则。此时就可以在循环前加锁，循环结束后释放锁，虽然增大了锁的粒度，但是某些场景可以提高性能。</p><p>像上面的那个append操作，可以在第一个append之前加锁，然后最后一次append结束释放锁，这样就避免了一直加锁，释放锁。</p><h2 id="轻量级锁"><a href="#轻量级锁" class="headerlink" title="轻量级锁"></a>轻量级锁</h2><p>这个轻量级是相对于使用操作系统互斥量来实现的传统锁相比。它并不能代替传统的重量级锁，它的设计目的是在没有多线程竞争的前提下，减少传统的重量级锁使用操作系统互斥量造成的性能消耗。</p><p>HotSpot虚拟机的头部分为两部分，第一部分用于存储对象自身的运行时数据，例如哈希码，GC的分代年龄等，这部分被称为Mark Word。这部分对于轻量级锁和偏向锁实现很关键。另一部分用于存储指向方法区对象类型数据的指针。</p><p>Mark Word这部分有两比特空间用于存储锁的标记为。对象除了未被锁定的状态外，还会有轻量级锁定，重量级锁定，GC标记，可偏向等不同的状态。</p><p>在代码即将进入同步块的时候，如果此同步对象没有被锁定，虚拟机会在当前<strong>线程</strong>的栈帧中建立一个<strong>锁记录</strong>（Lock Record）的空间，用于存储对象目前Mark Word的拷贝（<strong>这一步意思是在当前线程中，存储一份该对象的Mark Word的拷贝</strong>）。然后虚拟机将使用CAS操作尝试把对象的Mark Word更新为指向锁记录的指针（<strong>将对象的Mark Word更新为指向线程的锁记录</strong>）。如果更新成功，即代表该线程拥有了该对象的锁，并且将Mark Word的锁标记位改为轻量级锁。</p><p>如果这次更新失败，说明至少有一个线程与当前线程竞争获取该对象的锁。此时，虚拟机会先检查对象的Mark Word是否指向当前线程的栈帧，如果是，说明已经获取到该对象的锁，直接执行就可以了，否则说明该锁被其他线程占用了。如果出现两条以上的线程争用同一个对象，那么就要膨胀为重量级锁。</p><p>它的解锁过程也是CAS操作实现的。如果对象的Mark Word仍然指向线程的锁记录，那就用CAS操作把对象当前Mark Word和线程中复制的那一份拷贝替换回来。如果替换成功，则同步过程就成功了，如果替换失败，则说明有其他线程尝试获取过该锁，就要在释放锁的同时，唤醒被挂起的线程。</p><h2 id="偏向锁"><a href="#偏向锁" class="headerlink" title="偏向锁"></a>偏向锁</h2><p>偏向锁的目的是消除在无竞争情况下的同步原语，进一步提高性能。轻量级锁是在无竞争情况下使用CAS操作区消除同步使用的互斥量，那偏向锁就是在无竞争的情况下把整个同步都消除掉，连CAS都不需要。</p><p>偏向锁会偏向于第一个获取它的线程，如果接下来执行的过程中，该锁一直没有被其他线程获取，那么持有偏向锁的线程则不需要进行同步。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;HostSpot虚拟机在 JDK 6 中实现了大量的锁优化技术，比如说适应性自旋，锁消除，锁膨胀，轻量级锁，偏向锁等。&lt;/p&gt;
+&lt;h2 id=&quot;自旋锁与自适应自旋&quot;&gt;&lt;a href=&quot;#自旋锁与自适应自旋&quot; class=&quot;headerlink&quot; title=&quot;自旋锁与自适应</summary>
+      
+    
+    
+    
+    <category term="Java" scheme="http://example.com/categories/Java/"/>
+    
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis如何解决缓存雪崩、击穿、穿透</title>
@@ -71,7 +127,7 @@
     <link href="http://example.com/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/"/>
     <id>http://example.com/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/</id>
     <published>2023-03-29T09:04:35.000Z</published>
-    <updated>2023-03-29T13:20:53.353Z</updated>
+    <updated>2023-03-30T07:09:36.816Z</updated>
     
     <content type="html"><![CDATA[<h2 id="Java中的线程安全"><a href="#Java中的线程安全" class="headerlink" title="Java中的线程安全"></a>Java中的线程安全</h2><p>一个比较严格的线程安全定义：当多个线程同时访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要进行额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果，那就称这个对象是线程安全的</p><p>Java语言中的各种操作的共享数据可以分为以下五类：不可变，绝对线程安全，相对线程安全，线程兼容和线程对立。</p><h3 id="不可变"><a href="#不可变" class="headerlink" title="不可变"></a>不可变</h3><p>不可变的对象，他的线程一定是安全的。</p><h3 id="绝对线程安全"><a href="#绝对线程安全" class="headerlink" title="绝对线程安全"></a>绝对线程安全</h3><p>绝对线程安全需要满足上面提到的定义。而Java API中提到的线程安全的类，大多都是相对线程安全。比如说Vector是一个线程安全的容器，因为他的add(), get(), size()的方法都是用synchronized修饰的。尽管这样，并不意味着它永远不需要同步手段。</p><p>比如以下代码：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> Vector&lt;Integer&gt; vector = <span class="keyword">new</span> <span class="title class_">Vector</span>&lt;Integer&gt;();</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"><span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">vector.add(i);</span><br><span class="line">&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">removeThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    vector.remove(i);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">printThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    System.out.println((vector.get(i)));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">removeThread.start();</span><br><span class="line">printThread.start();</span><br><span class="line">        </span><br><span class="line"><span class="comment">//不要同时产生过多的线程，否则会导致操作系统假死</span></span><br><span class="line"><span class="keyword">while</span> (Thread.activeCount() &gt; <span class="number">20</span>);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码运行之后就会报错，原因是如果一个线程在错误的时间删除一个元素，那么其他元素在获取对应下标时就会报错。虽然它的get和remove都是原子操作，但是原子操作组合原子操作并不一定是原子操作。</p><p>当调用vector.size()获取大小时，它确实是原子性的。但是后续循环中，vector中的元素会被删除，导致get操作获取错误的下标。</p><p>所以说在操作这些容器时，还是需要手动加锁。</p><h3 id="相对线程安全"><a href="#相对线程安全" class="headerlink" title="相对线程安全"></a>相对线程安全</h3><p>相对线程安全就是我们通常意义上所说的安全，它需要保证对这个对象单次的操作是线程安全的，我们在调用的时候不需要进行额外的操作，但是对于特定顺序的调用，就需要额外操作的同步手段来保证。</p><h3 id="线程兼容"><a href="#线程兼容" class="headerlink" title="线程兼容"></a>线程兼容</h3><p>线程兼容是指对象本身不是线程安全的，但是可以通过在调用端使用一些同步手段来保证线程安全。比如HashMap， ArrayList等。</p><h3 id="线程对立"><a href="#线程对立" class="headerlink" title="线程对立"></a>线程对立</h3><p>线程对立是指不管调用端是否采取了同步措施，都无法在多线程环境中并发使用代码。</p><h2 id="线程安全的实现方法"><a href="#线程安全的实现方法" class="headerlink" title="线程安全的实现方法"></a>线程安全的实现方法</h2><h3 id="1、互斥同步"><a href="#1、互斥同步" class="headerlink" title="1、互斥同步"></a>1、互斥同步</h3><p>互斥同步在多个线程访问共享数据时，保证共享数据在同一时刻只被一条线程使用。</p><p>Java中最基本的互斥同步手段就是synchronized关键字，这是一种快结构的同步语法。synchronized关键字经过Javac编译之后，会在同步块的前后分别形成monitorenter和monitorexit这两个字节码指令。这两个字节码指令都需要一个reference类型的参数来指明要锁定和解锁的对象。</p><p>如果Java源码中的synchronized明确指定了对象参数，那就以这个对象的引用作为reference；如果没有明确指定，那将根据synchronized修饰的方法类型（如实例方法或类方法），来决定是取代码所在的对象实例还是取类型对应的Class对象来作为线程要持有的锁。</p><p>在执行monitorenter时，会先尝试获取锁，如果对象没有被锁定，或者当前线程已经持有了那个对象的锁，就把锁的计数加一，而在执行monitorexit时就会把锁的计数器减一。计数器为0，释放锁。如果获取锁失败，就会被阻塞，直到请求锁定的对象上面的锁被释放。</p><p>这也就意味着，synchronized修饰的变量，一个线程获取锁后，可以在上面加很多把锁，也不会造成死锁，而且不可被中断。</p><p>除了synchronized关键字以外，jdk5以后，提供了JUC包的Lock接口，可以让用于以非块结构实现互斥同步。</p><p>ReentrantLock是Lock接口最常见的实现，它也是可重入锁，但是与synchronized有一定的区别，主要是以下三点：</p><p>1、等待可中断：当持有锁的线程长时间没有释放锁时，等待这把锁的线程可以选择放弃等待，而synchronized修饰的却不可以（获取锁失败会被阻塞）。</p><p>2、公平锁：多个线程等待锁，会按照申请锁的顺序依次获得。ReentrantLock默认情况下是非公平锁，一旦开启公平锁，会影响性能。</p><p>3、绑定多个条件：是指一个ReentrantLock对象可以同时绑定多个Condition对象。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Lock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">Condition</span> <span class="variable">c1</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c2</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c3</span> <span class="operator">=</span> lock.newCondition();</span><br></pre></td></tr></table></figure><p>这段代码就相当于把lock绑定了三个Condition，可以通过c1或者c2，在不同的情况下是一个线程休眠或者唤醒一个线程。而synchronized想要关联多个条件，则需要添加多个锁。</p><h3 id="2、非阻塞同步"><a href="#2、非阻塞同步" class="headerlink" title="2、非阻塞同步"></a>2、非阻塞同步</h3><p>互斥同步不可避免的面临线程唤醒时带来的性能开销，这种也成为阻塞同步。互斥同步可以理解为一种悲观锁，即不加锁就一定会出问题，所以无论是否出现竞争，都会加锁，这会导致用户态切换到核心态的转换、维护锁计数器和检查是否有阻塞的线程等待唤醒。</p><p>随着硬件发展，有了另一种方案，基于冲突检测的乐观并发策略，即不管风险，直接进行操作，如果没有其他线程竞争，则执行成功，否则就一直尝试，直到没有竞争。这种方案不需要把线程阻塞挂起，因此也成为非阻塞同步。</p><p>JDK5之后，java类库开始使用CAS操作。CAS指令需要有三个操作数，分别是内存位置，旧的预期值以及准备设置的新值。当该指令执行时，仅当内存位置的值符合预期值时，才会用新的值去更新内存位置的值。</p><p>但是CAS检查并不一定能保证该值没有被修改过，例如一个值本来是1，在执行CAS操作时，它的值被改为了2，然后又被改为了1，虽然检查时还是1，但是值已经被修改了。</p><p>JUC包对此做了修改，控制变量的版本来保证没有被修改过。</p>]]></content>
     
@@ -89,6 +145,8 @@
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -195,7 +253,7 @@
     <link href="http://example.com/2023/03/25/Java%E4%B8%8E%E7%BA%BF%E7%A8%8B/"/>
     <id>http://example.com/2023/03/25/Java%E4%B8%8E%E7%BA%BF%E7%A8%8B/</id>
     <published>2023-03-25T13:23:47.000Z</published>
-    <updated>2023-03-25T13:26:21.179Z</updated>
+    <updated>2023-03-30T07:09:43.009Z</updated>
     
     <content type="html"><![CDATA[<h2 id="线程的实现"><a href="#线程的实现" class="headerlink" title="线程的实现"></a>线程的实现</h2><p>线程是比进程更轻量级的调度执行单位，线程的引入可以把一个进程的资源分配和执行调度分开， 各个线程既可以共享进程资源（内存地址，I&#x2F;O等），又可以独立调度。</p><p>实现线程主要有3种方式，使用内核线程实现（1：1实现），使用用户线程实现（1：N实现），使用用户线程加轻量级进程混合实现（N：M实现）。</p><h3 id="内核线程的实现"><a href="#内核线程的实现" class="headerlink" title="内核线程的实现"></a>内核线程的实现</h3><p>内核线程（KLT）就是直接由操作系统内核支持的线程。这种线程由内核完成线程切换，由内核操纵调度器调度线程，并负责将线程的任务映射到处理器上。但是程序一般不直接使用内核线程，而是使用他的一种接口，轻量级进程（LWP），就是我们通常意义说的线程，每一个线程都有一个内核线程支持，这种轻量级进程与内核线程是1：1的关系。具体结构如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325151710589.png" alt="image-20230325151710589"></p><p>因为每个线程都有内核线程支持，可以当作一个独立的调度单元，即使其中一个被阻塞，也不影响整个进程继续工作。</p><p>局限性：由于是基于内核线程，所以线程的创建，同步等操作都需要系统调用。而系统调用需要从用户态切换为内核态。而且每个轻量级进程都需要一个内核线程支持，会消耗一定的内核资源。</p><h3 id="用户线程实现"><a href="#用户线程实现" class="headerlink" title="用户线程实现"></a>用户线程实现</h3><p>从广义上讲，一个线程只要不是内核线程，他就是用户线程的一种，从这里看，轻量级进程也属于用户线程。但轻量级线程始终需要建立在内核线程之上，并不具备通常意义上的线程。</p><p>而狭义上的用户线程指的是完全建立在用户空间的线程库上，系统内核不能感知到用户线程的存在及如何实现的。用户线程的建立、同步、销毁和调度完全在用户态中完成，不需要内核的帮助。</p><p>用户线程没有内核线程的帮助，所以线程的创建、销毁、切换和调度都是用户必须考虑的问题，由于操作系统只把处理器资源分配到进程，所以阻塞如何处理，多处理器系统种如何将线程映射到其他处理器上这类问题解决起来将会异常困难，甚至有些是不可能实现的。</p><h3 id="混合实现"><a href="#混合实现" class="headerlink" title="混合实现"></a>混合实现</h3><p>即存在用户线程，也存在轻量级进程，用户线程还是建立在用户空间之中。而轻量级进程则作为用户线程和内核之间的桥梁，这样可以使用内核提供的线程调度功能及处理器映射，并且用户线程的系统调用要通过轻量级进程来完成，这大大降低了整个进程被完全阻塞的风险。具体模型如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325161956615.png" alt="image-20230325161956615"></p><p>一个CPU对应多个内核线程，然后每个内核线程对应着一个轻量级进程，而一个进程又对应了多个用户线程。</p><h2 id="Java线程的实现"><a href="#Java线程的实现" class="headerlink" title="Java线程的实现"></a>Java线程的实现</h2><p>自jdk1.3起，主流java虚拟机的内存模型普遍被替换为基于操作系统原生线程模型来实现，即1：1的线程模型。以HotSpot为例，</p><p>它的每一个Java线程都是直接映射到一个操作系统原生线程来实现的，而且中间没有额外的间接结构，所以HotSpot自己是不会去干涉线程调度的（可以设置线程优先级给操作系统提供调度建议），全权交给底下的操作系统去处理，所以何时冻结或唤醒线程、该给线程分配多少处理器执行时间、该把线程安排给哪个处理器核心去执行等，都是由操作系统完成的，也都是由操作系统全权决定的。</p><h3 id="Java线程调度"><a href="#Java线程调度" class="headerlink" title="Java线程调度"></a>Java线程调度</h3><p>线程调度是指系统为线程分配处理器使用权的过程，调度主要方式有两种，分别是协同式（Cooperative Threads-Scheduling）线程调度和抢占式（Preemptive Threads-Scheduling）线程调度。</p><p>协同式调度：线程的执行时间由自己控制，一个线程把自己的工作做完之后，要通知系统去切换到另一个进程去执行。优点是实现简单，而且不会有线程同步的问题，但是缺点也比较明显，线程执行时间不可控，如果一个线程一直不告知系统进行切换，那程序就会一直阻塞在那里。</p><p>抢占式调度：每个线程将由系统来分配执行时间，线程的切换不由线程本身来决定。线程的执行时间是可控的，不会有一个线程阻塞导致整个系统崩溃的问题。</p><h3 id="状态转换"><a href="#状态转换" class="headerlink" title="状态转换"></a>状态转换</h3><p>java线程一共有6种状态，一个线程同一时间只能有其中的一种，而且可以通过特定语义进行转换。</p><p>1、新建（New）：创建后尚未启动的线程处于这种状态。</p><p>2、运行（Runnable）：包括操作系统线程状态中的Running和Ready，也就是处于此状态的线程有可能正在执行，也有可能正在等待着操作系统为它分配执行时间。</p><p>3、无限期等待（Waiting）：处于这种状态的线程不会被分配处理器执行时间，它们要等待被其他线程显式唤醒。以下方法会让线程陷入无限期的等待状态：</p><p>​1）没有设置Timeout参数的Object::wait()方法；</p><p>​2）没有设置Timeout参数的Thread::join()方法；</p><p>​3）LockSupport::park()方法。</p><p>4、限期等待（Timed Waiting）：处于这种状态的线程也不会被分配处理器执行时间，不过无须等待被其他线程显式唤醒，在一定时间之后它们会由系统自动唤醒。以下方法会让线程进入限期等待状态：</p><p>​1）Thread::sleep()方法；</p><p>​2）设置了Timeout参数的Object::wait()方法；</p><p>​3）设置了Timeout参数的Thread::join()方法；</p><p>​4）LockSupport::parkNanos()方法；</p><p>​5）LockSupport::parkUntil()方法。</p><p>5、阻塞（Blocked）：线程被阻塞了，“阻塞状态”与“等待状态”的区别是“阻塞状态”在等待着获取到一个排它锁，这个事件将在另外一个线程放弃这个锁的时候发生；而“等待状态”则是在等待一段时间，或者唤醒动作的发生。在程序等待进入同步区域的时候，线程将进入这种状态。</p><p>6、结束（Terminated）：已终止线程的线程状态，线程已经结束执行。</p><p>转换关系如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325212241436.png" alt="image-20230325212241436"></p>]]></content>
     
@@ -214,6 +272,8 @@
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
   </entry>
   
   <entry>
@@ -221,7 +281,7 @@
     <link href="http://example.com/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/"/>
     <id>http://example.com/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</id>
     <published>2023-03-24T13:39:50.000Z</published>
-    <updated>2023-03-24T13:40:39.458Z</updated>
+    <updated>2023-03-30T07:09:28.123Z</updated>
     
     <content type="html"><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p><p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p><p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p><p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p><p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p><p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p><p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p><p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p><p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p><p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>]]></content>
     
@@ -239,6 +299,8 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
     
   </entry>
@@ -248,7 +310,7 @@
     <link href="http://example.com/2023/03/24/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%A7%81%E6%80%A7%E3%80%81%E5%8E%9F%E5%AD%90%E6%80%A7%E5%92%8C%E6%9C%89%E5%BA%8F%E6%80%A7/"/>
     <id>http://example.com/2023/03/24/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%A7%81%E6%80%A7%E3%80%81%E5%8E%9F%E5%AD%90%E6%80%A7%E5%92%8C%E6%9C%89%E5%BA%8F%E6%80%A7/</id>
     <published>2023-03-24T12:25:07.000Z</published>
-    <updated>2023-03-24T13:12:38.655Z</updated>
+    <updated>2023-03-30T07:09:56.653Z</updated>
     
     <content type="html"><![CDATA[<h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h2><p>由Java内存模型来直接保证的原子性变量操作包括read、load、assign、use、store和write这六个，我们大致可以认为，基本数据类型的<strong>访问</strong>、<strong>读写</strong>都是具备原子性的。这里的访问和读写只是包括了访问一个变量的值以及给变量赋值，像i++这种操作并不是原子性的。还要注意long 和double的非原子协定，但是这个概率发生很小，可以忽略。</p><p>如果应用场景需要一个更大范围的原子性保证，可以使用synchronized关键字。</p><h2 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h2><p>可见性就是指当一个线程修改了共享变量的值时，其他线程能够立即得知这个修改。Java内存模型是通过在变量修改后将新值同步回主内</p><p>存，在变量读取前从主内存刷新变量值这种依赖主内存作为传递媒介的方式来实现可见性的，无论是普通变量还是volatile变量都是此。</p><p>普通变量与volatile变量的区别是，volatile的特殊规则保证了新值能立即同步到主内存，以及每次使用前立即从主内存刷新。</p><p>Java的synchronized和fina也具有可见性。</p><p>同步块的可见性是由“对一个变量执行unlock操作之前，必须先把此变量同步回主内存中（执行store、write操作）。</p><p>而final关键字的可见性是指：被final修饰的字段在构造器中一旦被初始化完成，并且构造器没有把“this”的引用传递出去（this引用逃逸是一件很危险的事情，其他线程有可能通过这个引用访问到“初始化了一半”的对象），那么在其他线程中就能看见final字段的值。</p><h2 id="有序性"><a href="#有序性" class="headerlink" title="有序性"></a>有序性</h2><p>Java程序中天然的有序性可以总结为一句话：如果在本线程内观察，所有的操作都是有序的；如果在一个线程中观察另一个线程，所有的操作都是无序的。前半句是指“线程内好像表现为串行的语义”（Within-Thread As-If-SerialSemantics），后半句是指“指令重排序”现象和“工作内存与主内存同步延迟”现象。</p><p>java提供了volatile和synchronized两个关键字来保证线程之间操作的有序性。volatile关键字本身就包含了禁止指令重排序的语义，而synchronized则是由“一个变量在同一个时刻只允许一条线程对其进行lock操作”这条规则获得的，这个规则决定了持有同一个锁的两个同步块只能串行地进入。</p>]]></content>
     
@@ -264,6 +326,8 @@
     
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
     
@@ -322,7 +386,7 @@
     <link href="http://example.com/2023/03/23/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/"/>
     <id>http://example.com/2023/03/23/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/</id>
     <published>2023-03-23T13:20:40.000Z</published>
-    <updated>2023-03-23T13:24:04.174Z</updated>
+    <updated>2023-03-30T07:09:51.330Z</updated>
     
     <content type="html"><![CDATA[<p>每秒事务处理数量（TPS）是衡量一个服务性能高低好坏的重要指标之一。它代表着一秒内服务端平均能响应的请求综述，而且TPS值与程序的并发能力又有密切的关系。</p><p>为了解决计算机存储设备与处理器运算速度的差距，除了增加缓存外，还有一种优化方法，就是处理器可能会对输入的代码进行乱序执行，处理器在计算后会把乱序的结果进行重组，保证该结果与顺序执行时的一致，但是并不保证程序中各个语句计算的先后顺序与输入代码中的顺序一致。因此，出现一个计算任务依赖另一个计算任务的中间结果，那么其顺序性并不能靠代码的先后顺序来保证。</p><h3 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h3><p>可以理解为在特定的操作协议下，对特定的内存或高速缓存进行读写访问的过程抽象。</p><h3 id="主内存与工作内存"><a href="#主内存与工作内存" class="headerlink" title="主内存与工作内存"></a>主内存与工作内存</h3><p>Java内存模型的主要目的是定义程序中各种变量的访问规则，即关注虚拟机中把变量值存储到内存和从内存中取出变量值这样的底层细节。此处的变量包括了实例字段、静态字段和构成数组对象的元素，但是不包括局部变量与方法参数。因为后两个是线程私有的，并不会被共享，也不存在竞争。</p><p>Java内存模型没有限制执行引擎使用处理器的特定寄存器或缓存来和主内存进行交互，也没有限制即时编译器是否需要进行调整代码的执行顺序这类优化措施。</p><p>Java内存模型规定了所有的变量都存储在主内存中。每条线程还有自己的<strong>工作内存</strong>，线程的工作内存中保存了被该线程使用的变量的主内存副本，线程对变量的所有操作（读取，赋值等）都必须在工作内存中进行，而不能直接读写主内存的内容。不同线程也无法直接访问对方工作内存中的变量，<strong>线程间的变量值的传递均需要通过主内存来完成</strong>。</p><h3 id="内存见的交互操作"><a href="#内存见的交互操作" class="headerlink" title="内存见的交互操作"></a>内存见的交互操作</h3><p>如何将一个变量从主内存拷贝到工作内存以及如何从工作内存同同步回主内存，Java内存模型定义了8中操作来完成。虚拟机实现时必须保证这些操作是原子的、不可再分的。</p><p>lock（锁定）：作用于主内存的变量。把一个变量标识为一条线程独占的。</p><p>unlock（解锁）：作用于主内存。把一个处于锁定的变量释放，释放后可以被其他线程锁定。</p><p>read（读取）：作用于主内存。把一个变量的值从主内存传输到<strong>线程的工作内存</strong>，用于后续load动作使用。</p><p>load（载入）：作用于工作内存。把read操作从主内存中得到的变量值放入工作内存变量的副本中。</p><p>use（使用）：作用于工作内存。把工作内存中的一个变量的值传递给执行引擎。当虚拟机遇到一个<strong>需要使用变量的值的字节码指令</strong>时，将会执行这个操作。</p><p>assign（赋值）：作用于工作内存。把一个从执行引擎接收的值，赋给工作内存的变量，每当虚拟机遇到一个给变量赋值的字节码指令时，会执行这个操作。</p><p>store（存储）：作用于工作内存。把工作内存中一个变量的值传送到主内存中，方便后续write操作使用。</p><p>write（写入）：主内存变量。把store操作从工作内存中得到的变量的值放入主内存变量。</p><p>如果要把一个变量从主内存拷贝到工作内存，那就要顺序执行read和load操作，如果要把变量从工作内存同步回主内存，就要顺序执行store和write操作。Java内存模型只要求上述两个操作必须顺序执行，但不要求是连续执行的。也就是说执行中间可以插入其他的执行。</p>]]></content>
     
@@ -339,6 +403,8 @@
     
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
     
@@ -445,7 +511,7 @@
     <link href="http://example.com/2023/03/19/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/"/>
     <id>http://example.com/2023/03/19/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</id>
     <published>2023-03-19T03:28:02.000Z</published>
-    <updated>2023-03-19T06:07:51.132Z</updated>
+    <updated>2023-03-30T07:10:19.854Z</updated>
     
     <content type="html"><![CDATA[<p>通过一个类的全限定名来获取描述该类的二进制字节流，实现这个动作的代码叫做<strong>类加载器</strong>。</p><h3 id="类与类加载器"><a href="#类与类加载器" class="headerlink" title="类与类加载器"></a><strong>类与类加载器</strong></h3><p>对于任意一个类，都必须由加载它的类加载器和这个类本身一起共同确立其在Java虚拟机中的唯一性，每一个类加载器，都拥有一个独立的类名称空间。换句话说：比较两个类是否“相等”，只有在这两个类是由同一个类加载器加载的前提下才有意义，否则，即使这两个类来源于同一个Class文件，被同一个Java虚拟机加载，只要加载它们的类加载器不同，那这两个类就必定不相等。</p><p>这里的相等指：代表类的Class对象的equals()方法、isAssignableFrom()方法、isInstance()方法的返回结果，也包括了使用instanceof关键字做对象所属关系判定等各种情况。</p><h3 id="双亲委派模型"><a href="#双亲委派模型" class="headerlink" title="双亲委派模型"></a><strong>双亲委派模型</strong></h3><p>启动类加载器（Bootstrap Class Loader）：这个类加载器负责加载存放在<JAVA_HOME>\lib目录，或者被-Xbootclasspath参数所指定的路径中存放的，而且是Java虚拟机能够识别的（按照文件名识别，如rt.jar、tools.jar，名字不符合的类库即使放在lib目录中也不会被加载）类库加载到虚拟机的内存中。</p><p>扩展类加载器（Extension Class Loader）：它负责加载<JAVA_HOME>\lib\ext目录中，或者被java.ext.dirs系统变量所指定的路径中所有的类库。</p><p>应用程序类加载器（Application Class Loader）：由于应用程序类加载器是ClassLoader类中的getSystem-ClassLoader()方法的返回值，所以有些场合中也称它为“系统类加载器”。它负责加载用户类路径（ClassPath）上所有的类库，开发者同样可以直接在代码中使用这个类加载器。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230319133215497.png" alt="image-20230319133215497"></p><p>上图中展示的各种类加载器之间的层次关系被称为类加载器的“<strong>双亲委派模型（Parents DelegationModel）</strong>”。</p><p>双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应有自己的父类加载器。不过这里类加载器之间的父子关系一般不是以继承（Inheritance）的关系来实现的，而是通常使用组合（Composition）关系来复用父加载器的代码。</p><p><strong>双亲委派模型的工作过程是</strong>：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都应该传送到最顶层的<strong>启动类加载器</strong>中，只有当父加载器反馈自己无法完成这个加载请求（它的搜索范围中没有找到所需的类）时，子加载器才会尝试自己去完成加载。</p><p>使用双亲委派的一个好处：Java中的类随着它的类加载器一起具备了一种带有优先级的层次关系。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> Class&lt;?&gt; loadClass(String name, <span class="type">boolean</span> resolve) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line"><span class="comment">// 首先，检查请求的类是否已经被加载过了</span></span><br><span class="line"><span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> findLoadedClass(name);</span><br><span class="line"><span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line"><span class="keyword">if</span> (parent != <span class="literal">null</span>) &#123;</span><br><span class="line">c = parent.loadClass(name, <span class="literal">false</span>);</span><br><span class="line">&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">c = findBootstrapClassOrNull(name);</span><br><span class="line">&#125;</span><br><span class="line">&#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line"><span class="comment">// 如果父类加载器抛出ClassNotFoundException</span></span><br><span class="line"><span class="comment">// 说明父类加载器无法完成加载请求</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line"><span class="comment">// 在父类加载器无法加载时</span></span><br><span class="line"><span class="comment">// 再调用本身的findClass方法来进行类加载</span></span><br><span class="line">c = findClass(name);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">resolveClass(c);</span><br><span class="line">&#125;</span><br><span class="line">    <span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码的逻辑：先检查请求加载的类型是否已经被加载过，若没有则调用父加载器的loadClass()方法，若父加载器为空则默认使用启动类加载器作为父加载器。假如父类加载器加载失败，抛出ClassNotFoundException异常的话，才调用自己的findClass()方法尝试进行加载。</p>]]></content>
     
@@ -463,58 +529,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
     <category term="类加载器" scheme="http://example.com/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Redis主从同步与故障切换的一些问题</title>
-    <link href="http://example.com/2023/03/19/Redis%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/"/>
-    <id>http://example.com/2023/03/19/Redis%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/</id>
-    <published>2023-03-19T03:06:29.000Z</published>
-    <updated>2023-03-19T03:15:49.060Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="主从数据不一致"><a href="#主从数据不一致" class="headerlink" title="主从数据不一致"></a>主从数据不一致</h3><p>主从数据不一致，就是指客户端从从库中读取到的值和主库中的最新值并不一致。</p><p>比如主库和从库之前的数据都是20，此时一条修改命令将主库的值由20改为19，接着有一个查询走了从库，此时从库的值还是19。</p><p>产生原因：<strong>主从库间的命令复制是异步进行的</strong>。</p><p>具体来说，主库收到写命令，会发给从库，但是在写完主库后就会返回给客户端，并不会等到从库写完才返回给客户端。</p><p>从库命令滞后原因：</p><p>1、主从库间的网络可能会有传输延迟，所以从库不能及时地收到主库发送的命令，从库上执行同步命令的时间就会被延后。</p><p>2、从库收到命令，但此时从库因在执行其他复杂度高的命令而阻塞，无法执行同步命令。</p><p>解决办法：</p><p>1、采用更好的硬件，<strong>保证主从库间的网络连接状况良好</strong>。</p><p>2、监控主从复制的进度。</p><p>Redis 的 INFO replication 命令可以查看主库接收写命令的进度信息（master_repl_offset）和从库复制写命令的进度信息（slave_repl_offset），用 master_repl_offset 减去 slave_repl_offset，这样就能得到从库和主库间的复制进度差值了。</p><p>所以我们可以监视这个差值，当达到一定值，我们就不再从这个从库进行读取。</p><h3 id="读过期数据"><a href="#读过期数据" class="headerlink" title="读过期数据"></a>读过期数据</h3><p>产生原因：<strong>Redis 同时使用了两种策略来删除过期的数据，分别是惰性删除策略和定期删除策略</strong>。</p><p>惰性删除：一个数据过期并不立即删除它，当需要用到这个数据时去检查是否过期，如果过期再删除。</p><p>在这种策略下，如果在主库读到过期数据，那么会将其删除。如果在从库读到过期数据，在3.2版本之前，会返回过期数据，3.2版本之后，不会删除，但是会返回一个空值。</p><p>定期删除：Redis 每隔一段时间（默认 100ms），就会随机选出一定数量的数据，检查它们是否过期，并把其中过期的数据删除。</p><p>定期删除只会删除一小部分数据，如果数据量大，有些数据一直没被访问，就可能一直留存，导致读到过期数据。</p><p>尽管使用了3.2版本以上的Redis，还是有可能会读到过期数据，与Redis设置过期时间的命令有关。</p><p>Redis设置数据过期时间的命令一共有4个，可以分如下两类：</p><p>1、EXPIRE 和 PEXPIRE：它们给数据设置的是<strong>从命令执行时开始计算的存活时间</strong>；</p><p>2、EXPIREAT 和 PEXPIREAT：<strong>它们会直接把数据的过期时间设置为具体的一个时间点</strong>。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230319104238500.png" alt="image-20230319104238500"></p><p>针对于第一类设置过期时间的方法，当主从库进行全量同步时，如果主库收到第一类命令，它会在主库执行，然后等到全量同步结束后发给从库，然后从库执行。这样，此条数据在从库的过期时间就比主库延后了。</p><p>解决办法：使用第二类设置办法，避免读到过期数据。</p><h3 id="不合理配置项导致的服务挂掉"><a href="#不合理配置项导致的服务挂掉" class="headerlink" title="不合理配置项导致的服务挂掉"></a>不合理配置项导致的服务挂掉</h3><p><strong>1.protected-mode 配置项</strong></p><p>这个配置项的作用是限定哨兵实例能否被其他服务器访问。当这个配置项设置为 yes 时，哨兵实例只能在部署的服务器本地进行访问。当设置为 no 时，其他服务器也可以访问这个哨兵实例。</p><p>如果配置为yes，那么其他哨兵配置在其他服务器上，哨兵前就无法通信，也就无法判断主库是否故障，导致服务不可用。</p><p><strong>2.cluster-node-timeout 配置项</strong></p><p><strong>这个配置项设置了 Redis Cluster 中实例响应心跳消息的超时时间</strong>。</p><p>当我们在 Redis Cluster 集群中为每个实例配置了“一主一从”模式时，如果主实例发生故障，从实例会切换为主实例，受网络延迟和切换操作执行的影响，切换时间可能较长，就会导致实例的心跳超时（超出 cluster-node-timeout）。实例超时后，就会被 Redis Cluster 判断为异常。而 Redis Cluster 正常运行的条件就是，有半数以上的实例都能正常运行。</p><p>所以，如果执行主从切换的实例超过半数，而主从切换时间又过长的话，就可能有半数以上的实例心跳超时，从而可能导致整个集群挂掉。所以该时间最好调大一点。</p><h3 id="另外的一些主从同步问题"><a href="#另外的一些主从同步问题" class="headerlink" title="另外的一些主从同步问题"></a>另外的一些主从同步问题</h3><p>1、主从库设置的 maxmemory 不同，如果 slave 比 master 小，那么 <strong>slave 内存就会优先达到 maxmemroy，然后开始淘汰数据</strong>，此时主从库也会产生不一致。</p><p>2、如果主从同步的 client-output-buffer-limit 设置过小，并且 master 数据量很大，主从全量同步时可能会导致 buffer 溢出，溢出后主从全量同步就会失败。如果主从集群配置了哨兵，那么哨兵会让 slave 继续向 master 发起全量同步请求，然后 buffer 又溢出同步失败，如此反复，会形成复制风暴，这会浪费 master 大量的 CPU、内存、带宽资源，也会让 master 产生阻塞的风险。</p><h3 id="假如slave可以自动删除过期数据，是否可以保证主从库的一致性？"><a href="#假如slave可以自动删除过期数据，是否可以保证主从库的一致性？" class="headerlink" title="假如slave可以自动删除过期数据，是否可以保证主从库的一致性？"></a>假如slave可以自动删除过期数据，是否可以保证主从库的一致性？</h3><p>无法保证。考虑以下场景：</p><p>1、主从同步存在网络延迟。例如 master 先执行 SET key 1 10，这个 key 同步到了 slave，此时 key 在主从库都是 10s 后过期，之后这个 key 还剩 1s 过期时，master 又执行了 expire key 60，重设这个 key 的过期时间。但 expire 命令向 slave 同步时，发生了网络延迟并且超过了 1s，如果 slave 可以自动删除过期 key，那么这个 key 正好达到过期时间，就会被 slave 删除了，之后 slave 再收到 expire 命令时，执行会失败。最后的结果是这个 key 在 slave 上丢失了，主从库发生了不一致。</p><p>2、主从机器时钟不一致。同样 master 执行 SET key 1 10，然后把这个 key 同步到 slave，但是此时 <strong>slave 机器时钟如果发生跳跃</strong>，优先把这个 key 过期删除了，也会发生上面说的不一致问题。</p><p>所以 Redis 为了保证主从同步的一致性，不会让 slave 自动删除过期 key，而只在 master 删除过期 key，之后 master 会向 slave 发送一个 DEL，slave 再把这个 key 删除掉，这种方式可以解决主从网络延迟和机器时钟不一致带来的影响。</p><h3 id="关于-slave-read-only"><a href="#关于-slave-read-only" class="headerlink" title="关于 slave-read-only"></a>关于 slave-read-only</h3><p>slave-read-only 主要用来控制 slave 是否可写，但是否主动删除过期 key，根据 Redis 版本不同，执行逻辑也不同。</p><p>1、如果版本低于 Redis 4.0，slave-read-only 设置为 no，此时 slave 允许写入数据，但如果 key 设置了过期时间，那么这个 key 过期后，虽然在 slave 上查询不到了，但并不会在内存中删除，这些过期 key 会一直占着 Redis 内存无法释放。 </p><p>2、Redis 4.0 版本解决了上述问题，在 slave 写入带过期时间的 key，slave 会记下这些 key，并且在后台定时检测这些 key 是否已过期，过期后从内存中删除。</p><p>在上述两种情况下，slave都不会主动删除master上的过期key，master 带有过期时间的 key，什么时候删除由 master 自己维护，slave 不会介入。如果 slave 设置了 slave-read-only &#x3D; no，而且是 4.0+ 版本，<strong>slave 也只维护直接向自己写入的带有过期的 key</strong>，过期时只删除这些 key。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h3 id=&quot;主从数据不一致&quot;&gt;&lt;a href=&quot;#主从数据不一致&quot; class=&quot;headerlink&quot; title=&quot;主从数据不一致&quot;&gt;&lt;/a&gt;主从数据不一致&lt;/h3&gt;&lt;p&gt;主从数据不一致，就是指客户端从从库中读取到的值和主库中的最新值并不一致。&lt;/p&gt;
-&lt;p&gt;比如主库和从</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
-    
-    <category term="主从同步" scheme="http://example.com/tags/%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5/"/>
-    
-    <category term="主从一致性" scheme="http://example.com/tags/%E4%B8%BB%E4%BB%8E%E4%B8%80%E8%87%B4%E6%80%A7/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>事务机制之Redis能否实现ACID属性</title>
-    <link href="http://example.com/2023/03/18/%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E4%B9%8BRedis%E8%83%BD%E5%90%A6%E5%AE%9E%E7%8E%B0ACID%E5%B1%9E%E6%80%A7/"/>
-    <id>http://example.com/2023/03/18/%E4%BA%8B%E5%8A%A1%E6%9C%BA%E5%88%B6%E4%B9%8BRedis%E8%83%BD%E5%90%A6%E5%AE%9E%E7%8E%B0ACID%E5%B1%9E%E6%80%A7/</id>
-    <published>2023-03-18T07:31:37.000Z</published>
-    <updated>2023-03-18T07:40:24.701Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h3><p>所谓的事务，就是指对数据进行读写的一系列操作。事务在执行时，会提供专门的属性保证，包括<strong>原子性</strong>（Atomicity）、<strong>一致性</strong>（Consistency）、<strong>隔离性</strong>（Isolation）和<strong>持久性</strong>（Durability），也就是 ACID 属性。</p><h3 id="事务ACID属性要求"><a href="#事务ACID属性要求" class="headerlink" title="事务ACID属性要求"></a>事务ACID属性要求</h3><p>首先来看原子性。原子性的要求很明确，就是一个事务中的多个操作必须都完成，或者都不完成。业务应用使用事务时，原子性也是最被看重的一个属性。</p><p>第二个属性是一致性。这个很容易理解，就是指数据库中的数据在事务执行前后是一致的。</p><p>第三个属性是隔离性。它要求数据库在执行一个事务时，其它操作<strong>无法存取到正在执行事务访问的数据</strong>。</p><p>最后一个属性是持久性。数据库执行事务后，数据的修改要被持久化保存下来。当数据库重启后，数据的值需要是被修改后的值。</p><h3 id="Redis如何实现事务"><a href="#Redis如何实现事务" class="headerlink" title="Redis如何实现事务"></a>Redis如何实现事务</h3><p>首先，客户端需要一个显式的命令开启事务，Redis里使用MULTI来手动开启一个事务。</p><p>第二步，客户端把事务中需要执行的具体操作发送给服务端。Redis接受到这些命令后会将他们都存到一个队列当中，并不会立即执行。</p><p>第三步向服务端发送提交事务请求，Redis使用EXEC，让数据库执行第二步的那些操作。</p><h3 id="Redis的事务机制能保证哪些属性？"><a href="#Redis的事务机制能保证哪些属性？" class="headerlink" title="Redis的事务机制能保证哪些属性？"></a>Redis的事务机制能保证哪些属性？</h3><h4 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h4><p>如果事务正常执行，MULTI 和 EXEC 配合使用，就可以保证多个操作都完成。但是如果事务执行发生错误，则需要分三种情况：</p><p>1、<strong>在执行 EXEC 命令前，客户端发送的操作命令本身就有错误</strong>，比如语法错误，那么在入队前会被检测出来。提交一个错误命令之后，仍然可以继续提交，但是在执行EXEC命令后，Redis会返回错误，也不会执行队列中的命令。</p><p>2、<strong>事务操作入队时，命令和操作的数据类型不匹配，但 Redis 实例没有检查出错误</strong>。此时在提交EXEC命令后，Redis在执行这些操作时，到达这个不匹配的命令，会报错，但是前面的正确的命令已经执行了，此种情况无法保证事务的原子性。</p><p>Redis没有Mysql那种回滚机制。虽然提供了DISCARD 命令，但是只能用来主动放弃事务，把暂存的命令队列清空，没有回滚效果。</p><p>3、<strong>在执行事务的 EXEC 命令时，Redis 实例发生了故障，导致事务执行失败</strong>。这种情况下，如果Redis开启了AOF日志，只会有部分的事务操作被记录到AOF日志中，我们需要使用 redis-check-aof 工具检查 AOF 日志文件，这个工具可以把未完成的事务操作从 AOF 文件中去除。这样一来，我们使用 AOF 恢复实例后，事务操作不会再被执行，从而保证了原子性。</p><h4 id="一致性"><a href="#一致性" class="headerlink" title="一致性"></a>一致性</h4><p>事务的一致性保证会受到<strong>错误命令</strong>、<strong>实例故障</strong>的影响。所以，我们按照命令出错和实例故障的发生时机，分成三种情况来看。</p><p><strong>1、命令入队时就报错</strong></p><p>这种情况下事务就不会执行，所以可以保证一致性。</p><p><strong>2、命令入队时没报错，实际执行时报错</strong></p><p>这种情况下，正确的命令会执行，但是错误的命令并不会执行，也不会改变数据库的一致性。</p><p><strong>3、EXEC 命令执行时实例发生故障</strong></p><p>如果没有开启AOF和RDB，那么重启后就没有数据，数据是一致的。</p><p>如果使用了RDB，因为RDB快照不会在事务执行的时候执行，所以事务操作成功的那部分数据不会被RDB记录，所以也是一致的。</p><p>如果使用了AOF，事务操作还没来得及被记录到AOF当中，实例就发生了故障，那么AOF恢复的数据就是一致的。如果有部分被记录到AOF当中，我们可以使用 redis-check-aof 清除事务中已经完成的操作，数据库恢复后也是一致的。</p><h4 id="隔离性"><a href="#隔离性" class="headerlink" title="隔离性"></a>隔离性</h4><p>事务的隔离性保证，会受到和事务一起执行的并发操作的影响。而事务执行又可以分成命令入队（EXEC 命令执行前）和命令实际执行（EXEC 命令执行后）两个阶段，所以，我们就针对这两个阶段，分成两种情况来分析：</p><p>1、并发操作在 EXEC 命令前执行，此时，隔离性的保证要使用 WATCH 机制来实现，否则隔离性无法保证；</p><p>WATCH 机制的作用是，在事务执行前，<strong>监控一个或多个键的值变化情况</strong>，当事务调用 EXEC 命令执行时，WATCH 机制会先检查监控的键是否被其它客户端修改了。如果修改了，就放弃事务执行，避免事务的隔离性被破坏。然后，客户端可以再次执行事务，此时，如果没有并发修改事务数据的操作了，事务就能正常执行，隔离性也得到了保证。这里需要使用watch命令。</p><p>这里的情况就是，客户端A开启事务，在输入命令的过程中，客户端B修改了A涉及到的数据。</p><p>2、并发操作在 EXEC 命令后执行，此时，隔离性可以保证。</p><p>这种情况是客户端A的事务已经全部处于队列，并且Redis已经开始处理队列中的命令，此时有客户端B发送命令修改了队列中涉及到的数据。因为Redis会<strong>优先处理队列中的命令</strong>，而不会去处理客户端B的命令，所以不会破坏事务的隔离性。</p><h4 id="持久性"><a href="#持久性" class="headerlink" title="持久性"></a>持久性</h4><p>如果没有开启AOF和RDB，无法保证持久性。</p><p>开启了RDB，如果事务执行后，下一次RDB快照还没开始，就宕机，则无法保证持久性。</p><p>而AOF 模式的三种配置选项 no、everysec 和 always 都会存在数据丢失的情况，所以，事务的持久性属性也还是得不到保证。</p><h3 id="Pipeline-管道-的使用"><a href="#Pipeline-管道-的使用" class="headerlink" title="Pipeline(管道)的使用"></a>Pipeline(管道)的使用</h3><p>使用管道技术，可以一次性把命令全部打包发到服务端，服务端全部处理完成后返回。这么做好的好处，一是减少了来回网络 IO 次数，提高操作性能。二是一次性发送所有命令到服务端，服务端在处理过程中，是不会被别的请求打断的（Redis单线程特性，此时别的请求进不来），这本身就保证了隔离性。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h3 id=&quot;什么是事务&quot;&gt;&lt;a href=&quot;#什么是事务&quot; class=&quot;headerlink&quot; title=&quot;什么是事务&quot;&gt;&lt;/a&gt;什么是事务&lt;/h3&gt;&lt;p&gt;所谓的事务，就是指对数据进行读写的一系列操作。事务在执行时，会提供专门的属性保证，包括&lt;strong&gt;原子性&lt;/st</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
-    
-    <category term="事务" scheme="http://example.com/tags/%E4%BA%8B%E5%8A%A1/"/>
     
   </entry>
   
