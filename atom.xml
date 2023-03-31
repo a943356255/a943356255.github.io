@@ -64,9 +64,9 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
@@ -142,11 +142,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -268,11 +268,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -297,11 +297,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -325,11 +325,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -402,11 +402,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -527,9 +527,9 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="类加载器" scheme="http://example.com/tags/%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/"/>
     
