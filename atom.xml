@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-01T08:45:24.791Z</updated>
+  <updated>2023-04-02T01:51:20.692Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>HostSpot虚拟机中的对象</title>
+    <link href="http://example.com/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/"/>
+    <id>http://example.com/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/</id>
+    <published>2023-04-01T11:59:24.000Z</published>
+    <updated>2023-04-02T01:51:20.692Z</updated>
+    
+    <content type="html"><![CDATA[<p>本文所涉及的内容都是基于HostSpot虚拟机而言的。</p><h1 id="对象的创建"><a href="#对象的创建" class="headerlink" title="对象的创建"></a>对象的创建</h1><p>一个对象的创建（这里不包括数组和Class对象），在Java中仅仅是一个new关键字，当虚拟机遇到字节码new指令时，它会先检查指令中的参数能否在常量池（①）中定位到一个<strong>符号引用</strong>（②），并且检查这个符号引用代表的类是否已经被加载、解析和初始化过，如果没有，那必须先执行类加载。</p><p>类加载检验通过后，虚拟机会在堆中为它划分一块区域，区域的大小在类加载完成后可以确定。这里划分区域根据不同虚拟机的设计，会有不同的方案。</p><p>如果Java堆内存是绝对规整的，一半放用过的，一半放空闲的，中间有一个指针用作分界。那么内存分配只需要将那个指针向空闲的方向移动与对象大小的位置即可，这种分配方式称为指针碰撞。</p><p>如果内存是不规整的，即使用的和未使用的内存交错在一起，虚拟机就需要维护一个列表，记录哪些内存是可以使用的，在分配时就需要从虚拟机中找到足够大小的空间划分给对象，并更新列表记录，这种称为空闲列表。</p><p>采用那种分配方案取决于堆是否规整，而是否规整又取决于垃圾收集器是否带有空间压缩整理的能力。</p><p>由于内存分配是特别频繁的一件事，指针移动这一操作并不是线程安全的，虚拟机采用的解决方案是CAS（③）配上失败重试的方式保证更新操作的原子性。</p><p>内存分配完成后，虚拟机会把分配到的内存空间都初始化为零值，这一步保证了对象实例字段在Java代码中可以不赋初始值就可以使用。</p><p>接下来，虚拟机就要设置对象的基本属性，比如这个对象是哪个类的实例，如何找到类的元数据，对象的哈希码，对象的GC分代年龄等信息。这些信息被放在<strong>对象头</strong>中。</p><h1 id="对象的内存布局"><a href="#对象的内存布局" class="headerlink" title="对象的内存布局"></a>对象的内存布局</h1><p>对象在堆中的存储布局可以划分为三个部分，对象头，实例数据，对齐填充。</p><p>对象头包括两部分信息，第一部分是存储自身运行时数据，如哈希码，GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID等，这部分被称为Mark Word。这里面的有部分信息会在偏向锁，轻量级锁的实现中用到。</p><p>第二部分是类型指针，即对象指向它的类型元数据的指针，Java虚拟机通过该指针确定对象是哪个类的实例。这个指针指向每个对象生成的Class对象，位于方法区中。</p><p>数据实例部分是对象真正存储的有效信息，即我们在代码中定义的各种字段。</p><p>对齐填充并不是必定存在的，也没有特别含义。</p><h1 id="对象的访问定位"><a href="#对象的访问定位" class="headerlink" title="对象的访问定位"></a>对象的访问定位</h1><p>对象创建完后，会通过栈上的reference数据来操作堆上的对象，主流访问方式有以下两种：</p><h3 id="使用句柄"><a href="#使用句柄" class="headerlink" title="使用句柄"></a>使用句柄</h3><p>如果使用句柄的话，堆中会划分出一块内存来作为句柄池，reference存储的就是对象的句柄地址，句柄中包含了对象实例数据与类型数据各自具体的信息。具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092744890.png" alt="image-20230402092744890"></p><h3 id="直接指针"><a href="#直接指针" class="headerlink" title="直接指针"></a>直接指针</h3><p>如果使用直接指针访问的话，Java堆中对象的内存布局就必须考虑如何放置访问类型数据的相关信息，<strong>reference中存储的直接就是对象地址</strong>，如果只是访问对象本身的话，就不需要多一次间接访问的开销。直接指针的最大好处是省略了一次指针定位的开销。</p><p>具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092841557.png" alt="image-20230402092841557"></p><h1 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h1><p>①常量池：常量池位于方法区中，用于存放编译器生成的各种<strong>字面量</strong>与<strong>符号引用</strong></p><p>②符号引用：在Java虚拟机中，当一个类被加载时，它的类信息会被存储在运行时常量池中，包括类的名称、方法的名称和参数类型等信息，这些信息构成了符号引用。</p><p>③CAS操作：类似于版本控制，不过是在字节码层面的。它涉及到3个值，原值A，以及A的副本，要修改的值C。在修改时，它会验证A的值是否等于副本A，如果等，再将C的值写入。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;本文所涉及的内容都是基于HostSpot虚拟机而言的。&lt;/p&gt;
+&lt;h1 id=&quot;对象的创建&quot;&gt;&lt;a href=&quot;#对象的创建&quot; class=&quot;headerlink&quot; title=&quot;对象的创建&quot;&gt;&lt;/a&gt;对象的创建&lt;/h1&gt;&lt;p&gt;一个对象的创建（这里不包括数组和Class对象</summary>
+      
+    
+    
+    
+    <category term="Java" scheme="http://example.com/categories/Java/"/>
+    
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL全局锁和表锁</title>
@@ -37,9 +64,9 @@
     <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
     
     
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
     <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
   </entry>
   
@@ -199,9 +226,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
-    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
   </entry>
   
@@ -325,9 +352,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
-    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
   </entry>
   
@@ -510,30 +537,6 @@
     
     
     <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Redis集群方案之Codis</title>
-    <link href="http://example.com/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/"/>
-    <id>http://example.com/2023/03/21/Redis%E9%9B%86%E7%BE%A4%E6%96%B9%E6%A1%88%E5%A6%82%E4%BD%95%E9%80%89%E5%8F%96/</id>
-    <published>2023-03-21T01:09:20.000Z</published>
-    <updated>2023-03-22T06:25:28.321Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="codis集群中包含的4个组件"><a href="#codis集群中包含的4个组件" class="headerlink" title="codis集群中包含的4个组件"></a>codis集群中包含的4个组件</h3><p>1、codis server：这是进行了二次开发的 Redis 实例，其中增加了额外的数据结构，支持数据迁移操作，主要负责处理具体的数据读写请求。</p><p>2、codis proxy：接收客户端请求，并把请求转发给 codis server。</p><p>3、Zookeeper 集群：保存集群元数据，例如数据位置信息和 codis proxy 信息。</p><p>4、codis dashboard 和 codis fe：共同组成了集群管理工具。其中，codis dashboard 负责执行集群管理工作，包括增删 codis server、codis proxy 和进行数据迁移。而 codis fe 负责提供 dashboard 的 Web 操作界面，便于我们直接在 Web 界面上进行集群管理。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321095144355.png" alt="image-20230321095144355"></p><h3 id="Codis处理请求流程"><a href="#Codis处理请求流程" class="headerlink" title="Codis处理请求流程"></a>Codis处理请求流程</h3><p>1、首先使用codis dashboard 设置 codis server 和 codis proxy 的访问地址。</p><p>2、客户端与coids proxy建立连接。codis proxy本身支持Redis的RESP交互协议，所以与codis proxy建立连接与原生Redis没有区别。</p><p>3、coids proxy接受到请求后，会查询请求数据和coids proxy的映射关系，然后把请求转发给对应的coids server，处理完后会把结果返回给coids proxy，然后由代理（coids proxy）返回给客户端。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321100625064.png" alt="image-20230321100625064"></p><h3 id="Codis关键技术原理"><a href="#Codis关键技术原理" class="headerlink" title="Codis关键技术原理"></a>Codis关键技术原理</h3><h4 id="数据如何在集群里分布"><a href="#数据如何在集群里分布" class="headerlink" title="数据如何在集群里分布"></a>数据如何在集群里分布</h4><p>在 Codis 集群中，一个数据应该保存在哪个 codis server 上，这是通过逻辑槽（Slot）映射来完成的。</p><p>coids集群又1024个Slot，编号0-1023，我们可以手动把这些Slot分给codis server，也可以使用dashboard进行自动分配。</p><p>当客户端要读写数据时，会使用 CRC32 算法计算数据 key 的哈希值，并把这个哈希值对 1024 取模。而取模后的值，则对应 Slot 的编号。此时，根据第一步分配的 Slot 和 server 对应关系，我们就可以知道数据保存在哪个 server 上了。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321101725696.png" alt="image-20230321101725696"></p><p>数据 key 和 Slot 的映射关系是客户端在读写数据前直接通过 CRC32 计算得到的，而 Slot 和 codis server 的映射关系是通过分配完成的，所以就需要用一个存储系统保存下来。</p><p>Slot 和 codis server 的映射关系称为数据路由表（简称路由表）。我们在 codis dashboard 上分配好路由表后，dashboard 会把路由表发送给 codis proxy，同时，dashboard 也会把路由表保存在 Zookeeper 中。codis-proxy 会把路由表缓存在本地，当它接收到客户端请求后，直接查询本地的路由表，就可以完成正确的请求转发了。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321102745604.png" alt="image-20230321102745604"></p><h3 id="Codis与Redis-Cluster映射区别"><a href="#Codis与Redis-Cluster映射区别" class="headerlink" title="Codis与Redis Cluster映射区别"></a>Codis与Redis Cluster映射区别</h3><p>Codis 中的路由表是我们通过 codis dashboard 分配和修改的，并被保存在 Zookeeper 集群中。一旦路由表被修改，codis dashbaord 就会把修改后的路由表发送给 codis proxy，然后proxy就可以进行转发。</p><p>在 Redis Cluster 中，数据路由表是通过每个实例相互间的通信传递的，最后会在每个实例上保存一份。当数据路由信息发生变化时，就需要在所有实例间通过网络消息进行传递。</p><h3 id="Codis如何进行扩容和数据迁移"><a href="#Codis如何进行扩容和数据迁移" class="headerlink" title="Codis如何进行扩容和数据迁移"></a>Codis如何进行扩容和数据迁移</h3><p>扩容包括增加 codis server 和增加 codis proxy。</p><h4 id="增加codis-server"><a href="#增加codis-server" class="headerlink" title="增加codis server"></a>增加codis server</h4><p>1、增加codis server，将他们加入集群。</p><p>2、把部分数据迁移到新的 server。</p><h5 id="数据迁移过程"><a href="#数据迁移过程" class="headerlink" title="数据迁移过程"></a>数据迁移过程</h5><p>1、在源 server 上，Codis 从要迁移的 Slot 中随机选择一个数据，发送给目的 server。</p><p>比如原来有server 1，2，3。现在新添加了一个4，这一步就是从1或2或3中随机选一个数据发送给4。</p><p>2、目的 server 确认收到数据后，会给源 server 返回确认消息。这时，源 server 会在本地将刚才迁移的数据删除。</p><p>3、第一步和第二步就是单个数据的迁移过程。Codis 会不断重复这个迁移过程，直到要迁移的 Slot 中的数据全部迁移完成。</p><h5 id="迁移种类：同步迁移和异步迁移"><a href="#迁移种类：同步迁移和异步迁移" class="headerlink" title="迁移种类：同步迁移和异步迁移"></a>迁移种类：同步迁移和异步迁移</h5><p>同步迁移：在数据从源 server 发送给目的 server 的过程中，源 server 是阻塞的，无法处理新的请求操作。这种比较简单，但是迁移过程会设计多个操作，包括数据在源 server 序列化、网络传输、在目的 server 反序列化，以及在源 server 删除，如果是一个bigKey，就会导致阻塞时间过长。</p><p>异步迁移：当源 server 把数据发送给目的 server 后，就可以处理其他请求操作了，不用等到目的 server 的命令执行完。目的server收到数据并反序列化保存到本地后，给源server发送一个ACK消息，这时源server删除数据。在这个过程中，目标数据被设置为只读，也就不会出现迁移完数据不一致的情况。</p><p>异步迁移对于bigKey采用拆分指令的方式。即对于bigKey中的每一个元素采用一条指令进行迁移，而不是把整个bigKey序列化然后迁移。避免了因序列化bigKey而导致的源server阻塞。</p><p>此外，当 bigkey 迁移了一部分数据后，如果 Codis 发生故障，就会导致 bigkey 的一部分元素在源 server，而另一部分元素在目的 server，这就破坏了迁移的原子性。</p><p>所以，Codis 会在目标 server 上，给 bigkey 的元素设置一个临时过期时间。如果迁移过程中发生故障，那么，目标 server 上的 key 会在过期后被删除，不会影响迁移的原子性。当正常完成迁移后，bigkey 元素的临时过期时间会被删除。</p><h4 id="增加codis-proxy"><a href="#增加codis-proxy" class="headerlink" title="增加codis proxy"></a>增加codis proxy</h4><p>启动一个新的proxy，直接使用codis dashboard加入集群即可。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321105733398.png" alt="image-20230321105733398"></p><h3 id="怎么保证集群可靠性"><a href="#怎么保证集群可靠性" class="headerlink" title="怎么保证集群可靠性"></a>怎么保证集群可靠性</h3><h4 id="codis-server-的可靠性"><a href="#codis-server-的可靠性" class="headerlink" title="codis server 的可靠性"></a>codis server 的可靠性</h4><p>Codis 就使用主从集群来保证 codis server 的可靠性。简单来说就是，Codis 给每个 server 配置从库，并使用哨兵机制进行监控，当发生故障时，主从库可以进行切换，从而保证了 server 的可靠性。</p><p>在这种配置情况下，每个 server 就成为了一个 server group，每个 group 中是一主多从的 server。数据分布使用的 Slot，也是按照 group 的粒度进行分配的。同时，codis proxy 在转发请求时，也是按照数据所在的 Slot 和 group 的对应关系，把写请求发到相应 group 的主库，读请求发到 group 中的主库或从库上。</p><h4 id="codis-proxy-和-Zookeeper的可靠性"><a href="#codis-proxy-和-Zookeeper的可靠性" class="headerlink" title="codis proxy 和 Zookeeper的可靠性"></a>codis proxy 和 Zookeeper的可靠性</h4><p>proxy 上的信息源头都是来自 Zookeeper（例如路由表）。而 Zookeeper 集群使用多个实例来保存数据，只要有超过半数的 Zookeeper 实例可以正常工作， Zookeeper 集群就可以提供服务，也可以保证这些数据的可靠性。</p><h4 id="Codis-和-Redis-Cluster对比"><a href="#Codis-和-Redis-Cluster对比" class="headerlink" title="Codis 和 Redis Cluster对比"></a>Codis 和 Redis Cluster对比</h4><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230321112450765.png" alt="image-20230321112450765"></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h3 id=&quot;codis集群中包含的4个组件&quot;&gt;&lt;a href=&quot;#codis集群中包含的4个组件&quot; class=&quot;headerlink&quot; title=&quot;codis集群中包含的4个组件&quot;&gt;&lt;/a&gt;codis集群中包含的4个组件&lt;/h3&gt;&lt;p&gt;1、codis server：这是进</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
-    
-    <category term="集群" scheme="http://example.com/tags/%E9%9B%86%E7%BE%A4/"/>
     
   </entry>
   
