@@ -4,6 +4,60 @@
   
     
     <entry>
+      <title>MySQL事务隔离（2）</title>
+      <link href="/2023/04/02/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/"/>
+      <url>/2023/04/02/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/</url>
+      
+        <content type="html"><![CDATA[<h2 id="到底是隔离还是不隔离"><a href="#到底是隔离还是不隔离" class="headerlink" title="到底是隔离还是不隔离"></a>到底是隔离还是不隔离</h2><p>假如现在有如下表：</p><table><thead><tr><th>id</th><th>k</th></tr></thead><tbody><tr><td>1</td><td>1</td></tr><tr><td>2</td><td>2</td></tr></tbody></table><p>现在执行如下操作：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402142051361.png" alt="image-20230402142051361"></p><p><strong>在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1</strong>。下面看具体原因。</p><p>在MySQL中，有两个视图概念：</p><p>第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。</p><p>另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent read view，用于支持RC（Read Committed，读提交）和RR（Repeatable Read，可重复读）隔离级别的实现。</p><p>可重复读隔离主要用到第二个识图。</p><h3 id="“快照”在MVCC里是怎么工作的？"><a href="#“快照”在MVCC里是怎么工作的？" class="headerlink" title="“快照”在MVCC里是怎么工作的？"></a>“快照”在MVCC里是怎么工作的？</h3><p>在可重复读隔离级别下，事务启动时就拍了个快照，这个快照是基于整个库的。但是这个快照并不需要拷贝整个数据库的数据，具体做法如下：</p><p>InnoDB的每一个事务都有一个唯一的事务ID，叫作transaction id。它是在事务开始的时候向InnoDB的事务系统申请的，是按申请顺序严格递增的。</p><p>而每一行的数据都是有多个版本。每次事务进行更新数据时，都会生成一个新的版本的数据，然后这个新数据会绑定这个事务ID，记为row trx_id。也就是说，数据表中的一行记录，其实可能有多个版本(row)，每个版本有自己的row trx_id，通过这个row trx_id可以知道是哪个事务更新的数据。</p><p>一个具体的例子如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402144408772.png" alt="image-20230402144408772"></p><p>这里V4是最新的版本，但是数据库只存了V4，它前面的版本V1和V2以及V3并不是真实存在的，而是每次需要的时候根据当前版本和undo log计算出来的。比如，需要V2的时候，就是通过V4依次执行U3、U2算出来。</p><p>按照可重复读的定义，一个事务启动的时候，能够看到所有已经提交的事务。但是事务执行期间，其他事务的更新对他不可见。</p><h4 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h4><p>InnoDB为每一个事务构造了一个数组，用来保存事务启动的瞬间，当前启动了但是还没提交的事务。</p><p>通过这个数组，我们可以将系统中的所有事务划分为3个部分，小于数组中最小ID的是已经提交了的事务，高于数组最大值是还没开始的事务，数组中的是已经开始的但是还没提交的事务。如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402152032322.png" alt="image-20230402152032322"></p><p>针对当前事务，如果一个数据的row trx_id是在绿色区域，那么一定是可见的，如果在红色区域，则不可见。而处于黄色区域的数据，则分为两种情况，如果该row trx_id位于数组中，则说明该事务还没提交，那么就是不可见的，如果不在该数组中，说明已经提交了，则是可见的数据。这里可见得数据直接读取即可，不可见得数据是需要根据undo log进行回滚得数据。</p><p>要注意这里的一个可能的误区，这个数组并不一定是连续的，比如它可以是[50, 53, 60, 62]这种，而不连续的部分说明事务已经提交了。</p><p>通过这种设计，如果一个数据的row trx_id小于数组中得最小值，则直接按当前值读取，如果大于，则根据情况，看是否可见，如果不可见则需要根据undo log 进行回滚操作。</p><h2 id="开头的问题"><a href="#开头的问题" class="headerlink" title="开头的问题"></a>开头的问题</h2><p>现在看开头的那个问题。假设事务A的id是100，那么事务B的id是101，事务C的id是102。假设id &#x3D; 1那一行的row trx_id的值是90。</p><p>那么事务A中，事务创建的数组就只有 100，而事务B创建的数组有100，101。事务C创建的数组有100，101，102。</p><p>那么从结果上看，值为(1，1)的数据版本号为90， (1，2)数据的版本号为102（事务C修改的）， (1，3)的数据版本号为101（事务B修改的）。</p><p>所以事务A在执行查询操作时，发现数据（1，3）的版本号为102，高于数组最大值，是不可见的状态，所以他要退回，一直退到（1，1）这个状态，版本号为90，小于数组中的值，是可见的，所以事务A查到的k &#x3D; 1。</p><p>同理，事务B在执行查找时，发现当前数据（1，3）的版本号为101，是它自己的版本，所以直接展示k &#x3D; 3。注意，这里展示k &#x3D; 3是因为直接展示了最终结果，在事务B修改操作时，把k的版本号改为了事务B的id。</p><h2 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h2><p>这里针对上面事务B中的update语句将数据改为（1，3）做出解释：在事务B中，如果修改数据之前，执行一次查询操作，它读到的k的值的确是1，但此时的set k&#x3D;k+1是在（1,2）的基础上进行的操作，否则它将使得事务C的修改无效，导致数据不一致。</p><h2 id="事务的可重复读是怎么实现的"><a href="#事务的可重复读是怎么实现的" class="headerlink" title="事务的可重复读是怎么实现的"></a>事务的可重复读是怎么实现的</h2><p>简单来说，就是读操作，需要判断当前数据版本是否可见，不可见就回滚到可见版本。而写操作，则直接在当前版本进行修改。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> MySQL </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> MySQL45讲 </tag>
+            
+            <tag> 事务 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Java对象的共享</title>
+      <link href="/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/"/>
+      <url>/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/</url>
+      
+        <content type="html"><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p><p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p><p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p><p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p><h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p><h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p><h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p><h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p><p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p><p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> Java </category>
+          
+          <category> 并发编程 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Java并发编程实战 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>HostSpot虚拟机中的对象</title>
       <link href="/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/"/>
       <url>/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/</url>
@@ -20,9 +74,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
         </tags>
       
@@ -74,11 +128,11 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
             
             <tag> 内存模型 </tag>
+            
+            <tag> Jvm </tag>
             
         </tags>
       
@@ -130,9 +184,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 锁 </tag>
             
@@ -211,9 +265,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 线程 </tag>
             
@@ -336,9 +390,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 线程 </tag>
             
@@ -365,11 +419,11 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
             
             <tag> 内存模型 </tag>
+            
+            <tag> Jvm </tag>
             
         </tags>
       
@@ -394,11 +448,11 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
             
             <tag> 内存模型 </tag>
+            
+            <tag> Jvm </tag>
             
         </tags>
       
@@ -473,11 +527,11 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
             
             <tag> 内存模型 </tag>
+            
+            <tag> Jvm </tag>
             
         </tags>
       
@@ -602,9 +656,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 类加载器 </tag>
             
@@ -683,9 +737,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 类加载机制 </tag>
             
@@ -712,9 +766,9 @@
       
         <tags>
             
-            <tag> Jvm </tag>
-            
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> Jvm </tag>
             
             <tag> 类加载机制 </tag>
             
