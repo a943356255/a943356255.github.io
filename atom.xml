@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-02T08:33:16.624Z</updated>
+  <updated>2023-04-03T08:50:57.363Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,33 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL普通索引和唯一索引</title>
+    <link href="http://example.com/2023/04/03/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/"/>
+    <id>http://example.com/2023/04/03/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/</id>
+    <published>2023-04-03T06:29:52.000Z</published>
+    <updated>2023-04-03T08:50:57.363Z</updated>
+    
+    <content type="html"><![CDATA[<p>假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select name from table where id_card = &quot;xxxxyy&quot;</span><br></pre></td></tr></table></figure><p>为了提高效率，我们会在id_card上面加索引，那么到底是加唯一索引还是普通索引呢？我们可以从这两种索引对查询语句以及更新语句的性能影响来进行分析。</p><h1 id="查询过程"><a href="#查询过程" class="headerlink" title="查询过程"></a>查询过程</h1><p>假设执行的语句是select id from T where k&#x3D;5。对于两种索引执行过程如下：</p><p>普通索引：他会先找到k &#x3D; 5的这一条数据，然后会继续往下找，直到第一条不满足k &#x3D; 5的数据。</p><p>唯一索引：因为索引保证了唯一性，所以碰到第一条为5的记录后，就可以直接返回。</p><p>这一点的不同带来的性能差距很小。因为InnoDB的数据是以<strong>数据页</strong>为单位来读的，意味着读一条数据，会将那条数据所在的页都加载到内存当中，所以读取k &#x3D; 5的时候，大概率后续几条数据会在同一个数据页中，此时性能差异很小。一个特殊情况是后续几条数据和k &#x3D; 5不在同一个页中，那么此时效率会有点低。</p><h1 id="更新过程"><a href="#更新过程" class="headerlink" title="更新过程"></a>更新过程</h1><h2 id="change-buffer"><a href="#change-buffer" class="headerlink" title="change buffer"></a>change buffer</h2><p>MySQL在更新数据时，如果数据页不在内存中，就会先将更新操作写入change buffer中，等到下次查询该数据时，将change buffer中的操作执行到具体的数据。</p><p>除了查询的时候会进行数据同步外，后台也会有线程定期对change buffer中的操作执行到具体的数据。</p><p>change buffer在内存中也有拷贝，也会被写入到磁盘。</p><h3 id="使用条件"><a href="#使用条件" class="headerlink" title="使用条件"></a>使用条件</h3><p>对于唯一索引来说，在更新数据前他需要先判断该操作是否满足唯一性约束，进行判断就意味着必须要将数据页读到内存。这也就意味着唯一索引在进行修改时，修改数据所在的数据页一定在内存中。</p><p><strong>也就是说，change buffer只有普通索引才可以使用。</strong></p><p>针对于一个更新，分为两种情况：</p><p>如果要更新的数据在内存中，那么两种索引的更新情况类似，只不过唯一索引多了一次判断，影响不大。</p><p>但是如果数据不在内存中，那么唯一索引需要先把数据查询出来放入内存，然后再更新，而普通索引写入change buffer即可。</p><h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>由于在进行合并的时候，change buffer记录的变更越多（也就是这个页面上要更新的次数越多），收益就越大。</p><p>因此，对于写多读少的业务来说，页面在写完以后马上被访问到的概率比较小，此时change buffer的使用效果最好。</p><h1 id="change-buffer-和-redo-log"><a href="#change-buffer-和-redo-log" class="headerlink" title="change buffer 和 redo log"></a>change buffer 和 redo log</h1><p>这两种设计原理，都是为了减少随机的磁盘读取。现在考虑执行下面的语句:</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">insert into t(id,k) values(id1,k1),(id2,k2);</span><br></pre></td></tr></table></figure><p>这里我们假设k1所在的数据页在内存中，而k2所在的数据页不在内存中。那么这条更新语句要做的处理如下：</p><p>1、因为k1数据页在内存中，则直接更新k1数据所在的数据页即可。</p><p>2、因为k2数据页不在内存，就在change buffer中记录类似于我要插入k2这条记录即可。</p><p>3、将上述两个动作记录redo log中。</p><p>这样，插入就执行完成了。两次内存操作，一次磁盘操作。</p><p>在执行完上面的插入操作后，如果继续执行下面语句：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from t where k in (k1, k2)。</span><br></pre></td></tr></table></figure><p>由于k1所在的数据页还在内存当中，直接从内存中读取返回，而k2所在的数据页不在内存中，则从磁盘读取，然后于change buffer整合，返回正确的结果。</p><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以，如果要简单地对比这两个机制在提升更新性能上的收益的话，<strong>redo log 主要节省的是随机写磁盘的IO消耗（转成顺序写），而change buffer主要节省的则是随机读磁盘的IO消耗。</strong></p><p>增删改操作都涉及到从磁盘中读取数据页加载到内存，而使用了change buffer后，直接将增删改操作记录到change buffer中即可，下次做查询操作时进行整合即可，减少读磁盘的次数。</p><p>而redo log是在增删改操作时，先将操作记录redo log，然后将数据在数据库缓存（buffer pool）中修改。由于这部分数据是在内存当中，没有同步到磁盘，而此时数据库异常关闭，可以通过redo log来恢复这段期间的数据，保证数据的一致性。</p><h2 id="一个小疑问"><a href="#一个小疑问" class="headerlink" title="一个小疑问"></a>一个小疑问</h2><p>我最开始比较疑惑为什么插入操作会涉及到考虑数据页是否在内存当中，原因是MySQL在插入数据时，会先找到这条语句所对应的数据页，然后把数据插入到对应的数据页中。所以说，即使是插入操作，也要确保数据页在内存中。如果在插入时使用了 Change Buffer 技术，那么可以将这些插入操作暂时缓存到 Change Buffer 中，等到后续查询这个数据页的时候，再将 Change Buffer 中的数据一次性刷新到对应的数据页中，这样就可以减少磁盘 IO 操作，提高系统的性能。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:&lt;/p&gt;
+&lt;figure class=&quot;highlight plaintext&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;l</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL事务隔离（2）</title>
@@ -51,9 +78,9 @@
     <link href="http://example.com/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/"/>
     <id>http://example.com/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/</id>
     <published>2023-04-02T02:14:27.000Z</published>
-    <updated>2023-04-02T08:34:23.596Z</updated>
+    <updated>2023-04-03T06:30:13.508Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p><p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p><p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p><p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p><h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p><h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p><h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p><h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p><p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p><p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p>]]></content>
+    <content type="html"><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p><p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p><p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p><p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p><h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p><h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p><h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p><h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p><p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p><p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p><h1 id="发布与逃逸"><a href="#发布与逃逸" class="headerlink" title="发布与逃逸"></a>发布与逃逸</h1><p>发布指的使一个对象可以在当前作用域之外的地方使用。例如将一个指向局部变量的指针保存在其他代码可以访问的地方。发布最简单的做法是将一个对象的引用放到一个共有的静态变量当中。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Set&lt;Secret&gt; knowSecrets;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">()</span> &#123;</span><br><span class="line">    knowSecrets = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>而发布knowSecrets对象是，可能会导致在该集合中的对象被间接的发布，因为能拿到knowSecrets，就可以操作其里面的内容。</p><h2 id="一个this引用逃逸的例子"><a href="#一个this引用逃逸的例子" class="headerlink" title="一个this引用逃逸的例子"></a>一个this引用逃逸的例子</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                    doSomething(e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        )</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这里涉及到匿名内部类，一个匿名内部类在构造时，编译器会默认把父类的引用隐式的传进来。也就意味着，上面的onEvent方法，他调用的doSomething可能是父类的某个方法，只不过采用省略写法，没有用this.doSomething(e)。以下是换一种不抽象的写法：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> num;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(<span class="type">int</span> num)</span> &#123;</span><br><span class="line">                    add(num);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> val)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.num += val;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>以上这种情况，如果在外部类，也就是ThisEscape初始化时，对num进行赋值，初始化还未完成时，却可以通过内部类对num进行修改，就会导致在num未初始化完成时，对其进行了修改。出现这种现象的原因是，ThisEscape的引用被EventListener提前暴露出去。</p><h2 id="使用工厂方法来防止this引用逃逸"><a href="#使用工厂方法来防止this引用逃逸" class="headerlink" title="使用工厂方法来防止this引用逃逸"></a>使用工厂方法来防止this引用逃逸</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SafeListener</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> EventListener eventListener;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">SafeListener</span><span class="params">()</span> &#123;</span><br><span class="line">        eventListener = <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                <span class="comment">// doSomething(e);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> SafeListener <span class="title function_">newInstance</span><span class="params">(EventSource eventSource)</span> &#123;</span><br><span class="line">        <span class="type">SafeListener</span> <span class="variable">safeListener</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SafeListener</span>();</span><br><span class="line">        eventSource.registerListener(safeListener.eventListener);</span><br><span class="line">        <span class="keyword">return</span> safeListener;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种方法，使得注册监听在构造方法之后完成，所以不会导致引用逃逸。</p>]]></content>
     
     
       
@@ -93,9 +120,9 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -120,9 +147,9 @@
     <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
     
     
-    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
-    
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
   </entry>
   
@@ -146,11 +173,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -202,9 +229,9 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
@@ -280,11 +307,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -406,11 +433,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -435,11 +462,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -463,11 +490,11 @@
     <category term="Java" scheme="http://example.com/categories/Java/"/>
     
     
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
     <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
@@ -516,35 +543,6 @@
     
     
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Java内存模型之主内存与工作内存</title>
-    <link href="http://example.com/2023/03/23/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/"/>
-    <id>http://example.com/2023/03/23/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/</id>
-    <published>2023-03-23T13:20:40.000Z</published>
-    <updated>2023-03-30T07:09:51.330Z</updated>
-    
-    <content type="html"><![CDATA[<p>每秒事务处理数量（TPS）是衡量一个服务性能高低好坏的重要指标之一。它代表着一秒内服务端平均能响应的请求综述，而且TPS值与程序的并发能力又有密切的关系。</p><p>为了解决计算机存储设备与处理器运算速度的差距，除了增加缓存外，还有一种优化方法，就是处理器可能会对输入的代码进行乱序执行，处理器在计算后会把乱序的结果进行重组，保证该结果与顺序执行时的一致，但是并不保证程序中各个语句计算的先后顺序与输入代码中的顺序一致。因此，出现一个计算任务依赖另一个计算任务的中间结果，那么其顺序性并不能靠代码的先后顺序来保证。</p><h3 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h3><p>可以理解为在特定的操作协议下，对特定的内存或高速缓存进行读写访问的过程抽象。</p><h3 id="主内存与工作内存"><a href="#主内存与工作内存" class="headerlink" title="主内存与工作内存"></a>主内存与工作内存</h3><p>Java内存模型的主要目的是定义程序中各种变量的访问规则，即关注虚拟机中把变量值存储到内存和从内存中取出变量值这样的底层细节。此处的变量包括了实例字段、静态字段和构成数组对象的元素，但是不包括局部变量与方法参数。因为后两个是线程私有的，并不会被共享，也不存在竞争。</p><p>Java内存模型没有限制执行引擎使用处理器的特定寄存器或缓存来和主内存进行交互，也没有限制即时编译器是否需要进行调整代码的执行顺序这类优化措施。</p><p>Java内存模型规定了所有的变量都存储在主内存中。每条线程还有自己的<strong>工作内存</strong>，线程的工作内存中保存了被该线程使用的变量的主内存副本，线程对变量的所有操作（读取，赋值等）都必须在工作内存中进行，而不能直接读写主内存的内容。不同线程也无法直接访问对方工作内存中的变量，<strong>线程间的变量值的传递均需要通过主内存来完成</strong>。</p><h3 id="内存见的交互操作"><a href="#内存见的交互操作" class="headerlink" title="内存见的交互操作"></a>内存见的交互操作</h3><p>如何将一个变量从主内存拷贝到工作内存以及如何从工作内存同同步回主内存，Java内存模型定义了8中操作来完成。虚拟机实现时必须保证这些操作是原子的、不可再分的。</p><p>lock（锁定）：作用于主内存的变量。把一个变量标识为一条线程独占的。</p><p>unlock（解锁）：作用于主内存。把一个处于锁定的变量释放，释放后可以被其他线程锁定。</p><p>read（读取）：作用于主内存。把一个变量的值从主内存传输到<strong>线程的工作内存</strong>，用于后续load动作使用。</p><p>load（载入）：作用于工作内存。把read操作从主内存中得到的变量值放入工作内存变量的副本中。</p><p>use（使用）：作用于工作内存。把工作内存中的一个变量的值传递给执行引擎。当虚拟机遇到一个<strong>需要使用变量的值的字节码指令</strong>时，将会执行这个操作。</p><p>assign（赋值）：作用于工作内存。把一个从执行引擎接收的值，赋给工作内存的变量，每当虚拟机遇到一个给变量赋值的字节码指令时，会执行这个操作。</p><p>store（存储）：作用于工作内存。把工作内存中一个变量的值传送到主内存中，方便后续write操作使用。</p><p>write（写入）：主内存变量。把store操作从工作内存中得到的变量的值放入主内存变量。</p><p>如果要把一个变量从主内存拷贝到工作内存，那就要顺序执行read和load操作，如果要把变量从工作内存同步回主内存，就要顺序执行store和write操作。Java内存模型只要求上述两个操作必须顺序执行，但不要求是连续执行的。也就是说执行中间可以插入其他的执行。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;每秒事务处理数量（TPS）是衡量一个服务性能高低好坏的重要指标之一。它代表着一秒内服务端平均能响应的请求综述，而且TPS值与程序的并发能力又有密切的关系。&lt;/p&gt;
-&lt;p&gt;为了解决计算机存储设备与处理器运算速度的差距，除了增加缓存外，还有一种优化方法，就是处理器可能会对输入的</summary>
-      
-    
-    
-    
-    <category term="Java" scheme="http://example.com/categories/Java/"/>
-    
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
   </entry>
   
