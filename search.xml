@@ -1,31 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
-    <title>Cluster规模对于通信的影响</title>
-    <url>/2023/03/24/Cluster%E8%A7%84%E6%A8%A1%E5%AF%B9%E4%BA%8E%E9%80%9A%E4%BF%A1%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
-    <content><![CDATA[<h3 id="实例通信方法和对集群规模的影响"><a href="#实例通信方法和对集群规模的影响" class="headerlink" title="实例通信方法和对集群规模的影响"></a>实例通信方法和对集群规模的影响</h3><p>redis官方给出了Redis Cluster的规模上限为1000个实例，其中一个限制实例规模的因素就是<strong>实例间的通信会随着实例规模的增加而增大</strong>，因此在实例超过一定规模后，实例增加吞吐量反而会下降。</p>
-<p>Redis Cluster 运行时，每个实例都会保存slot和实例的对应关系，以及自身的状态信息。为了让集群中每个实例都知道其他实例的状态，所以实例之间需要进行通信，采用的是Gossip 协议。</p>
-<h4 id="Gossip-协议原理"><a href="#Gossip-协议原理" class="headerlink" title="Gossip 协议原理"></a>Gossip 协议原理</h4><p>1、每个实例之间会按照一定的频率，从集群中随机挑选一些实例，把 PING 消息发送给挑选出来的实例，用来检测这些实例是否在线，并交换彼此的状态信息。PING 消息中封装了发送消息的实例自身的状态信息、部分其它实例的状态信息，以及 Slot 映射表。</p>
-<p>2、一个实例在接收到 PING 消息后，会给发送 PING 消息的实例，发送一个 PONG 消息。PONG 消息包含的内容和 PING 消息一样。</p>
-<p>Gossip 协议可以保证在一段时间后，集群中的每一个实例都能获得其它所有实例的状态信息。</p>
-<p>不难看出，实例间使用 Gossip 协议进行通信时，通信开销受到<strong>通信消息大小</strong>和<strong>通信频率</strong>这两方面的影响。信息越大，频率越高，影响越大。</p>
-<p>Redis Cluster 的实例启动后，默认会每秒从本地的实例列表中随机选出 5 个实例，再从这 5 个实例中找出一个最久没有通信的实例，把 PING 消息发送给该实例。但是这样会导致<strong>有些实例一直没有被发送 PING 消息，导致它们维护的集群状态已经过期了</strong>。</p>
-<p>为了避免这种情况，Redis Cluster 的实例会按照每 100ms 一次的频率，扫描本地的实例列表，如果发现有实例最近一次接收 PONG 消息的时间，已经大于配置项 cluster-node-timeout 的一半了（cluster-node-timeout&#x2F;2），就会立刻给该实例发送 PING 消息，更新这个实例上的集群状态信息。</p>
-<p>以上频率加上每一次ping，pong所包含信息的大小，多实例的通信占用带宽可能会很多。</p>
-<h3 id="如何降低实例间的通信开销"><a href="#如何降低实例间的通信开销" class="headerlink" title="如何降低实例间的通信开销"></a>如何降低实例间的通信开销</h3><p>针对以上分析，降低开销的办法一方面可以降低实例传输的大小，另一方面可以降低通信频率。</p>
-<p>降低大小不可取，因为降低大小只能减少传输的字段，无法保证实例之间传输足够的信息来维持集群运行。</p>
-<p>所以只能通过降低通信频率。可以修改cluster-node-timeout 这个配置项。</p>
-<p>配置项 cluster-node-timeout 定义了集群实例被判断为故障的心跳超时时间，默认是 15 秒。如果 cluster-node-timeout 值比较小，那么，在大规模集群中，就会比较频繁地出现 PONG 消息接收超时的情况，从而导致实例每秒要执行 10 次“给 PONG 消息超时的实例发送 PING 消息”这个操作。</p>
-<p>所以，为了避免过多的心跳消息挤占集群带宽，我们可以调大 cluster-node-timeout 值，比如说调大到 20 秒或 25 秒。这样一来， PONG 消息接收超时的情况就会有所缓解，单实例也不用频繁地每秒执行 10 次心跳发送操作了。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>集群</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>AOF持久化设计</title>
     <url>/2022/11/15/AOF%E6%8C%81%E4%B9%85%E5%8C%96%E8%AE%BE%E8%AE%A1/</url>
     <content><![CDATA[<p>RDB持久化会直接保存某一时刻的数据快照，而AOF持久化是直接记录Redis执行过的命令来记录数据库状态。</p>
@@ -60,6 +35,41 @@
       </categories>
       <tags>
         <tag>Redis持久化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>HostSpot虚拟机中的对象</title>
+    <url>/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/</url>
+    <content><![CDATA[<p>本文所涉及的内容都是基于HostSpot虚拟机而言的。</p>
+<h1 id="对象的创建"><a href="#对象的创建" class="headerlink" title="对象的创建"></a>对象的创建</h1><p>一个对象的创建（这里不包括数组和Class对象），在Java中仅仅是一个new关键字，当虚拟机遇到字节码new指令时，它会先检查指令中的参数能否在常量池（①）中定位到一个<strong>符号引用</strong>（②），并且检查这个符号引用代表的类是否已经被加载、解析和初始化过，如果没有，那必须先执行类加载。</p>
+<p>类加载检验通过后，虚拟机会在堆中为它划分一块区域，区域的大小在类加载完成后可以确定。这里划分区域根据不同虚拟机的设计，会有不同的方案。</p>
+<p>如果Java堆内存是绝对规整的，一半放用过的，一半放空闲的，中间有一个指针用作分界。那么内存分配只需要将那个指针向空闲的方向移动与对象大小的位置即可，这种分配方式称为指针碰撞。</p>
+<p>如果内存是不规整的，即使用的和未使用的内存交错在一起，虚拟机就需要维护一个列表，记录哪些内存是可以使用的，在分配时就需要从虚拟机中找到足够大小的空间划分给对象，并更新列表记录，这种称为空闲列表。</p>
+<p>采用那种分配方案取决于堆是否规整，而是否规整又取决于垃圾收集器是否带有空间压缩整理的能力。</p>
+<p>由于内存分配是特别频繁的一件事，指针移动这一操作并不是线程安全的，虚拟机采用的解决方案是CAS（③）配上失败重试的方式保证更新操作的原子性。</p>
+<p>内存分配完成后，虚拟机会把分配到的内存空间都初始化为零值，这一步保证了对象实例字段在Java代码中可以不赋初始值就可以使用。</p>
+<p>接下来，虚拟机就要设置对象的基本属性，比如这个对象是哪个类的实例，如何找到类的元数据，对象的哈希码，对象的GC分代年龄等信息。这些信息被放在<strong>对象头</strong>中。</p>
+<h1 id="对象的内存布局"><a href="#对象的内存布局" class="headerlink" title="对象的内存布局"></a>对象的内存布局</h1><p>对象在堆中的存储布局可以划分为三个部分，对象头，实例数据，对齐填充。</p>
+<p>对象头包括两部分信息，第一部分是存储自身运行时数据，如哈希码，GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID等，这部分被称为Mark Word。这里面的有部分信息会在偏向锁，轻量级锁的实现中用到。</p>
+<p>第二部分是类型指针，即对象指向它的类型元数据的指针，Java虚拟机通过该指针确定对象是哪个类的实例。这个指针指向每个对象生成的Class对象，位于方法区中。</p>
+<p>数据实例部分是对象真正存储的有效信息，即我们在代码中定义的各种字段。</p>
+<p>对齐填充并不是必定存在的，也没有特别含义。</p>
+<h1 id="对象的访问定位"><a href="#对象的访问定位" class="headerlink" title="对象的访问定位"></a>对象的访问定位</h1><p>对象创建完后，会通过栈上的reference数据来操作堆上的对象，主流访问方式有以下两种：</p>
+<h3 id="使用句柄"><a href="#使用句柄" class="headerlink" title="使用句柄"></a>使用句柄</h3><p>如果使用句柄的话，堆中会划分出一块内存来作为句柄池，reference存储的就是对象的句柄地址，句柄中包含了对象实例数据与类型数据各自具体的信息。具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092744890.png" alt="image-20230402092744890"></p>
+<h3 id="直接指针"><a href="#直接指针" class="headerlink" title="直接指针"></a>直接指针</h3><p>如果使用直接指针访问的话，Java堆中对象的内存布局就必须考虑如何放置访问类型数据的相关信息，<strong>reference中存储的直接就是对象地址</strong>，如果只是访问对象本身的话，就不需要多一次间接访问的开销。直接指针的最大好处是省略了一次指针定位的开销。</p>
+<p>具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092841557.png" alt="image-20230402092841557"></p>
+<h1 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h1><p>①常量池：常量池位于方法区中，用于存放编译器生成的各种<strong>字面量</strong>与<strong>符号引用</strong></p>
+<p>②符号引用：在Java虚拟机中，当一个类被加载时，它的类信息会被存储在运行时常量池中，包括类的名称、方法的名称和参数类型等信息，这些信息构成了符号引用。</p>
+<p>③CAS操作：类似于版本控制，不过是在字节码层面的。它涉及到3个值，原值A，以及A的副本，要修改的值C。在修改时，它会验证A的值是否等于副本A，如果等，再将C的值写入。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
       </tags>
   </entry>
   <entry>
@@ -105,43 +115,8 @@
       </categories>
       <tags>
         <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
         <tag>线程</tag>
-        <tag>深入理解Java虚拟机</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>HostSpot虚拟机中的对象</title>
-    <url>/2023/04/01/HostSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/</url>
-    <content><![CDATA[<p>本文所涉及的内容都是基于HostSpot虚拟机而言的。</p>
-<h1 id="对象的创建"><a href="#对象的创建" class="headerlink" title="对象的创建"></a>对象的创建</h1><p>一个对象的创建（这里不包括数组和Class对象），在Java中仅仅是一个new关键字，当虚拟机遇到字节码new指令时，它会先检查指令中的参数能否在常量池（①）中定位到一个<strong>符号引用</strong>（②），并且检查这个符号引用代表的类是否已经被加载、解析和初始化过，如果没有，那必须先执行类加载。</p>
-<p>类加载检验通过后，虚拟机会在堆中为它划分一块区域，区域的大小在类加载完成后可以确定。这里划分区域根据不同虚拟机的设计，会有不同的方案。</p>
-<p>如果Java堆内存是绝对规整的，一半放用过的，一半放空闲的，中间有一个指针用作分界。那么内存分配只需要将那个指针向空闲的方向移动与对象大小的位置即可，这种分配方式称为指针碰撞。</p>
-<p>如果内存是不规整的，即使用的和未使用的内存交错在一起，虚拟机就需要维护一个列表，记录哪些内存是可以使用的，在分配时就需要从虚拟机中找到足够大小的空间划分给对象，并更新列表记录，这种称为空闲列表。</p>
-<p>采用那种分配方案取决于堆是否规整，而是否规整又取决于垃圾收集器是否带有空间压缩整理的能力。</p>
-<p>由于内存分配是特别频繁的一件事，指针移动这一操作并不是线程安全的，虚拟机采用的解决方案是CAS（③）配上失败重试的方式保证更新操作的原子性。</p>
-<p>内存分配完成后，虚拟机会把分配到的内存空间都初始化为零值，这一步保证了对象实例字段在Java代码中可以不赋初始值就可以使用。</p>
-<p>接下来，虚拟机就要设置对象的基本属性，比如这个对象是哪个类的实例，如何找到类的元数据，对象的哈希码，对象的GC分代年龄等信息。这些信息被放在<strong>对象头</strong>中。</p>
-<h1 id="对象的内存布局"><a href="#对象的内存布局" class="headerlink" title="对象的内存布局"></a>对象的内存布局</h1><p>对象在堆中的存储布局可以划分为三个部分，对象头，实例数据，对齐填充。</p>
-<p>对象头包括两部分信息，第一部分是存储自身运行时数据，如哈希码，GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID等，这部分被称为Mark Word。这里面的有部分信息会在偏向锁，轻量级锁的实现中用到。</p>
-<p>第二部分是类型指针，即对象指向它的类型元数据的指针，Java虚拟机通过该指针确定对象是哪个类的实例。这个指针指向每个对象生成的Class对象，位于方法区中。</p>
-<p>数据实例部分是对象真正存储的有效信息，即我们在代码中定义的各种字段。</p>
-<p>对齐填充并不是必定存在的，也没有特别含义。</p>
-<h1 id="对象的访问定位"><a href="#对象的访问定位" class="headerlink" title="对象的访问定位"></a>对象的访问定位</h1><p>对象创建完后，会通过栈上的reference数据来操作堆上的对象，主流访问方式有以下两种：</p>
-<h3 id="使用句柄"><a href="#使用句柄" class="headerlink" title="使用句柄"></a>使用句柄</h3><p>如果使用句柄的话，堆中会划分出一块内存来作为句柄池，reference存储的就是对象的句柄地址，句柄中包含了对象实例数据与类型数据各自具体的信息。具体结构如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092744890.png" alt="image-20230402092744890"></p>
-<h3 id="直接指针"><a href="#直接指针" class="headerlink" title="直接指针"></a>直接指针</h3><p>如果使用直接指针访问的话，Java堆中对象的内存布局就必须考虑如何放置访问类型数据的相关信息，<strong>reference中存储的直接就是对象地址</strong>，如果只是访问对象本身的话，就不需要多一次间接访问的开销。直接指针的最大好处是省略了一次指针定位的开销。</p>
-<p>具体结构如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092841557.png" alt="image-20230402092841557"></p>
-<h1 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h1><p>①常量池：常量池位于方法区中，用于存放编译器生成的各种<strong>字面量</strong>与<strong>符号引用</strong></p>
-<p>②符号引用：在Java虚拟机中，当一个类被加载时，它的类信息会被存储在运行时常量池中，包括类的名称、方法的名称和参数类型等信息，这些信息构成了符号引用。</p>
-<p>③CAS操作：类似于版本控制，不过是在字节码层面的。它涉及到3个值，原值A，以及A的副本，要修改的值C。在修改时，它会验证A的值是否等于副本A，如果等，再将C的值写入。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>深入理解Java虚拟机</tag>
       </tags>
   </entry>
   <entry>
@@ -165,6 +140,54 @@
         <tag>Jvm</tag>
         <tag>深入理解Java虚拟机</tag>
         <tag>内存模型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java内存模型的可见性、原子性和有序性</title>
+    <url>/2023/03/24/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%A7%81%E6%80%A7%E3%80%81%E5%8E%9F%E5%AD%90%E6%80%A7%E5%92%8C%E6%9C%89%E5%BA%8F%E6%80%A7/</url>
+    <content><![CDATA[<h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h2><p>由Java内存模型来直接保证的原子性变量操作包括read、load、assign、use、store和write这六个，我们大致可以认为，基本数据类型的<strong>访问</strong>、<strong>读写</strong>都是具备原子性的。这里的访问和读写只是包括了访问一个变量的值以及给变量赋值，像i++这种操作并不是原子性的。还要注意long 和double的非原子协定，但是这个概率发生很小，可以忽略。</p>
+<p>如果应用场景需要一个更大范围的原子性保证，可以使用synchronized关键字。</p>
+<h2 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h2><p>可见性就是指当一个线程修改了共享变量的值时，其他线程能够立即得知这个修改。Java内存模型是通过在变量修改后将新值同步回主内</p>
+<p>存，在变量读取前从主内存刷新变量值这种依赖主内存作为传递媒介的方式来实现可见性的，无论是普通变量还是volatile变量都是此。</p>
+<p>普通变量与volatile变量的区别是，volatile的特殊规则保证了新值能立即同步到主内存，以及每次使用前立即从主内存刷新。</p>
+<p>Java的synchronized和fina也具有可见性。</p>
+<p>同步块的可见性是由“对一个变量执行unlock操作之前，必须先把此变量同步回主内存中（执行store、write操作）。</p>
+<p>而final关键字的可见性是指：被final修饰的字段在构造器中一旦被初始化完成，并且构造器没有把“this”的引用传递出去（this引用逃逸是一件很危险的事情，其他线程有可能通过这个引用访问到“初始化了一半”的对象），那么在其他线程中就能看见final字段的值。</p>
+<h2 id="有序性"><a href="#有序性" class="headerlink" title="有序性"></a>有序性</h2><p>Java程序中天然的有序性可以总结为一句话：如果在本线程内观察，所有的操作都是有序的；如果在一个线程中观察另一个线程，所有的操作都是无序的。前半句是指“线程内好像表现为串行的语义”（Within-Thread As-If-SerialSemantics），后半句是指“指令重排序”现象和“工作内存与主内存同步延迟”现象。</p>
+<p>java提供了volatile和synchronized两个关键字来保证线程之间操作的有序性。volatile关键字本身就包含了禁止指令重排序的语义，而synchronized则是由“一个变量在同一个时刻只允许一条线程对其进行lock操作”这条规则获得的，这个规则决定了持有同一个锁的两个同步块只能串行地进入。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
+        <tag>内存模型</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Cluster规模对于通信的影响</title>
+    <url>/2023/03/24/Cluster%E8%A7%84%E6%A8%A1%E5%AF%B9%E4%BA%8E%E9%80%9A%E4%BF%A1%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
+    <content><![CDATA[<h3 id="实例通信方法和对集群规模的影响"><a href="#实例通信方法和对集群规模的影响" class="headerlink" title="实例通信方法和对集群规模的影响"></a>实例通信方法和对集群规模的影响</h3><p>redis官方给出了Redis Cluster的规模上限为1000个实例，其中一个限制实例规模的因素就是<strong>实例间的通信会随着实例规模的增加而增大</strong>，因此在实例超过一定规模后，实例增加吞吐量反而会下降。</p>
+<p>Redis Cluster 运行时，每个实例都会保存slot和实例的对应关系，以及自身的状态信息。为了让集群中每个实例都知道其他实例的状态，所以实例之间需要进行通信，采用的是Gossip 协议。</p>
+<h4 id="Gossip-协议原理"><a href="#Gossip-协议原理" class="headerlink" title="Gossip 协议原理"></a>Gossip 协议原理</h4><p>1、每个实例之间会按照一定的频率，从集群中随机挑选一些实例，把 PING 消息发送给挑选出来的实例，用来检测这些实例是否在线，并交换彼此的状态信息。PING 消息中封装了发送消息的实例自身的状态信息、部分其它实例的状态信息，以及 Slot 映射表。</p>
+<p>2、一个实例在接收到 PING 消息后，会给发送 PING 消息的实例，发送一个 PONG 消息。PONG 消息包含的内容和 PING 消息一样。</p>
+<p>Gossip 协议可以保证在一段时间后，集群中的每一个实例都能获得其它所有实例的状态信息。</p>
+<p>不难看出，实例间使用 Gossip 协议进行通信时，通信开销受到<strong>通信消息大小</strong>和<strong>通信频率</strong>这两方面的影响。信息越大，频率越高，影响越大。</p>
+<p>Redis Cluster 的实例启动后，默认会每秒从本地的实例列表中随机选出 5 个实例，再从这 5 个实例中找出一个最久没有通信的实例，把 PING 消息发送给该实例。但是这样会导致<strong>有些实例一直没有被发送 PING 消息，导致它们维护的集群状态已经过期了</strong>。</p>
+<p>为了避免这种情况，Redis Cluster 的实例会按照每 100ms 一次的频率，扫描本地的实例列表，如果发现有实例最近一次接收 PONG 消息的时间，已经大于配置项 cluster-node-timeout 的一半了（cluster-node-timeout&#x2F;2），就会立刻给该实例发送 PING 消息，更新这个实例上的集群状态信息。</p>
+<p>以上频率加上每一次ping，pong所包含信息的大小，多实例的通信占用带宽可能会很多。</p>
+<h3 id="如何降低实例间的通信开销"><a href="#如何降低实例间的通信开销" class="headerlink" title="如何降低实例间的通信开销"></a>如何降低实例间的通信开销</h3><p>针对以上分析，降低开销的办法一方面可以降低实例传输的大小，另一方面可以降低通信频率。</p>
+<p>降低大小不可取，因为降低大小只能减少传输的字段，无法保证实例之间传输足够的信息来维持集群运行。</p>
+<p>所以只能通过降低通信频率。可以修改cluster-node-timeout 这个配置项。</p>
+<p>配置项 cluster-node-timeout 定义了集群实例被判断为故障的心跳超时时间，默认是 15 秒。如果 cluster-node-timeout 值比较小，那么，在大规模集群中，就会比较频繁地出现 PONG 消息接收超时的情况，从而导致实例每秒要执行 10 次“给 PONG 消息超时的实例发送 PING 消息”这个操作。</p>
+<p>所以，为了避免过多的心跳消息挤占集群带宽，我们可以调大 cluster-node-timeout 值，比如说调大到 20 秒或 25 秒。这样一来， PONG 消息接收超时的情况就会有所缓解，单实例也不用频繁地每秒执行 10 次心跳发送操作了。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>集群</tag>
       </tags>
   </entry>
   <entry>
@@ -229,65 +252,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Java对象的共享</title>
-    <url>/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/</url>
-    <content><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p>
-<p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p>
-<p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p>
-<p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p>
-<h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p>
-<h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p>
-<h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p>
-<h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p>
-<p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p>
-<p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p>
-<h1 id="发布与逃逸"><a href="#发布与逃逸" class="headerlink" title="发布与逃逸"></a>发布与逃逸</h1><p>发布指的使一个对象可以在当前作用域之外的地方使用。例如将一个指向局部变量的指针保存在其他代码可以访问的地方。发布最简单的做法是将一个对象的引用放到一个共有的静态变量当中。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Set&lt;Secret&gt; knowSecrets;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">()</span> &#123;</span><br><span class="line">    knowSecrets = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>而发布knowSecrets对象是，可能会导致在该集合中的对象被间接的发布，因为能拿到knowSecrets，就可以操作其里面的内容。</p>
-<h2 id="一个this引用逃逸的例子"><a href="#一个this引用逃逸的例子" class="headerlink" title="一个this引用逃逸的例子"></a>一个this引用逃逸的例子</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">        	<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                    doSomething(e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        )</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这里涉及到匿名内部类，一个匿名内部类在构造时，编译器会默认把父类的引用隐式的传进来。也就意味着，上面的onEvent方法，他调用的doSomething可能是父类的某个方法，只不过采用省略写法，没有用this.doSomething(e)。以下是换一种不抽象的写法：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> num;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(<span class="type">int</span> num)</span> &#123;</span><br><span class="line">                    add(num);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> val)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.num += val;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>以上这种情况，如果在外部类，也就是ThisEscape初始化时，对num进行赋值，初始化还未完成时，却可以通过内部类对num进行修改，就会导致在num未初始化完成时，对其进行了修改。出现这种现象的原因是，ThisEscape的引用被EventListener提前暴露出去。</p>
-<h2 id="使用工厂方法来防止this引用逃逸"><a href="#使用工厂方法来防止this引用逃逸" class="headerlink" title="使用工厂方法来防止this引用逃逸"></a>使用工厂方法来防止this引用逃逸</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SafeListener</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> EventListener eventListener;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">SafeListener</span><span class="params">()</span> &#123;</span><br><span class="line">        eventListener = <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                <span class="comment">// doSomething(e);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> SafeListener <span class="title function_">newInstance</span><span class="params">(EventSource eventSource)</span> &#123;</span><br><span class="line">        <span class="type">SafeListener</span> <span class="variable">safeListener</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SafeListener</span>();</span><br><span class="line">        eventSource.registerListener(safeListener.eventListener);</span><br><span class="line">        <span class="keyword">return</span> safeListener;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这种方法，使得注册监听在构造方法之后完成，所以不会导致引用逃逸。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Java并发编程实战</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java内存模型的可见性、原子性和有序性</title>
-    <url>/2023/03/24/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E7%9A%84%E5%8F%AF%E8%A7%81%E6%80%A7%E3%80%81%E5%8E%9F%E5%AD%90%E6%80%A7%E5%92%8C%E6%9C%89%E5%BA%8F%E6%80%A7/</url>
-    <content><![CDATA[<h2 id="原子性"><a href="#原子性" class="headerlink" title="原子性"></a>原子性</h2><p>由Java内存模型来直接保证的原子性变量操作包括read、load、assign、use、store和write这六个，我们大致可以认为，基本数据类型的<strong>访问</strong>、<strong>读写</strong>都是具备原子性的。这里的访问和读写只是包括了访问一个变量的值以及给变量赋值，像i++这种操作并不是原子性的。还要注意long 和double的非原子协定，但是这个概率发生很小，可以忽略。</p>
-<p>如果应用场景需要一个更大范围的原子性保证，可以使用synchronized关键字。</p>
-<h2 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h2><p>可见性就是指当一个线程修改了共享变量的值时，其他线程能够立即得知这个修改。Java内存模型是通过在变量修改后将新值同步回主内</p>
-<p>存，在变量读取前从主内存刷新变量值这种依赖主内存作为传递媒介的方式来实现可见性的，无论是普通变量还是volatile变量都是此。</p>
-<p>普通变量与volatile变量的区别是，volatile的特殊规则保证了新值能立即同步到主内存，以及每次使用前立即从主内存刷新。</p>
-<p>Java的synchronized和fina也具有可见性。</p>
-<p>同步块的可见性是由“对一个变量执行unlock操作之前，必须先把此变量同步回主内存中（执行store、write操作）。</p>
-<p>而final关键字的可见性是指：被final修饰的字段在构造器中一旦被初始化完成，并且构造器没有把“this”的引用传递出去（this引用逃逸是一件很危险的事情，其他线程有可能通过这个引用访问到“初始化了一半”的对象），那么在其他线程中就能看见final字段的值。</p>
-<h2 id="有序性"><a href="#有序性" class="headerlink" title="有序性"></a>有序性</h2><p>Java程序中天然的有序性可以总结为一句话：如果在本线程内观察，所有的操作都是有序的；如果在一个线程中观察另一个线程，所有的操作都是无序的。前半句是指“线程内好像表现为串行的语义”（Within-Thread As-If-SerialSemantics），后半句是指“指令重排序”现象和“工作内存与主内存同步延迟”现象。</p>
-<p>java提供了volatile和synchronized两个关键字来保证线程之间操作的有序性。volatile关键字本身就包含了禁止指令重排序的语义，而synchronized则是由“一个变量在同一个时刻只允许一条线程对其进行lock操作”这条规则获得的，这个规则决定了持有同一个锁的两个同步块只能串行地进入。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>深入理解Java虚拟机</tag>
-        <tag>内存模型</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Java线程安全</title>
     <url>/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/</url>
     <content><![CDATA[<h2 id="Java中的线程安全"><a href="#Java中的线程安全" class="headerlink" title="Java中的线程安全"></a>Java中的线程安全</h2><p>一个比较严格的线程安全定义：当多个线程同时访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要进行额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果，那就称这个对象是线程安全的</p>
@@ -327,43 +291,8 @@
       </categories>
       <tags>
         <tag>Jvm</tag>
-        <tag>线程</tag>
         <tag>深入理解Java虚拟机</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL事务隔离</title>
-    <url>/2023/03/30/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</url>
-    <content><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p>
-<h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p>
-<h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p>
-<p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p>
-<p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p>
-<p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p>
-<p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p>
-<p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p>
-<p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p>
-<p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p>
-<p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p>
-<h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p>
-<p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p>
-<p>读未提交没有试图的概念，它永远返回最新值。</p>
-<p>串行化是通过加锁避免并行访问。</p>
-<h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p>
-<p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p>
-<p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p>
-<h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p>
-<p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p>
-<p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>
-]]></content>
-      <categories>
-        <category>MySQL</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>事务</tag>
+        <tag>线程</tag>
       </tags>
   </entry>
   <entry>
@@ -402,6 +331,77 @@
         <tag>Jvm</tag>
         <tag>深入理解Java虚拟机</tag>
         <tag>锁</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Java对象的共享</title>
+    <url>/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/</url>
+    <content><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p>
+<p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p>
+<p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p>
+<p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p>
+<h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p>
+<h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p>
+<h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p>
+<h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p>
+<p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p>
+<p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p>
+<h1 id="发布与逃逸"><a href="#发布与逃逸" class="headerlink" title="发布与逃逸"></a>发布与逃逸</h1><p>发布指的使一个对象可以在当前作用域之外的地方使用。例如将一个指向局部变量的指针保存在其他代码可以访问的地方。发布最简单的做法是将一个对象的引用放到一个共有的静态变量当中。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Set&lt;Secret&gt; knowSecrets;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">()</span> &#123;</span><br><span class="line">    knowSecrets = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>而发布knowSecrets对象是，可能会导致在该集合中的对象被间接的发布，因为能拿到knowSecrets，就可以操作其里面的内容。</p>
+<h2 id="一个this引用逃逸的例子"><a href="#一个this引用逃逸的例子" class="headerlink" title="一个this引用逃逸的例子"></a>一个this引用逃逸的例子</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">        	<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                    doSomething(e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        )</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这里涉及到匿名内部类，一个匿名内部类在构造时，编译器会默认把父类的引用隐式的传进来。也就意味着，上面的onEvent方法，他调用的doSomething可能是父类的某个方法，只不过采用省略写法，没有用this.doSomething(e)。以下是换一种不抽象的写法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> num;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(<span class="type">int</span> num)</span> &#123;</span><br><span class="line">                    add(num);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> val)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.num += val;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>以上这种情况，如果在外部类，也就是ThisEscape初始化时，对num进行赋值，初始化还未完成时，却可以通过内部类对num进行修改，就会导致在num未初始化完成时，对其进行了修改。出现这种现象的原因是，ThisEscape的引用被EventListener提前暴露出去。</p>
+<h2 id="使用工厂方法来防止this引用逃逸"><a href="#使用工厂方法来防止this引用逃逸" class="headerlink" title="使用工厂方法来防止this引用逃逸"></a>使用工厂方法来防止this引用逃逸</h2><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SafeListener</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> EventListener eventListener;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">SafeListener</span><span class="params">()</span> &#123;</span><br><span class="line">        eventListener = <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                <span class="comment">// doSomething(e);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> SafeListener <span class="title function_">newInstance</span><span class="params">(EventSource eventSource)</span> &#123;</span><br><span class="line">        <span class="type">SafeListener</span> <span class="variable">safeListener</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SafeListener</span>();</span><br><span class="line">        eventSource.registerListener(safeListener.eventListener);</span><br><span class="line">        <span class="keyword">return</span> safeListener;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种方法，使得注册监听在构造方法之后完成，所以不会导致引用逃逸。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Java并发编程实战</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL事务隔离</title>
+    <url>/2023/03/30/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</url>
+    <content><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p>
+<h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p>
+<h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p>
+<p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p>
+<p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p>
+<p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p>
+<p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p>
+<p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p>
+<p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p>
+<p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p>
+<p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p>
+<h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p>
+<p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p>
+<p>读未提交没有试图的概念，它永远返回最新值。</p>
+<p>串行化是通过加锁避免并行访问。</p>
+<h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p>
+<p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p>
+<p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p>
+<h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p>
+<p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p>
+<p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>事务</tag>
       </tags>
   </entry>
   <entry>
@@ -504,54 +504,8 @@
         <category>MySQL</category>
       </categories>
       <tags>
-        <tag>MySQL45讲</tag>
         <tag>锁</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL普通索引和唯一索引</title>
-    <url>/2023/04/03/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/</url>
-    <content><![CDATA[<p>假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select name from table where id_card = &quot;xxxxyy&quot;</span><br></pre></td></tr></table></figure>
-
-<p>为了提高效率，我们会在id_card上面加索引，那么到底是加唯一索引还是普通索引呢？我们可以从这两种索引对查询语句以及更新语句的性能影响来进行分析。</p>
-<h1 id="查询过程"><a href="#查询过程" class="headerlink" title="查询过程"></a>查询过程</h1><p>假设执行的语句是select id from T where k&#x3D;5。对于两种索引执行过程如下：</p>
-<p>普通索引：他会先找到k &#x3D; 5的这一条数据，然后会继续往下找，直到第一条不满足k &#x3D; 5的数据。</p>
-<p>唯一索引：因为索引保证了唯一性，所以碰到第一条为5的记录后，就可以直接返回。</p>
-<p>这一点的不同带来的性能差距很小。因为InnoDB的数据是以<strong>数据页</strong>为单位来读的，意味着读一条数据，会将那条数据所在的页都加载到内存当中，所以读取k &#x3D; 5的时候，大概率后续几条数据会在同一个数据页中，此时性能差异很小。一个特殊情况是后续几条数据和k &#x3D; 5不在同一个页中，那么此时效率会有点低。</p>
-<h1 id="更新过程"><a href="#更新过程" class="headerlink" title="更新过程"></a>更新过程</h1><h2 id="change-buffer"><a href="#change-buffer" class="headerlink" title="change buffer"></a>change buffer</h2><p>MySQL在更新数据时，如果数据页不在内存中，就会先将更新操作写入change buffer中，等到下次查询该数据时，将change buffer中的操作执行到具体的数据。</p>
-<p>除了查询的时候会进行数据同步外，后台也会有线程定期对change buffer中的操作执行到具体的数据。</p>
-<p>change buffer在内存中也有拷贝，也会被写入到磁盘。</p>
-<h3 id="使用条件"><a href="#使用条件" class="headerlink" title="使用条件"></a>使用条件</h3><p>对于唯一索引来说，在更新数据前他需要先判断该操作是否满足唯一性约束，进行判断就意味着必须要将数据页读到内存。这也就意味着唯一索引在进行修改时，修改数据所在的数据页一定在内存中。</p>
-<p><strong>也就是说，change buffer只有普通索引才可以使用。</strong></p>
-<p>针对于一个更新，分为两种情况：</p>
-<p>如果要更新的数据在内存中，那么两种索引的更新情况类似，只不过唯一索引多了一次判断，影响不大。</p>
-<p>但是如果数据不在内存中，那么唯一索引需要先把数据查询出来放入内存，然后再更新，而普通索引写入change buffer即可。</p>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>由于在进行合并的时候，change buffer记录的变更越多（也就是这个页面上要更新的次数越多），收益就越大。</p>
-<p>因此，对于写多读少的业务来说，页面在写完以后马上被访问到的概率比较小，此时change buffer的使用效果最好。</p>
-<h1 id="change-buffer-和-redo-log"><a href="#change-buffer-和-redo-log" class="headerlink" title="change buffer 和 redo log"></a>change buffer 和 redo log</h1><p>这两种设计原理，都是为了减少随机的磁盘读取。现在考虑执行下面的语句:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t(id,k) values(id1,k1),(id2,k2);</span><br></pre></td></tr></table></figure>
-
-<p>这里我们假设k1所在的数据页在内存中，而k2所在的数据页不在内存中。那么这条更新语句要做的处理如下：</p>
-<p>1、因为k1数据页在内存中，则直接更新k1数据所在的数据页即可。</p>
-<p>2、因为k2数据页不在内存，就在change buffer中记录类似于我要插入k2这条记录即可。</p>
-<p>3、将上述两个动作记录redo log中。</p>
-<p>这样，插入就执行完成了。两次内存操作，一次磁盘操作。</p>
-<p>在执行完上面的插入操作后，如果继续执行下面语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from t where k in (k1, k2)。</span><br></pre></td></tr></table></figure>
-
-<p>由于k1所在的数据页还在内存当中，直接从内存中读取返回，而k2所在的数据页不在内存中，则从磁盘读取，然后于change buffer整合，返回正确的结果。</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以，如果要简单地对比这两个机制在提升更新性能上的收益的话，<strong>redo log 主要节省的是随机写磁盘的IO消耗（转成顺序写），而change buffer主要节省的则是随机读磁盘的IO消耗。</strong></p>
-<p>增删改操作都涉及到从磁盘中读取数据页加载到内存，而使用了change buffer后，直接将增删改操作记录到change buffer中即可，下次做查询操作时进行整合即可，减少读磁盘的次数。</p>
-<p>而redo log是在增删改操作时，先将操作记录redo log，然后将数据在数据库缓存（buffer pool）中修改。由于这部分数据是在内存当中，没有同步到磁盘，而此时数据库异常关闭，可以通过redo log来恢复这段期间的数据，保证数据的一致性。</p>
-<h2 id="一个小疑问"><a href="#一个小疑问" class="headerlink" title="一个小疑问"></a>一个小疑问</h2><p>我最开始比较疑惑为什么插入操作会涉及到考虑数据页是否在内存当中，原因是MySQL在插入数据时，会先找到这条语句所对应的数据页，然后把数据插入到对应的数据页中。所以说，即使是插入操作，也要确保数据页在内存中。如果在插入时使用了 Change Buffer 技术，那么可以将这些插入操作暂时缓存到 Change Buffer 中，等到后续查询这个数据页的时候，再将 Change Buffer 中的数据一次性刷新到对应的数据页中，这样就可以减少磁盘 IO 操作，提高系统的性能。</p>
-]]></content>
-      <categories>
-        <category>MySQL</category>
-      </categories>
-      <tags>
         <tag>MySQL45讲</tag>
-        <tag>索引</tag>
       </tags>
   </entry>
   <entry>
@@ -750,6 +704,52 @@
       </tags>
   </entry>
   <entry>
+    <title>MySQL普通索引和唯一索引</title>
+    <url>/2023/04/03/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/</url>
+    <content><![CDATA[<p>假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select name from table where id_card = &quot;xxxxyy&quot;</span><br></pre></td></tr></table></figure>
+
+<p>为了提高效率，我们会在id_card上面加索引，那么到底是加唯一索引还是普通索引呢？我们可以从这两种索引对查询语句以及更新语句的性能影响来进行分析。</p>
+<h1 id="查询过程"><a href="#查询过程" class="headerlink" title="查询过程"></a>查询过程</h1><p>假设执行的语句是select id from T where k&#x3D;5。对于两种索引执行过程如下：</p>
+<p>普通索引：他会先找到k &#x3D; 5的这一条数据，然后会继续往下找，直到第一条不满足k &#x3D; 5的数据。</p>
+<p>唯一索引：因为索引保证了唯一性，所以碰到第一条为5的记录后，就可以直接返回。</p>
+<p>这一点的不同带来的性能差距很小。因为InnoDB的数据是以<strong>数据页</strong>为单位来读的，意味着读一条数据，会将那条数据所在的页都加载到内存当中，所以读取k &#x3D; 5的时候，大概率后续几条数据会在同一个数据页中，此时性能差异很小。一个特殊情况是后续几条数据和k &#x3D; 5不在同一个页中，那么此时效率会有点低。</p>
+<h1 id="更新过程"><a href="#更新过程" class="headerlink" title="更新过程"></a>更新过程</h1><h2 id="change-buffer"><a href="#change-buffer" class="headerlink" title="change buffer"></a>change buffer</h2><p>MySQL在更新数据时，如果数据页不在内存中，就会先将更新操作写入change buffer中，等到下次查询该数据时，将change buffer中的操作执行到具体的数据。</p>
+<p>除了查询的时候会进行数据同步外，后台也会有线程定期对change buffer中的操作执行到具体的数据。</p>
+<p>change buffer在内存中也有拷贝，也会被写入到磁盘。</p>
+<h3 id="使用条件"><a href="#使用条件" class="headerlink" title="使用条件"></a>使用条件</h3><p>对于唯一索引来说，在更新数据前他需要先判断该操作是否满足唯一性约束，进行判断就意味着必须要将数据页读到内存。这也就意味着唯一索引在进行修改时，修改数据所在的数据页一定在内存中。</p>
+<p><strong>也就是说，change buffer只有普通索引才可以使用。</strong></p>
+<p>针对于一个更新，分为两种情况：</p>
+<p>如果要更新的数据在内存中，那么两种索引的更新情况类似，只不过唯一索引多了一次判断，影响不大。</p>
+<p>但是如果数据不在内存中，那么唯一索引需要先把数据查询出来放入内存，然后再更新，而普通索引写入change buffer即可。</p>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>由于在进行合并的时候，change buffer记录的变更越多（也就是这个页面上要更新的次数越多），收益就越大。</p>
+<p>因此，对于写多读少的业务来说，页面在写完以后马上被访问到的概率比较小，此时change buffer的使用效果最好。</p>
+<h1 id="change-buffer-和-redo-log"><a href="#change-buffer-和-redo-log" class="headerlink" title="change buffer 和 redo log"></a>change buffer 和 redo log</h1><p>这两种设计原理，都是为了减少随机的磁盘读取。现在考虑执行下面的语句:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t(id,k) values(id1,k1),(id2,k2);</span><br></pre></td></tr></table></figure>
+
+<p>这里我们假设k1所在的数据页在内存中，而k2所在的数据页不在内存中。那么这条更新语句要做的处理如下：</p>
+<p>1、因为k1数据页在内存中，则直接更新k1数据所在的数据页即可。</p>
+<p>2、因为k2数据页不在内存，就在change buffer中记录类似于我要插入k2这条记录即可。</p>
+<p>3、将上述两个动作记录redo log中。</p>
+<p>这样，插入就执行完成了。两次内存操作，一次磁盘操作。</p>
+<p>在执行完上面的插入操作后，如果继续执行下面语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from t where k in (k1, k2)。</span><br></pre></td></tr></table></figure>
+
+<p>由于k1所在的数据页还在内存当中，直接从内存中读取返回，而k2所在的数据页不在内存中，则从磁盘读取，然后于change buffer整合，返回正确的结果。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以，如果要简单地对比这两个机制在提升更新性能上的收益的话，<strong>redo log 主要节省的是随机写磁盘的IO消耗（转成顺序写），而change buffer主要节省的则是随机读磁盘的IO消耗。</strong></p>
+<p>增删改操作都涉及到从磁盘中读取数据页加载到内存，而使用了change buffer后，直接将增删改操作记录到change buffer中即可，下次做查询操作时进行整合即可，减少读磁盘的次数。</p>
+<p>而redo log是在增删改操作时，先将操作记录redo log，然后将数据在数据库缓存（buffer pool）中修改。由于这部分数据是在内存当中，没有同步到磁盘，而此时数据库异常关闭，可以通过redo log来恢复这段期间的数据，保证数据的一致性。</p>
+<h2 id="一个小疑问"><a href="#一个小疑问" class="headerlink" title="一个小疑问"></a>一个小疑问</h2><p>我最开始比较疑惑为什么插入操作会涉及到考虑数据页是否在内存当中，原因是MySQL在插入数据时，会先找到这条语句所对应的数据页，然后把数据插入到对应的数据页中。所以说，即使是插入操作，也要确保数据页在内存中。如果在插入时使用了 Change Buffer 技术，那么可以将这些插入操作暂时缓存到 Change Buffer 中，等到后续查询这个数据页的时候，再将 Change Buffer 中的数据一次性刷新到对应的数据页中，这样就可以减少磁盘 IO 操作，提高系统的性能。</p>
+]]></content>
+      <categories>
+        <category>MySQL</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis为什么可以支撑秒杀场景</title>
     <url>/2023/03/22/Redis%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E6%94%AF%E6%92%91%E7%A7%92%E6%9D%80%E5%9C%BA%E6%99%AF/</url>
     <content><![CDATA[<h3 id="秒杀场景的负载特征对支撑系统的要求"><a href="#秒杀场景的负载特征对支撑系统的要求" class="headerlink" title="秒杀场景的负载特征对支撑系统的要求"></a>秒杀场景的负载特征对支撑系统的要求</h3><h4 id="特征一：瞬时并发访问很高。"><a href="#特征一：瞬时并发访问很高。" class="headerlink" title="特征一：瞬时并发访问很高。"></a>特征一：瞬时并发访问很高。</h4><p>一般的数据库每秒可以支撑千级别的并发请求，而Redis的并发处理能力达到了万级别。所以当有大量请求涌入系统，我们可以使用Redis先拦截大部分请求，避免很多请求直接发到数据库。</p>
@@ -892,42 +892,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis如何解决缓存雪崩、击穿、穿透</title>
-    <url>/2023/03/30/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E3%80%81%E5%87%BB%E7%A9%BF%E3%80%81%E7%A9%BF%E9%80%8F/</url>
-    <content><![CDATA[<h2 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h2><p>缓存雪崩是指大量的应用请求无法在 Redis 缓存中进行处理，紧接着，应用将大量请求发送到数据库层，导致数据库层的压力激增。</p>
-<h3 id="原因以及解决办法"><a href="#原因以及解决办法" class="headerlink" title="原因以及解决办法"></a>原因以及解决办法</h3><p><strong>1、缓存中有大量数据同时过期，导致大量请求无法得到处理</strong>。</p>
-<p>解决方案：</p>
-<p>​	1）可以避免给数据设置相同的过期时间，如果业务需要，可以给这个过期时间增加一个小的随机数，使其过期时间相差1~3分钟，这样可以避免大量的key同时过期。</p>
-<p>​	2）我们还可以通过<strong>服务降级</strong>，指发生缓存雪崩时，针对不同的数据采取不同的处理方式。</p>
-<p>​		当业务应用访问的是非核心数据时，<strong>暂时停止从缓存中查询这些数据</strong>，而是直接返回预定义信息、空值或是错误信息；</p>
-<p>​		当业务应用访问的是核心数据时，仍然允许查询缓存，如果缓存缺失，也可以继续通过数据库读取。</p>
-<p><strong>2、Redis 缓存实例发生故障宕机了</strong></p>
-<p>解决方案：</p>
-<p>​	1）在业务系统中实现服务熔断或请求限流机制。在发生缓存雪崩时，为了避免影响整个系统，我们可以将这部分请求不做处理，直接返回错误，以免导致整个系统崩溃。</p>
-<p>​	2）提前预防。通过主从节点的方式构建 Redis 缓存高可靠集群。如果 Redis 缓存的主节点故障宕机了，从节点还可以切换成为主节点</p>
-<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存击穿是指，针对某个访问非常频繁的热点数据的请求，无法在缓存中进行处理，紧接着，访问该数据的大量请求，一下子都发送到了后端数据库，导致了数据库压力激增，会影响数据库处理其他请求。</p>
-<p>发生这种情况的原因有两种，一是热点数据自动过期，应对办法就是不设过期时间。二是开发人员误删热点数据。</p>
-<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><p>缓存穿透是指要访问的数据既不在 Redis 缓存中，也不在数据库中，导致请求在访问缓存时，发生缓存缺失，再去访问数据库时，发现数据库中也没有要访问的数据。</p>
-<p>两种情况：</p>
-<p>1、业务层误操作：缓存中的数据和数据库中的数据被误删除了，所以缓存和数据库中都没有数据；</p>
-<p>2、恶意攻击：专门访问数据库中没有的数据。</p>
-<p>解决方案：</p>
-<p>1、缓存空值或缺省值。</p>
-<p>一旦发生缓存穿透，我们就可以针对查询的数据，在 Redis 中缓存一个空值或是和业务层协商确定的缺省值。紧接着，应用发送的后续请求再进行查询时，就可以直接从 Redis 中读取空值或缺省值，返回给业务应用了，避免了把大量请求发送给数据库处理，保持了数据库的正常运行。</p>
-<p>2、使用布隆过滤器快速判断数据是否存在，避免从数据库中查询数据是否存在，减轻数据库压力。</p>
-<p>布隆过滤器由一个初值都为 0 的 bit 数组和 N 个哈希函数组成，可以用来快速判断某个数据是否存在。</p>
-<p>正是基于布隆过滤器的快速检测特性，我们可以在把数据写入数据库时，使用布隆过滤器做个标记。当缓存缺失后，应用查询数据库时，可以通过查询布隆过滤器快速判断数据是否存在。如果不存在，就不用再去数据库中查询了。</p>
-<p>3、在请求入口的前端进行请求检测</p>
-<p>缓存穿透的一个原因是有大量的恶意请求访问不存在的数据，所以，一个有效的应对方案是在请求入口前端，对业务系统接收到的请求进行合法性检测，把恶意的请求（例如请求参数不合理、请求参数是非法值、请求字段不存在）直接过滤掉，不让它们访问后端缓存和数据库。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>缓存失效</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>如何解决Redis缓存与数据库不一致</title>
     <url>/2023/03/16/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E4%B8%8D%E4%B8%80%E8%87%B4/</url>
     <content><![CDATA[<h4 id="1、什么是缓存一致性"><a href="#1、什么是缓存一致性" class="headerlink" title="1、什么是缓存一致性"></a>1、什么是缓存一致性</h4><p>分为两种情况，如果缓存中存在数据，那么缓存中的数据与数据库数据一致，如果缓存中没有数据 ，那么数据库中的数据就要是最新的。可能针对第二点有的人会有一些疑问，我的理解是，如果数据的修改是在缓存中进行，当缓存满后这些数据被淘汰时才写入数据库，然后清除这部分数据。如果写入数据库发生问题，而缓存又被清除，那么这里就发生了缓存不一致的问题，因为数据库中的数据不是最新的。</p>
@@ -958,73 +922,6 @@
       </categories>
       <tags>
         <tag>缓存一致性</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Redis对象</title>
-    <url>/2022/11/09/Redis%E5%AF%B9%E8%B1%A1/</url>
-    <content><![CDATA[<h3 id="Redis中有那些对象"><a href="#Redis中有那些对象" class="headerlink" title="Redis中有那些对象"></a>Redis中有那些对象</h3><p>redis中有简单动态字符串（SDS），双端链表，字典，压缩列表，整数集合等数据结构，但是redis并没有直接采用这些数据结构来构成键值对数据库，而是基于这些数据结构创建了一个对象系统。包含了<strong>字符串对象</strong>，<strong>列表对象</strong>，<strong>哈希对象</strong>，<strong>集合对象</strong>，<strong>有序集合对象</strong>。而且redis对象系统还实现了基于<strong>引用计数器</strong>的内存回收机制，并且通过引用计数技术实现了对象共享。</p>
-<p>redis中每个对象都是由一个redisObject结构表示，该结构中和保存数据有关的三个属性如下：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisObject</span> &#123;</span></span><br><span class="line">    <span class="comment">// 类型</span></span><br><span class="line">    <span class="type">unsigned</span> type;</span><br><span class="line">   	</span><br><span class="line">    <span class="comment">// 编码</span></span><br><span class="line">    <span class="type">unsigned</span> encoding;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 指向底层实现数据结构的指针</span></span><br><span class="line">    <span class="type">void</span> *ptr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="type"><a href="#type" class="headerlink" title="type"></a>type</h4><p>这个属性记录了对象的类型，该类型可以是下表中的一个。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183207835.png" alt="image-20230322183207835"></p>
-<p>每一个数据的键，总是一个字符串对象，而值可以是上表中的任意一个。</p>
-<p>在redis中，使用TYPE命令可以显示一个键对应值的type</p>
-<h4 id="encoding"><a href="#encoding" class="headerlink" title="encoding"></a>encoding</h4><p>记录了对象所使用的编码。即记录该对象使用什么数据结构作为底层的实现。可以是下表中的任意一个。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183455762.png" alt="image-20230322183455762"></p>
-<p>每种类型的对象至少使用了两种不同的编码，如下表所示</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183620698.png" alt="image-20230322183620698"></p>
-<p>在redis中，使用OBJECT ENCODING命令可以查看一个键对应值对象的编码。</p>
-<p>通过encoding属性设置编码，而不是固定一个对象的编码，为redis带来了极大的灵活性。因为redis可以根据不同场景选择不同的编码，以此改变底层数据结构。</p>
-<h3 id="字符串对象"><a href="#字符串对象" class="headerlink" title="字符串对象"></a>字符串对象</h3><p>如果字符串对象存储的是整数，并且这个整数可以用long表示，那么整数值将保存在字符串对象结构的ptr属性里面。void* 转换为long。并将字符串编码设置为int。</p>
-<p>如果字符串对象保存的是一个字符串值，并且该值长度大于32字节，那么就是用简单动态字符串保存，如果小于32，则使用embstr编码保存。</p>
-<h4 id="embstr"><a href="#embstr" class="headerlink" title="embstr"></a>embstr</h4><p>embstar专门用来保存短字符串的一种优化编码。embstr和raw都是使用redisObject和sdshdr结构来表示字符串，但是raw需要两次内存分配来创建，而embstr只需要一次内存分配，并且是连续的地址。释放空间也一样，分别是1次和2次。</p>
-<p>long double类型表示的浮点数也是作为字符串来保存的。</p>
-<h4 id="编码的转换"><a href="#编码的转换" class="headerlink" title="编码的转换"></a>编码的转换</h4><p>int类型的编码和embstr在适当条件下会被转化为raw编码。而且，redis没有为embstr编写任何修改程序，我们对次做的任何修改都会使其转化为raw编码。</p>
-<h3 id="列表对象"><a href="#列表对象" class="headerlink" title="列表对象"></a>列表对象</h3><p>列表对象的编码可以是ziplist（压缩列表）或者linkedlist（双端链表）。</p>
-<p>当列表对象满足所保存的所有字符串元素都小于64字节，且数量小于512个时，采用ziplist编码，否则采用linkedlist编码。</p>
-<h3 id="哈希对象"><a href="#哈希对象" class="headerlink" title="哈希对象"></a>哈希对象</h3><p>哈希对象的编码可以是ziplist或者hashtable。</p>
-<p>ziplist编码的哈希对象，每当有新的值加入，程序会先将保存了键的压缩列表节点加入压缩列表的表尾，然后是将保存值的节点加入表尾。所以说，保存了键和值的节点总是挨在一起，键在前，值在后。而且先添加的键值对在表头，后添加的在表尾。</p>
-<p>具体结构如下图：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322192610777.png" alt="image-20230322192610777"></p>
-<p>hashtable编码的哈希对象，使用字典作为底层实现。哈希对象每一个键值对都使用一个字典键值对来保存。</p>
-<p>字典的键是一个字符串对象，保存了键值对的键。字典的每个值也是一个字符串对象，保存了键值对的值。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322192653785.png" alt="image-20230322192653785"></p>
-<p>当哈希对象的所有键值对的键以及值的长度都小于64且键值对数量小于512时，使用ziplist编码，否则使用hashtable编码。</p>
-<h3 id="集合对象"><a href="#集合对象" class="headerlink" title="集合对象"></a>集合对象</h3><p>集合对象的编码可以是intset或者hashtable。</p>
-<p>intset编码的集合对象使用整数集合作为底层实现，集合对象包含的所有元素都被保存在整数集合里。</p>
-<p>具体结构如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322194532294.png" alt="image-20230322194532294"></p>
-<p>hashtable编码的集合对象使用字典作为底层实现，字典的每个键都是一个字符串对象，每个字符串对象包含了一个集合元素，而字典的值则全部被设置为null。hashtable编码如果要取值，则只用取出来键即可。</p>
-<p>执行完下面语句的结构如下图</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">SAD Dfruits <span class="string">&quot;apple&quot;</span> <span class="string">&quot;banana&quot;</span> <span class="string">&quot;cherry&quot;</span></span><br></pre></td></tr></table></figure>
-
-
-
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322194543206.png" alt="image-20230322194543206"></p>
-<p>当集合对象保存的都是整数，且数量不超过512个时，采用intset编码，否则采用hashtable编码。</p>
-<h3 id="有序集合对象"><a href="#有序集合对象" class="headerlink" title="有序集合对象"></a>有序集合对象</h3><p>有序集合编码可以是ziplist或者skiplist。</p>
-<p>ziplist编码的有序集合对象使用压缩列表作为底层，每个集合元素使用两个紧挨在一起的压缩列表节点来保存，第一个节点保存元素的成员（number），第二个元素保存元素的分值（score）。</p>
-<p>压缩列表内元素按照分值大小从小到大排序，分值较小的元素被放置在靠近表头的方向，较大的放在表尾。</p>
-<p>skiplist编码的有序集合对象使用zset结构作为底层实现。一个zset包含了一个字典和一个跳跃表，具体结构如下：</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zset</span> &#123;</span></span><br><span class="line">    <span class="comment">// 跳跃表</span></span><br><span class="line">    zskilplist *zsl;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字典</span></span><br><span class="line">    dict *dict;</span><br><span class="line">&#125; zset;</span><br></pre></td></tr></table></figure>
-
-<p>zset结构中的zsl跳跃表按分值从小到大保存了所有的集合元素，跳跃表的每个节点保存了一个集合元素：跳跃表节点的object属性保存了元素成员，而跳跃表节点的score保存了分值。通过跳跃表可以对集合实现范围操作。</p>
-<p>zset中的字典为有序集合创建了一个从成员到分值的映射，字典中的每一个键值对都保存了一个集合元素，键是元素成员，值的成员对应的分值（score）。</p>
-<p>zset会同时使用跳跃表和字典保存集合元素，但这两种结构会通过指针共享相同元素的成员和分值，所以不会浪费内存。</p>
-<p>为什么同时使用跳跃表和字典？</p>
-<p>如果单纯使用字典，能保留在o(1)的时间复杂度内查找到某成员，但是字典是无序的，对于范围查找则效率不高，而跳跃表因为有序所欲进行范围查找很快。如果单纯使用跳跃表，那么就无法完成在o(1)的时间复杂度内查找到某成员。</p>
-<p>一个具体的例子：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202217608.png" alt="image-20230322202217608"></p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202233639.png" alt="image-20230322202233639"></p>
-<p>当有序集合元素数量小于128个，同时所有元素成员长度小于64字节时，使用ziplist编码，否则使用skiplist编码。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>Redis设计与实现</tag>
       </tags>
   </entry>
   <entry>
@@ -1156,6 +1053,42 @@
       </tags>
   </entry>
   <entry>
+    <title>Redis如何解决缓存雪崩、击穿、穿透</title>
+    <url>/2023/03/30/Redis%E5%A6%82%E4%BD%95%E8%A7%A3%E5%86%B3%E7%BC%93%E5%AD%98%E9%9B%AA%E5%B4%A9%E3%80%81%E5%87%BB%E7%A9%BF%E3%80%81%E7%A9%BF%E9%80%8F/</url>
+    <content><![CDATA[<h2 id="缓存雪崩"><a href="#缓存雪崩" class="headerlink" title="缓存雪崩"></a>缓存雪崩</h2><p>缓存雪崩是指大量的应用请求无法在 Redis 缓存中进行处理，紧接着，应用将大量请求发送到数据库层，导致数据库层的压力激增。</p>
+<h3 id="原因以及解决办法"><a href="#原因以及解决办法" class="headerlink" title="原因以及解决办法"></a>原因以及解决办法</h3><p><strong>1、缓存中有大量数据同时过期，导致大量请求无法得到处理</strong>。</p>
+<p>解决方案：</p>
+<p>​	1）可以避免给数据设置相同的过期时间，如果业务需要，可以给这个过期时间增加一个小的随机数，使其过期时间相差1~3分钟，这样可以避免大量的key同时过期。</p>
+<p>​	2）我们还可以通过<strong>服务降级</strong>，指发生缓存雪崩时，针对不同的数据采取不同的处理方式。</p>
+<p>​		当业务应用访问的是非核心数据时，<strong>暂时停止从缓存中查询这些数据</strong>，而是直接返回预定义信息、空值或是错误信息；</p>
+<p>​		当业务应用访问的是核心数据时，仍然允许查询缓存，如果缓存缺失，也可以继续通过数据库读取。</p>
+<p><strong>2、Redis 缓存实例发生故障宕机了</strong></p>
+<p>解决方案：</p>
+<p>​	1）在业务系统中实现服务熔断或请求限流机制。在发生缓存雪崩时，为了避免影响整个系统，我们可以将这部分请求不做处理，直接返回错误，以免导致整个系统崩溃。</p>
+<p>​	2）提前预防。通过主从节点的方式构建 Redis 缓存高可靠集群。如果 Redis 缓存的主节点故障宕机了，从节点还可以切换成为主节点</p>
+<h2 id="缓存击穿"><a href="#缓存击穿" class="headerlink" title="缓存击穿"></a>缓存击穿</h2><p>缓存击穿是指，针对某个访问非常频繁的热点数据的请求，无法在缓存中进行处理，紧接着，访问该数据的大量请求，一下子都发送到了后端数据库，导致了数据库压力激增，会影响数据库处理其他请求。</p>
+<p>发生这种情况的原因有两种，一是热点数据自动过期，应对办法就是不设过期时间。二是开发人员误删热点数据。</p>
+<h2 id="缓存穿透"><a href="#缓存穿透" class="headerlink" title="缓存穿透"></a>缓存穿透</h2><p>缓存穿透是指要访问的数据既不在 Redis 缓存中，也不在数据库中，导致请求在访问缓存时，发生缓存缺失，再去访问数据库时，发现数据库中也没有要访问的数据。</p>
+<p>两种情况：</p>
+<p>1、业务层误操作：缓存中的数据和数据库中的数据被误删除了，所以缓存和数据库中都没有数据；</p>
+<p>2、恶意攻击：专门访问数据库中没有的数据。</p>
+<p>解决方案：</p>
+<p>1、缓存空值或缺省值。</p>
+<p>一旦发生缓存穿透，我们就可以针对查询的数据，在 Redis 中缓存一个空值或是和业务层协商确定的缺省值。紧接着，应用发送的后续请求再进行查询时，就可以直接从 Redis 中读取空值或缺省值，返回给业务应用了，避免了把大量请求发送给数据库处理，保持了数据库的正常运行。</p>
+<p>2、使用布隆过滤器快速判断数据是否存在，避免从数据库中查询数据是否存在，减轻数据库压力。</p>
+<p>布隆过滤器由一个初值都为 0 的 bit 数组和 N 个哈希函数组成，可以用来快速判断某个数据是否存在。</p>
+<p>正是基于布隆过滤器的快速检测特性，我们可以在把数据写入数据库时，使用布隆过滤器做个标记。当缓存缺失后，应用查询数据库时，可以通过查询布隆过滤器快速判断数据是否存在。如果不存在，就不用再去数据库中查询了。</p>
+<p>3、在请求入口的前端进行请求检测</p>
+<p>缓存穿透的一个原因是有大量的恶意请求访问不存在的数据，所以，一个有效的应对方案是在请求入口前端，对业务系统接收到的请求进行合法性检测，把恶意的请求（例如请求参数不合理、请求参数是非法值、请求字段不存在）直接过滤掉，不让它们访问后端缓存和数据库。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>缓存失效</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Redis服务器</title>
     <url>/2022/11/20/Redis%E6%9C%8D%E5%8A%A1%E5%99%A8/</url>
     <content><![CDATA[<h2 id="请求命令的执行过程"><a href="#请求命令的执行过程" class="headerlink" title="请求命令的执行过程"></a>请求命令的执行过程</h2><p>客户端给服务器发送一个命令请求的过程如下：</p>
@@ -1195,6 +1128,73 @@
 <h3 id="更新LRU时钟"><a href="#更新LRU时钟" class="headerlink" title="更新LRU时钟"></a>更新LRU时钟</h3><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">redisServer</span> &#123;</span></span><br><span class="line">    <span class="comment">// 一个数组，保存着服务器中所有的数据库</span></span><br><span class="line">    redisDb *db;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 服务器数据库的数量</span></span><br><span class="line">    <span class="type">int</span> dbnum;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录了保存条件的数组 </span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">saveparam</span> *<span class="title">saveparam</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 修改计数器</span></span><br><span class="line">    <span class="type">long</span> <span class="type">long</span> dirty;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 上一次执行保存的时间</span></span><br><span class="line">    <span class="type">time_t</span> lastsave;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// AOF缓冲区</span></span><br><span class="line">    sds aof_buf;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 一个链表，保存了所有客户端状态</span></span><br><span class="line">    <span class="built_in">list</span> *clients;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 秒级的unix时间戳</span></span><br><span class="line">    <span class="type">time_t</span> unixtime;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 毫秒级的unix时间戳</span></span><br><span class="line">    <span class="type">long</span> <span class="type">long</span> mstime;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 默认每10秒更新一次时钟缓存，用于计算键的空转时间</span></span><br><span class="line">    <span class="type">unsigned</span> lruclock:<span class="number">22</span>;</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
 
 <h3 id="检查持久化操作运行状态"><a href="#检查持久化操作运行状态" class="headerlink" title="检查持久化操作运行状态"></a>检查持久化操作运行状态</h3><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230328164717831.png" alt="image-20230328164717831"></p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>Redis设计与实现</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis对象</title>
+    <url>/2022/11/09/Redis%E5%AF%B9%E8%B1%A1/</url>
+    <content><![CDATA[<h3 id="Redis中有那些对象"><a href="#Redis中有那些对象" class="headerlink" title="Redis中有那些对象"></a>Redis中有那些对象</h3><p>redis中有简单动态字符串（SDS），双端链表，字典，压缩列表，整数集合等数据结构，但是redis并没有直接采用这些数据结构来构成键值对数据库，而是基于这些数据结构创建了一个对象系统。包含了<strong>字符串对象</strong>，<strong>列表对象</strong>，<strong>哈希对象</strong>，<strong>集合对象</strong>，<strong>有序集合对象</strong>。而且redis对象系统还实现了基于<strong>引用计数器</strong>的内存回收机制，并且通过引用计数技术实现了对象共享。</p>
+<p>redis中每个对象都是由一个redisObject结构表示，该结构中和保存数据有关的三个属性如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">redisObject</span> &#123;</span></span><br><span class="line">    <span class="comment">// 类型</span></span><br><span class="line">    <span class="type">unsigned</span> type;</span><br><span class="line">   	</span><br><span class="line">    <span class="comment">// 编码</span></span><br><span class="line">    <span class="type">unsigned</span> encoding;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 指向底层实现数据结构的指针</span></span><br><span class="line">    <span class="type">void</span> *ptr;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="type"><a href="#type" class="headerlink" title="type"></a>type</h4><p>这个属性记录了对象的类型，该类型可以是下表中的一个。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183207835.png" alt="image-20230322183207835"></p>
+<p>每一个数据的键，总是一个字符串对象，而值可以是上表中的任意一个。</p>
+<p>在redis中，使用TYPE命令可以显示一个键对应值的type</p>
+<h4 id="encoding"><a href="#encoding" class="headerlink" title="encoding"></a>encoding</h4><p>记录了对象所使用的编码。即记录该对象使用什么数据结构作为底层的实现。可以是下表中的任意一个。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183455762.png" alt="image-20230322183455762"></p>
+<p>每种类型的对象至少使用了两种不同的编码，如下表所示</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322183620698.png" alt="image-20230322183620698"></p>
+<p>在redis中，使用OBJECT ENCODING命令可以查看一个键对应值对象的编码。</p>
+<p>通过encoding属性设置编码，而不是固定一个对象的编码，为redis带来了极大的灵活性。因为redis可以根据不同场景选择不同的编码，以此改变底层数据结构。</p>
+<h3 id="字符串对象"><a href="#字符串对象" class="headerlink" title="字符串对象"></a>字符串对象</h3><p>如果字符串对象存储的是整数，并且这个整数可以用long表示，那么整数值将保存在字符串对象结构的ptr属性里面。void* 转换为long。并将字符串编码设置为int。</p>
+<p>如果字符串对象保存的是一个字符串值，并且该值长度大于32字节，那么就是用简单动态字符串保存，如果小于32，则使用embstr编码保存。</p>
+<h4 id="embstr"><a href="#embstr" class="headerlink" title="embstr"></a>embstr</h4><p>embstar专门用来保存短字符串的一种优化编码。embstr和raw都是使用redisObject和sdshdr结构来表示字符串，但是raw需要两次内存分配来创建，而embstr只需要一次内存分配，并且是连续的地址。释放空间也一样，分别是1次和2次。</p>
+<p>long double类型表示的浮点数也是作为字符串来保存的。</p>
+<h4 id="编码的转换"><a href="#编码的转换" class="headerlink" title="编码的转换"></a>编码的转换</h4><p>int类型的编码和embstr在适当条件下会被转化为raw编码。而且，redis没有为embstr编写任何修改程序，我们对次做的任何修改都会使其转化为raw编码。</p>
+<h3 id="列表对象"><a href="#列表对象" class="headerlink" title="列表对象"></a>列表对象</h3><p>列表对象的编码可以是ziplist（压缩列表）或者linkedlist（双端链表）。</p>
+<p>当列表对象满足所保存的所有字符串元素都小于64字节，且数量小于512个时，采用ziplist编码，否则采用linkedlist编码。</p>
+<h3 id="哈希对象"><a href="#哈希对象" class="headerlink" title="哈希对象"></a>哈希对象</h3><p>哈希对象的编码可以是ziplist或者hashtable。</p>
+<p>ziplist编码的哈希对象，每当有新的值加入，程序会先将保存了键的压缩列表节点加入压缩列表的表尾，然后是将保存值的节点加入表尾。所以说，保存了键和值的节点总是挨在一起，键在前，值在后。而且先添加的键值对在表头，后添加的在表尾。</p>
+<p>具体结构如下图：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322192610777.png" alt="image-20230322192610777"></p>
+<p>hashtable编码的哈希对象，使用字典作为底层实现。哈希对象每一个键值对都使用一个字典键值对来保存。</p>
+<p>字典的键是一个字符串对象，保存了键值对的键。字典的每个值也是一个字符串对象，保存了键值对的值。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322192653785.png" alt="image-20230322192653785"></p>
+<p>当哈希对象的所有键值对的键以及值的长度都小于64且键值对数量小于512时，使用ziplist编码，否则使用hashtable编码。</p>
+<h3 id="集合对象"><a href="#集合对象" class="headerlink" title="集合对象"></a>集合对象</h3><p>集合对象的编码可以是intset或者hashtable。</p>
+<p>intset编码的集合对象使用整数集合作为底层实现，集合对象包含的所有元素都被保存在整数集合里。</p>
+<p>具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322194532294.png" alt="image-20230322194532294"></p>
+<p>hashtable编码的集合对象使用字典作为底层实现，字典的每个键都是一个字符串对象，每个字符串对象包含了一个集合元素，而字典的值则全部被设置为null。hashtable编码如果要取值，则只用取出来键即可。</p>
+<p>执行完下面语句的结构如下图</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">SAD Dfruits <span class="string">&quot;apple&quot;</span> <span class="string">&quot;banana&quot;</span> <span class="string">&quot;cherry&quot;</span></span><br></pre></td></tr></table></figure>
+
+
+
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322194543206.png" alt="image-20230322194543206"></p>
+<p>当集合对象保存的都是整数，且数量不超过512个时，采用intset编码，否则采用hashtable编码。</p>
+<h3 id="有序集合对象"><a href="#有序集合对象" class="headerlink" title="有序集合对象"></a>有序集合对象</h3><p>有序集合编码可以是ziplist或者skiplist。</p>
+<p>ziplist编码的有序集合对象使用压缩列表作为底层，每个集合元素使用两个紧挨在一起的压缩列表节点来保存，第一个节点保存元素的成员（number），第二个元素保存元素的分值（score）。</p>
+<p>压缩列表内元素按照分值大小从小到大排序，分值较小的元素被放置在靠近表头的方向，较大的放在表尾。</p>
+<p>skiplist编码的有序集合对象使用zset结构作为底层实现。一个zset包含了一个字典和一个跳跃表，具体结构如下：</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">zset</span> &#123;</span></span><br><span class="line">    <span class="comment">// 跳跃表</span></span><br><span class="line">    zskilplist *zsl;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字典</span></span><br><span class="line">    dict *dict;</span><br><span class="line">&#125; zset;</span><br></pre></td></tr></table></figure>
+
+<p>zset结构中的zsl跳跃表按分值从小到大保存了所有的集合元素，跳跃表的每个节点保存了一个集合元素：跳跃表节点的object属性保存了元素成员，而跳跃表节点的score保存了分值。通过跳跃表可以对集合实现范围操作。</p>
+<p>zset中的字典为有序集合创建了一个从成员到分值的映射，字典中的每一个键值对都保存了一个集合元素，键是元素成员，值的成员对应的分值（score）。</p>
+<p>zset会同时使用跳跃表和字典保存集合元素，但这两种结构会通过指针共享相同元素的成员和分值，所以不会浪费内存。</p>
+<p>为什么同时使用跳跃表和字典？</p>
+<p>如果单纯使用字典，能保留在o(1)的时间复杂度内查找到某成员，但是字典是无序的，对于范围查找则效率不高，而跳跃表因为有序所欲进行范围查找很快。如果单纯使用跳跃表，那么就无法完成在o(1)的时间复杂度内查找到某成员。</p>
+<p>一个具体的例子：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202217608.png" alt="image-20230322202217608"></p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230322202233639.png" alt="image-20230322202233639"></p>
+<p>当有序集合元素数量小于128个，同时所有元素成员长度小于64字节时，使用ziplist编码，否则使用skiplist编码。</p>
 ]]></content>
       <categories>
         <category>Redis</category>
@@ -1284,32 +1284,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis脑裂导致的数据丢失问题</title>
-    <url>/2023/03/20/Redis%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%9A%84%E6%95%B0%E6%8D%AE%E4%B8%A2%E5%A4%B1%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<h3 id="一般的数据丢失"><a href="#一般的数据丢失" class="headerlink" title="一般的数据丢失"></a>一般的数据丢失</h3><p>在主从集群中发生数据丢失，最常见的原因就是<strong>主库的数据还没有同步到从库，结果主库发生了故障，等从库升级为主库后，未同步的数据就丢失了。</strong></p>
-<p>如果是这种情况，我们可以通过比对主从库上的复制进度差值来进行判断，也就是计算 master_repl_offset 和 slave_repl_offset 的差值。</p>
-<h3 id="脑裂导致的数据丢失"><a href="#脑裂导致的数据丢失" class="headerlink" title="脑裂导致的数据丢失"></a>脑裂导致的数据丢失</h3><p>所谓的脑裂，就是指在主从集群中，同时有两个主节点，它们都能接收写请求。</p>
-<p>主从切换后，从库一旦升级为新主库，哨兵就会让原主库执行 slave of 命令，和新主库重新进行全量同步。而在全量同步执行的最后阶段，原主库需要清空本地的数据，加载新主库发送的 RDB 文件，这样一来，<strong>原主库在主从切换期间保存的新写数据就丢失了</strong>。</p>
-<p>上述情况的发生，主要是由于误判造成的原主库假死，然后在执行主从切换的过程中，原主库还可以进行数据的处理，但是进行全量同步时这些数据并不会一起进行同步，而是会保存在缓存中，等到同步完发送，但是主从切换在执行的最后阶段会清空主库原来的数据，导致全量同步过程中新写入的数据丢失。</p>
-<p>而误判的原因可能是原主库在执行cpu密集型的操作，导致无法相应哨兵的心跳检测，导致哨兵误判原主库故障。</p>
-<h3 id="如何应对上述情况？"><a href="#如何应对上述情况？" class="headerlink" title="如何应对上述情况？"></a>如何应对上述情况？</h3><p>Redis 已经提供了两个配置项来限制主库的请求处理，分别是 min-slaves-to-write 和 min-slaves-max-lag。</p>
-<p>min-slaves-to-write：这个配置项设置了主库能进行数据同步的最少从库数量；</p>
-<p>min-slaves-max-lag：这个配置项设置了主从库间进行数据复制时，从库给主库发送 ACK 消息的最大延迟（以秒为单位）。</p>
-<p>当我们把min-slaves-to-write和min-slaves-max-lag设置为N和T，意味着主库连接的从库中至少有 N 个从库和主库进行数据复制时的 ACK 消息延迟不能超过 T 秒，否则，主库就不会再接收客户端的请求了。</p>
-<p>这样设置后，假如主库假死，如果N设置为1，T设置为5，如果从库和主库进行数据复制的ACK时间超过5s，那么主库就不能够处理客户端的请求。</p>
-<h3 id="上述设置是否可以避免脑裂？"><a href="#上述设置是否可以避免脑裂？" class="headerlink" title="上述设置是否可以避免脑裂？"></a>上述设置是否可以避免脑裂？</h3><p>考虑如下问题：</p>
-<p>假设我们将 min-slaves-to-write 设置为 1，min-slaves-max-lag 设置为 15s，哨兵的 down-after-milliseconds 设置为 10s，哨兵主从切换需要 5s。主库因为某些原因卡住了 12s，此时，还会发生脑裂吗？主从切换完成后，数据会丢失吗？</p>
-<p>主库卡住 12s，达到了哨兵设定的切换阈值，所以哨兵会触发主从切换。但哨兵切换的时间是 5s，也就是说哨兵还未切换完成，主库就会从阻塞状态中恢复回来，而且也没有触发 min-slaves-max-lag 阈值，所以主库在哨兵切换剩下的 3s 内，依旧可以接收客户端的写操作，如果这些写操作还未同步到从库，哨兵就把从库提升为主库了，那么此时也会出现脑裂的情况，之后旧主库降级为从库，重新同步新主库的数据，新主库也会发生数据丢失。</p>
-<p>脑裂产生问题的本质原因是，Redis 主从集群内部没有通过共识算法，来维护多个节点数据的强一致性。它不像 Zookeeper 那样，每次写请求必须大多数节点写成功后才认为成功。当脑裂发生时，Zookeeper 主节点被孤立，此时无法写入大多数节点，写请求会直接返回失败，因此它可以保证集群数据的一致性。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>数据一致性</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Redis设计之基本数据结构（一）</title>
     <url>/2022/11/05/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%80%EF%BC%89/</url>
     <content><![CDATA[<h3 id="简单动态字符串SDS"><a href="#简单动态字符串SDS" class="headerlink" title="简单动态字符串SDS"></a>简单动态字符串SDS</h3><h4 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h4><p>1、保存数据库中字符串的值</p>
@@ -1338,41 +1312,29 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis设计与实现之基本数据结构（二）</title>
-    <url>/2022/11/06/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%BA%8C%EF%BC%89/</url>
-    <content><![CDATA[<h3 id="字典"><a href="#字典" class="headerlink" title="字典"></a>字典</h3><h4 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h4><p>字典又称符号表、关联数组或映射，是一种用于保存键值对的抽象数据结构。</p>
-<p>Redis字典使用哈希表作为底层实现，一个哈希表可以有多个哈希表节点，每一个哈希表节点保存了字典中的一个键值对。</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">C</span><br><span class="line"><span class="comment">// 哈希表结构</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    <span class="comment">// 哈希表数组</span></span><br><span class="line">    dictEntry **table;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表大小</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表大小掩码，用于计算索引值，总是等于size - 1</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> sizemask;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 该哈希表已有的节点数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;</span><br><span class="line">&#125; dictht;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希表节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> &#123;</span></span><br><span class="line">    <span class="comment">// 键</span></span><br><span class="line">    <span class="type">void</span> *key;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 值</span></span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        <span class="type">void</span> *val;</span><br><span class="line">       	uint64_tu64;</span><br><span class="line">        int64_ts64;</span><br><span class="line">	&#125; v;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 指向下个哈希表节点，形成链表</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> *<span class="title">next</span>;</span></span><br><span class="line">&#125; dictEntry;</span><br></pre></td></tr></table></figure>
-
-<p>Redis中的字典构造</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">C</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    <span class="comment">// 类型特定函数</span></span><br><span class="line">	dictType *type;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 私有数据</span></span><br><span class="line">    <span class="type">void</span> *privdata;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// rehash索引</span></span><br><span class="line">    <span class="comment">// 当rehash不再进行时，值为-1</span></span><br><span class="line">    <span class="type">int</span> trehashidx;</span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictType</span> &#123;</span></span><br><span class="line">    <span class="comment">// 计算哈希值的函数</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="title function_">int</span> <span class="params">(*hashFunction)</span> <span class="params">(<span class="type">const</span> <span class="type">void</span> *key)</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 复制键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyDup) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 复制值的函数</span></span><br><span class="line">    <span class="type">void</span> *(*valDup) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *obj);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 对比键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyCompare) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key1, <span class="type">const</span> <span class="type">void</span> *key2);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 销毁键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyDestructor) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 销毁值的函数</span></span><br><span class="line">    <span class="type">void</span> *(*valDestructor) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *obj);</span><br><span class="line">&#125; dictType;</span><br></pre></td></tr></table></figure>
-
-<p>一个字典的结构图如下所示</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230320205611832.png" alt="image-20230320205611832"></p>
-<p>一个字典结构体，存储数据的是里面的ht，即一个哈希表数组，哈希表的大小为2。一个哈希表的主要内容是其中的table数组，用于存放键值对的数据结构。</p>
-<h4 id="哈希算法"><a href="#哈希算法" class="headerlink" title="哈希算法"></a>哈希算法</h4><p>当要将一个新的值插入数据字典时，要先根据键计算出哈希值和索引值，根据索引将新的键值对放到对应索引的位置。</p>
-<p>这里计算出的索引就是dictht中table的下标，然后放入对应位置。</p>
-<h4 id="解决键冲突"><a href="#解决键冲突" class="headerlink" title="解决键冲突"></a>解决键冲突</h4><p>Redis的哈希表使用链地址法解决键冲突（头插法）。每一个dictEntry都有一个指向下一个节点的指针，当出现冲突，就链接在后边。</p>
-<h4 id="Rehash"><a href="#Rehash" class="headerlink" title="Rehash"></a>Rehash</h4><p>随着操作不断进行，哈希表保存的数据可能越来越多，也可能越来越少。为了保持哈希表的负载因子在一定范围内，当哈希表保存的键值对太多或太少时，哈希表会进行相应的扩容或者收缩。这个扩容或者收缩的过程就叫Rehash。</p>
-<h5 id="Rehash过程"><a href="#Rehash过程" class="headerlink" title="Rehash过程"></a>Rehash过程</h5><p>1、首先是对ht[1]分配空间，如果是扩容操作，则大小为第一个大于ht[0].used * 2的2^n（n从0开始增大，一直到2^n大于used * 2 ）。如果是收缩，则大小为第一个大于ht[0].used的2^n。</p>
-<p>2、将ht[0]上的键值对重新计算哈希值，保存在ht[1]中。</p>
-<p>3、当ht[0]的全部数据都重新计算哈希值并存入ht[1]后，释放ht[0]的空间，将ht[1]设置为ht[0]，在ht[1]创建新的空白哈希表，用于下一次Rehash。</p>
-<h5 id="rehash条件"><a href="#rehash条件" class="headerlink" title="rehash条件"></a>rehash条件</h5><p>1、服务器没有执行BGSAVE命令，或者BGREWRITEAOF命令，且负载因子大于1。</p>
-<p>2、在执行上述两个命令，且负载因子大于5。</p>
-<p>负载因子计算方法：哈希表已保存节点数 &#x2F; 哈希表大小</p>
-<h4 id="渐进式Rehash"><a href="#渐进式Rehash" class="headerlink" title="渐进式Rehash"></a>渐进式Rehash</h4><p>Rehash将ht[0]所有值重计算放入ht[1]的过程并不是一次性，集中的完成的，而是分多次，渐进的完成的。</p>
-<p>具体过程：</p>
-<p>1、为ht[1]分配空间，让字典同时只有ht[0]和ht[1]两个哈希表。</p>
-<p>2、字典中的rehashidx的值设置为0（初始值为-1），表示开始rehash。</p>
-<p>3、在rehash期间，每次对字典进行增删改查时，还会顺带将 ht[0]哈希表在rehashidx索引上的所有键值对rehash到ht[1]上，完成后将rehashidx的值增加1。</p>
-<p>4、当ht[0]都被rehash到ht[1]上时，会将rehashidx的值设置为-1，表示rehash完成。</p>
-<p>注意：rehash过程中，如果需要查找，删除，更新，则会在ht[0]和ht[1]中都进行操作，找到元素在哪就在那个表操作。如果进行插入，则只会在ht[1]表中进行。</p>
+    <title>Redis脑裂导致的数据丢失问题</title>
+    <url>/2023/03/20/Redis%E8%84%91%E8%A3%82%E5%AF%BC%E8%87%B4%E7%9A%84%E6%95%B0%E6%8D%AE%E4%B8%A2%E5%A4%B1%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<h3 id="一般的数据丢失"><a href="#一般的数据丢失" class="headerlink" title="一般的数据丢失"></a>一般的数据丢失</h3><p>在主从集群中发生数据丢失，最常见的原因就是<strong>主库的数据还没有同步到从库，结果主库发生了故障，等从库升级为主库后，未同步的数据就丢失了。</strong></p>
+<p>如果是这种情况，我们可以通过比对主从库上的复制进度差值来进行判断，也就是计算 master_repl_offset 和 slave_repl_offset 的差值。</p>
+<h3 id="脑裂导致的数据丢失"><a href="#脑裂导致的数据丢失" class="headerlink" title="脑裂导致的数据丢失"></a>脑裂导致的数据丢失</h3><p>所谓的脑裂，就是指在主从集群中，同时有两个主节点，它们都能接收写请求。</p>
+<p>主从切换后，从库一旦升级为新主库，哨兵就会让原主库执行 slave of 命令，和新主库重新进行全量同步。而在全量同步执行的最后阶段，原主库需要清空本地的数据，加载新主库发送的 RDB 文件，这样一来，<strong>原主库在主从切换期间保存的新写数据就丢失了</strong>。</p>
+<p>上述情况的发生，主要是由于误判造成的原主库假死，然后在执行主从切换的过程中，原主库还可以进行数据的处理，但是进行全量同步时这些数据并不会一起进行同步，而是会保存在缓存中，等到同步完发送，但是主从切换在执行的最后阶段会清空主库原来的数据，导致全量同步过程中新写入的数据丢失。</p>
+<p>而误判的原因可能是原主库在执行cpu密集型的操作，导致无法相应哨兵的心跳检测，导致哨兵误判原主库故障。</p>
+<h3 id="如何应对上述情况？"><a href="#如何应对上述情况？" class="headerlink" title="如何应对上述情况？"></a>如何应对上述情况？</h3><p>Redis 已经提供了两个配置项来限制主库的请求处理，分别是 min-slaves-to-write 和 min-slaves-max-lag。</p>
+<p>min-slaves-to-write：这个配置项设置了主库能进行数据同步的最少从库数量；</p>
+<p>min-slaves-max-lag：这个配置项设置了主从库间进行数据复制时，从库给主库发送 ACK 消息的最大延迟（以秒为单位）。</p>
+<p>当我们把min-slaves-to-write和min-slaves-max-lag设置为N和T，意味着主库连接的从库中至少有 N 个从库和主库进行数据复制时的 ACK 消息延迟不能超过 T 秒，否则，主库就不会再接收客户端的请求了。</p>
+<p>这样设置后，假如主库假死，如果N设置为1，T设置为5，如果从库和主库进行数据复制的ACK时间超过5s，那么主库就不能够处理客户端的请求。</p>
+<h3 id="上述设置是否可以避免脑裂？"><a href="#上述设置是否可以避免脑裂？" class="headerlink" title="上述设置是否可以避免脑裂？"></a>上述设置是否可以避免脑裂？</h3><p>考虑如下问题：</p>
+<p>假设我们将 min-slaves-to-write 设置为 1，min-slaves-max-lag 设置为 15s，哨兵的 down-after-milliseconds 设置为 10s，哨兵主从切换需要 5s。主库因为某些原因卡住了 12s，此时，还会发生脑裂吗？主从切换完成后，数据会丢失吗？</p>
+<p>主库卡住 12s，达到了哨兵设定的切换阈值，所以哨兵会触发主从切换。但哨兵切换的时间是 5s，也就是说哨兵还未切换完成，主库就会从阻塞状态中恢复回来，而且也没有触发 min-slaves-max-lag 阈值，所以主库在哨兵切换剩下的 3s 内，依旧可以接收客户端的写操作，如果这些写操作还未同步到从库，哨兵就把从库提升为主库了，那么此时也会出现脑裂的情况，之后旧主库降级为从库，重新同步新主库的数据，新主库也会发生数据丢失。</p>
+<p>脑裂产生问题的本质原因是，Redis 主从集群内部没有通过共识算法，来维护多个节点数据的强一致性。它不像 Zookeeper 那样，每次写请求必须大多数节点写成功后才认为成功。当脑裂发生时，Zookeeper 主节点被孤立，此时无法写入大多数节点，写请求会直接返回失败，因此它可以保证集群数据的一致性。</p>
 ]]></content>
       <categories>
         <category>Redis</category>
       </categories>
       <tags>
-        <tag>Redis设计与实现</tag>
+        <tag>数据一致性</tag>
       </tags>
   </entry>
   <entry>
@@ -1429,49 +1391,41 @@
       </tags>
   </entry>
   <entry>
-    <title>redis如何避免数据倾斜</title>
-    <url>/2023/03/23/redis%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%95%B0%E6%8D%AE%E5%80%BE%E6%96%9C/</url>
-    <content><![CDATA[<h3 id="数据倾斜分类"><a href="#数据倾斜分类" class="headerlink" title="数据倾斜分类"></a>数据倾斜分类</h3><h4 id="数据量倾斜"><a href="#数据量倾斜" class="headerlink" title="数据量倾斜"></a>数据量倾斜</h4><p>在某些情况下，实例上的数据分布不均衡，某个实例上的数据特别多。</p>
-<h5 id="造成原因"><a href="#造成原因" class="headerlink" title="造成原因"></a>造成原因</h5><p>1、bigKey</p>
-<p>bigkey 的 value 值很大（String 类型），或者是 bigkey 保存了大量集合元素（集合类型），会导致这个实例的数据量增加，内存资源消耗也相应增加。bigkey 的操作一般都会造成实例 IO 线程阻塞，如果 bigkey 的访问量比较大，就会影响到这个实例上的其它请求被处理的速度。</p>
-<p>在生成数据时，尽量避免把过多的数据保存在同一个键值对中，如果bigKey是一个集合，我们可以把bigKey拆分成多个小的集合类型，分散保存在不同实例。</p>
-<p>2、slot分配不均衡</p>
-<p>如果集群运维人员没有均衡地分配 Slot，就会有大量的数据被分配到同一个 Slot 中，而同一个 Slot 只会在一个实例上分布，这就会导致，大量数据被集中到一个实例上，造成数据倾斜。</p>
-<p>比如说，集群中有5个实例，而实例1的硬件配置比较好，可能分配人员就给实例1多分配了几个Slot。但并不知道数据和Slot的对应关系，这种做法就有可能导致大量数据被映射到实例1的slot上。</p>
-<p>在分配前，可以避免把过多的slot分配到一个实例上。如果已经分配了的，可以查看是否把同一个实例上分配了过多的slot，如果分配就将部分slot进行迁移。</p>
-<p>3、Hash Tag</p>
-<p>Hash Tag 是指加在键值对 key 中的一对花括号{}。这对括号会把 key 的一部分括起来，客户端在计算 key 的 CRC16 值时，只对 Hash Tag 花括号中的 key 内容进行计算。如果没用 Hash Tag 的话，客户端计算整个 key 的 CRC16 的值。</p>
-<p>假设 key 是 user:profile:3231，我们把其中的 3231 作为 Hash Tag，此时，key 就变成了 user:profile:{3231}。当客户端计算这个 key 的 CRC16 值时，就只会计算 3231 的 CRC16 值。</p>
-<p>使用 Hash Tag 的好处是，如果不同 key 的 Hash Tag 内容都是一样的，那么，这些 key 对应的数据会被映射到同一个 Slot 中，同时会被分配到同一个实例上。</p>
-<p>Hash Tag主要是用在 Redis Cluster 和 Codis 中，支持事务操作和范围查询。因为 Redis Cluster 和 Codis 本身并不支持<strong>跨实例的事务操作和范围查询（多个Redis进行范围查询或者事务操作）</strong>，当业务应用有这些需求时，就只能先把这些数据读取到业务层进行事务处理，或者是逐个查询每个实例，得到范围查询的结果。我们可以使用 Hash Tag 把要执行事务操作或是范围查询的数据映射到同一个实例上，这样就能很轻松地实现事务或范围查询了。</p>
-<h4 id="数据访问倾斜"><a href="#数据访问倾斜" class="headerlink" title="数据访问倾斜"></a>数据访问倾斜</h4><p>虽然每个集群实例上的数据量相差不大，但是某个实例上的数据是热点数据，被访问得非常频繁。</p>
-<p>发生数据访问倾斜的根本原因，就是实例上存在热点数据。我们可以采用热点数据多副本的方法来应对。具体就是在每一个副本key中增加一个随机前缀，让它和其他副本分配到不同的slot中。<strong>热点数据多副本方法只能针对只读的热点数据</strong>。</p>
+    <title>Redis设计与实现之基本数据结构（二）</title>
+    <url>/2022/11/06/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%BA%8C%EF%BC%89/</url>
+    <content><![CDATA[<h3 id="字典"><a href="#字典" class="headerlink" title="字典"></a>字典</h3><h4 id="具体结构"><a href="#具体结构" class="headerlink" title="具体结构"></a>具体结构</h4><p>字典又称符号表、关联数组或映射，是一种用于保存键值对的抽象数据结构。</p>
+<p>Redis字典使用哈希表作为底层实现，一个哈希表可以有多个哈希表节点，每一个哈希表节点保存了字典中的一个键值对。</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">C</span><br><span class="line"><span class="comment">// 哈希表结构</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictht</span> &#123;</span></span><br><span class="line">    <span class="comment">// 哈希表数组</span></span><br><span class="line">    dictEntry **table;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表大小</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> size;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表大小掩码，用于计算索引值，总是等于size - 1</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> sizemask;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 该哈希表已有的节点数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> used;</span><br><span class="line">&#125; dictht;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 哈希表节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> &#123;</span></span><br><span class="line">    <span class="comment">// 键</span></span><br><span class="line">    <span class="type">void</span> *key;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 值</span></span><br><span class="line">    <span class="class"><span class="keyword">union</span> &#123;</span></span><br><span class="line">        <span class="type">void</span> *val;</span><br><span class="line">       	uint64_tu64;</span><br><span class="line">        int64_ts64;</span><br><span class="line">	&#125; v;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 指向下个哈希表节点，形成链表</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">dictEntry</span> *<span class="title">next</span>;</span></span><br><span class="line">&#125; dictEntry;</span><br></pre></td></tr></table></figure>
+
+<p>Redis中的字典构造</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line">C</span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dict</span> &#123;</span></span><br><span class="line">    <span class="comment">// 类型特定函数</span></span><br><span class="line">	dictType *type;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 私有数据</span></span><br><span class="line">    <span class="type">void</span> *privdata;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 哈希表</span></span><br><span class="line">    dictht ht[<span class="number">2</span>];</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// rehash索引</span></span><br><span class="line">    <span class="comment">// 当rehash不再进行时，值为-1</span></span><br><span class="line">    <span class="type">int</span> trehashidx;</span><br><span class="line">&#125; dict;</span><br><span class="line"></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">dictType</span> &#123;</span></span><br><span class="line">    <span class="comment">// 计算哈希值的函数</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="title function_">int</span> <span class="params">(*hashFunction)</span> <span class="params">(<span class="type">const</span> <span class="type">void</span> *key)</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 复制键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyDup) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 复制值的函数</span></span><br><span class="line">    <span class="type">void</span> *(*valDup) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *obj);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 对比键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyCompare) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key1, <span class="type">const</span> <span class="type">void</span> *key2);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 销毁键的函数</span></span><br><span class="line">    <span class="type">void</span> *(*keyDestructor) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *key);</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 销毁值的函数</span></span><br><span class="line">    <span class="type">void</span> *(*valDestructor) (<span class="type">void</span> *privdata, <span class="type">const</span> <span class="type">void</span> *obj);</span><br><span class="line">&#125; dictType;</span><br></pre></td></tr></table></figure>
+
+<p>一个字典的结构图如下所示</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230320205611832.png" alt="image-20230320205611832"></p>
+<p>一个字典结构体，存储数据的是里面的ht，即一个哈希表数组，哈希表的大小为2。一个哈希表的主要内容是其中的table数组，用于存放键值对的数据结构。</p>
+<h4 id="哈希算法"><a href="#哈希算法" class="headerlink" title="哈希算法"></a>哈希算法</h4><p>当要将一个新的值插入数据字典时，要先根据键计算出哈希值和索引值，根据索引将新的键值对放到对应索引的位置。</p>
+<p>这里计算出的索引就是dictht中table的下标，然后放入对应位置。</p>
+<h4 id="解决键冲突"><a href="#解决键冲突" class="headerlink" title="解决键冲突"></a>解决键冲突</h4><p>Redis的哈希表使用链地址法解决键冲突（头插法）。每一个dictEntry都有一个指向下一个节点的指针，当出现冲突，就链接在后边。</p>
+<h4 id="Rehash"><a href="#Rehash" class="headerlink" title="Rehash"></a>Rehash</h4><p>随着操作不断进行，哈希表保存的数据可能越来越多，也可能越来越少。为了保持哈希表的负载因子在一定范围内，当哈希表保存的键值对太多或太少时，哈希表会进行相应的扩容或者收缩。这个扩容或者收缩的过程就叫Rehash。</p>
+<h5 id="Rehash过程"><a href="#Rehash过程" class="headerlink" title="Rehash过程"></a>Rehash过程</h5><p>1、首先是对ht[1]分配空间，如果是扩容操作，则大小为第一个大于ht[0].used * 2的2^n（n从0开始增大，一直到2^n大于used * 2 ）。如果是收缩，则大小为第一个大于ht[0].used的2^n。</p>
+<p>2、将ht[0]上的键值对重新计算哈希值，保存在ht[1]中。</p>
+<p>3、当ht[0]的全部数据都重新计算哈希值并存入ht[1]后，释放ht[0]的空间，将ht[1]设置为ht[0]，在ht[1]创建新的空白哈希表，用于下一次Rehash。</p>
+<h5 id="rehash条件"><a href="#rehash条件" class="headerlink" title="rehash条件"></a>rehash条件</h5><p>1、服务器没有执行BGSAVE命令，或者BGREWRITEAOF命令，且负载因子大于1。</p>
+<p>2、在执行上述两个命令，且负载因子大于5。</p>
+<p>负载因子计算方法：哈希表已保存节点数 &#x2F; 哈希表大小</p>
+<h4 id="渐进式Rehash"><a href="#渐进式Rehash" class="headerlink" title="渐进式Rehash"></a>渐进式Rehash</h4><p>Rehash将ht[0]所有值重计算放入ht[1]的过程并不是一次性，集中的完成的，而是分多次，渐进的完成的。</p>
+<p>具体过程：</p>
+<p>1、为ht[1]分配空间，让字典同时只有ht[0]和ht[1]两个哈希表。</p>
+<p>2、字典中的rehashidx的值设置为0（初始值为-1），表示开始rehash。</p>
+<p>3、在rehash期间，每次对字典进行增删改查时，还会顺带将 ht[0]哈希表在rehashidx索引上的所有键值对rehash到ht[1]上，完成后将rehashidx的值增加1。</p>
+<p>4、当ht[0]都被rehash到ht[1]上时，会将rehashidx的值设置为-1，表示rehash完成。</p>
+<p>注意：rehash过程中，如果需要查找，删除，更新，则会在ht[0]和ht[1]中都进行操作，找到元素在哪就在那个表操作。如果进行插入，则只会在ht[1]表中进行。</p>
 ]]></content>
       <categories>
         <category>Redis</category>
       </categories>
       <tags>
-        <tag>Redis核心技术实战</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>this引用逃逸</title>
-    <url>/2023/04/03/this%E5%BC%95%E7%94%A8%E9%80%83%E9%80%B8/</url>
-    <content><![CDATA[<h1 id="构造函数中启动线程"><a href="#构造函数中启动线程" class="headerlink" title="构造函数中启动线程"></a>构造函数中启动线程</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动线程，此时this引用逃逸</span></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">        thread.start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在这个例子中，构造函数创建了一个匿名内部类，并将其实例化并注册到事件源对象上。此外，构造函数还创建并启动了一个新线程，该线程也会调用doSomething方法。<strong>由于在构造函数执行期间，对象还没有完全构造完成</strong>，因此在该线程中访问name字段可能会导致不可预期的结果。</p>
-<h1 id="构造函数中将this传递给其他线程"><a href="#构造函数中将this传递给其他线程" class="headerlink" title="构造函数中将this传递给其他线程"></a>构造函数中将this传递给其他线程</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="type">HelperThread</span> <span class="variable">helper</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HelperThread</span>(<span class="built_in">this</span>);</span><br><span class="line">        helper.start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;do something&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">HelperThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">private</span> ThisEscape escape;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="title function_">HelperThread</span><span class="params">(ThisEscape escape)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.escape = escape;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            escape.doSomething();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在这个例子中，构造函数创建了一个HelperThread对象，并将ThisEscape对象作为参数传递给它。HelperThread对象的run方法中访问了ThisEscape对象的doSomething方法，此时ThisEscape对象可能还没有完全构造完成，因此可能导致不可预期的结果。</p>
-<h1 id="构造函数中注册回调对象"><a href="#构造函数中注册回调对象" class="headerlink" title="构造函数中注册回调对象"></a>构造函数中注册回调对象</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">()</span> &#123;</span><br><span class="line">        EventManager.getInstance().register(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;do something&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>在这个例子中，构造函数中将匿名内部类的实例注册到了事件管理器中。由于<strong>事件管理器可能在ThisEscape对象构造完成之前</strong>就开始调用匿名内部类实例的onEvent方法，因此可能会导致不可预期的结果。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Java并发编程实战</tag>
+        <tag>Redis设计与实现</tag>
       </tags>
   </entry>
   <entry>
@@ -1522,6 +1476,26 @@
       </tags>
   </entry>
   <entry>
+    <title>this引用逃逸</title>
+    <url>/2023/04/03/this%E5%BC%95%E7%94%A8%E9%80%83%E9%80%B8/</url>
+    <content><![CDATA[<h1 id="构造函数中启动线程"><a href="#构造函数中启动线程" class="headerlink" title="构造函数中启动线程"></a>构造函数中启动线程</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> String name;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 启动线程，此时this引用逃逸</span></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">        thread.start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(name);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个例子中，构造函数创建了一个匿名内部类，并将其实例化并注册到事件源对象上。此外，构造函数还创建并启动了一个新线程，该线程也会调用doSomething方法。<strong>由于在构造函数执行期间，对象还没有完全构造完成</strong>，因此在该线程中访问name字段可能会导致不可预期的结果。</p>
+<h1 id="构造函数中将this传递给其他线程"><a href="#构造函数中将this传递给其他线程" class="headerlink" title="构造函数中将this传递给其他线程"></a>构造函数中将this传递给其他线程</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line"></span><br><span class="line">        <span class="type">HelperThread</span> <span class="variable">helper</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">HelperThread</span>(<span class="built_in">this</span>);</span><br><span class="line">        helper.start();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;do something&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title class_">HelperThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">private</span> ThisEscape escape;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="title function_">HelperThread</span><span class="params">(ThisEscape escape)</span> &#123;</span><br><span class="line">            <span class="built_in">this</span>.escape = escape;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            escape.doSomething();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个例子中，构造函数创建了一个HelperThread对象，并将ThisEscape对象作为参数传递给它。HelperThread对象的run方法中访问了ThisEscape对象的doSomething方法，此时ThisEscape对象可能还没有完全构造完成，因此可能导致不可预期的结果。</p>
+<h1 id="构造函数中注册回调对象"><a href="#构造函数中注册回调对象" class="headerlink" title="构造函数中注册回调对象"></a>构造函数中注册回调对象</h1><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">()</span> &#123;</span><br><span class="line">        EventManager.getInstance().register(<span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                doSomething();</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">void</span> <span class="title function_">doSomething</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;do something&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>在这个例子中，构造函数中将匿名内部类的实例注册到了事件管理器中。由于<strong>事件管理器可能在ThisEscape对象构造完成之前</strong>就开始调用匿名内部类实例的onEvent方法，因此可能会导致不可预期的结果。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Java并发编程实战</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Volatile关键字</title>
     <url>/2023/03/23/Volatile%E5%85%B3%E9%94%AE%E5%AD%97/</url>
     <content><![CDATA[<h3 id="内存模型对volatile的特殊处理"><a href="#内存模型对volatile的特殊处理" class="headerlink" title="内存模型对volatile的特殊处理"></a>内存模型对volatile的特殊处理</h3><p>当一个变量被定义成volatile之后，它将具备两项特性：</p>
@@ -1553,6 +1527,32 @@
       </categories>
       <tags>
         <tag>线程</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>redis如何避免数据倾斜</title>
+    <url>/2023/03/23/redis%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%95%B0%E6%8D%AE%E5%80%BE%E6%96%9C/</url>
+    <content><![CDATA[<h3 id="数据倾斜分类"><a href="#数据倾斜分类" class="headerlink" title="数据倾斜分类"></a>数据倾斜分类</h3><h4 id="数据量倾斜"><a href="#数据量倾斜" class="headerlink" title="数据量倾斜"></a>数据量倾斜</h4><p>在某些情况下，实例上的数据分布不均衡，某个实例上的数据特别多。</p>
+<h5 id="造成原因"><a href="#造成原因" class="headerlink" title="造成原因"></a>造成原因</h5><p>1、bigKey</p>
+<p>bigkey 的 value 值很大（String 类型），或者是 bigkey 保存了大量集合元素（集合类型），会导致这个实例的数据量增加，内存资源消耗也相应增加。bigkey 的操作一般都会造成实例 IO 线程阻塞，如果 bigkey 的访问量比较大，就会影响到这个实例上的其它请求被处理的速度。</p>
+<p>在生成数据时，尽量避免把过多的数据保存在同一个键值对中，如果bigKey是一个集合，我们可以把bigKey拆分成多个小的集合类型，分散保存在不同实例。</p>
+<p>2、slot分配不均衡</p>
+<p>如果集群运维人员没有均衡地分配 Slot，就会有大量的数据被分配到同一个 Slot 中，而同一个 Slot 只会在一个实例上分布，这就会导致，大量数据被集中到一个实例上，造成数据倾斜。</p>
+<p>比如说，集群中有5个实例，而实例1的硬件配置比较好，可能分配人员就给实例1多分配了几个Slot。但并不知道数据和Slot的对应关系，这种做法就有可能导致大量数据被映射到实例1的slot上。</p>
+<p>在分配前，可以避免把过多的slot分配到一个实例上。如果已经分配了的，可以查看是否把同一个实例上分配了过多的slot，如果分配就将部分slot进行迁移。</p>
+<p>3、Hash Tag</p>
+<p>Hash Tag 是指加在键值对 key 中的一对花括号{}。这对括号会把 key 的一部分括起来，客户端在计算 key 的 CRC16 值时，只对 Hash Tag 花括号中的 key 内容进行计算。如果没用 Hash Tag 的话，客户端计算整个 key 的 CRC16 的值。</p>
+<p>假设 key 是 user:profile:3231，我们把其中的 3231 作为 Hash Tag，此时，key 就变成了 user:profile:{3231}。当客户端计算这个 key 的 CRC16 值时，就只会计算 3231 的 CRC16 值。</p>
+<p>使用 Hash Tag 的好处是，如果不同 key 的 Hash Tag 内容都是一样的，那么，这些 key 对应的数据会被映射到同一个 Slot 中，同时会被分配到同一个实例上。</p>
+<p>Hash Tag主要是用在 Redis Cluster 和 Codis 中，支持事务操作和范围查询。因为 Redis Cluster 和 Codis 本身并不支持<strong>跨实例的事务操作和范围查询（多个Redis进行范围查询或者事务操作）</strong>，当业务应用有这些需求时，就只能先把这些数据读取到业务层进行事务处理，或者是逐个查询每个实例，得到范围查询的结果。我们可以使用 Hash Tag 把要执行事务操作或是范围查询的数据映射到同一个实例上，这样就能很轻松地实现事务或范围查询了。</p>
+<h4 id="数据访问倾斜"><a href="#数据访问倾斜" class="headerlink" title="数据访问倾斜"></a>数据访问倾斜</h4><p>虽然每个集群实例上的数据量相差不大，但是某个实例上的数据是热点数据，被访问得非常频繁。</p>
+<p>发生数据访问倾斜的根本原因，就是实例上存在热点数据。我们可以采用热点数据多副本的方法来应对。具体就是在每一个副本key中增加一个随机前缀，让它和其他副本分配到不同的slot中。<strong>热点数据多副本方法只能针对只读的热点数据</strong>。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>Redis核心技术实战</tag>
       </tags>
   </entry>
   <entry>
@@ -1624,72 +1624,6 @@
       </categories>
       <tags>
         <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>如何使用Redis实现分布式锁</title>
-    <url>/2023/03/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Redis%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
-    <content><![CDATA[<h4 id="1、为什么要使用分布式锁"><a href="#1、为什么要使用分布式锁" class="headerlink" title="1、为什么要使用分布式锁"></a>1、为什么要使用分布式锁</h4><p>当Redis的客户端只有一个时，可以通过在客户端加锁来控制并发写操作对共享数据的修改，也可以使用原子操作。</p>
-<p>但是一个Redis往往不仅连接一个客户端，当有多个客户端需要并发修改数据时，这把锁加在客户端已经不起作用了。假如有3个客户端，在客户端加锁可以保证该客户端所处理的请求在同一时间内只有一个可以修改Redis数据，但是3个客户端意味着有3把锁，会出现同一时间内有3个客户端可以修改Redis数据。</p>
-<p>所以，在分布式系统中，当有多个客户端需要获取锁时，我们需要<strong>分布式锁</strong>。此时，锁是保存在一个<strong>共享存储系统中</strong>的，可以被多个客户端共享访问和获取。</p>
-<h4 id="2、简单锁的设计"><a href="#2、简单锁的设计" class="headerlink" title="2、简单锁的设计"></a>2、简单锁的设计</h4><p>先看单机上的锁。</p>
-<p>对锁进行简化，我们可以用一个变量来表示。变量值为0，表示没有线程获取锁，变量值为1，表示已经有线程获取到了锁。</p>
-<p>平时所说的加锁，解锁，其实就是该线程去检查这个变量，如果是0，就可以获取该锁，然后把变量值改为1。如果变量值本身就是1，那么就返回获取锁失败。除此之外，我们还需要知道哪一个线程获取了锁，所以还需要一个id来标识。一个最简单的锁伪代码可以设计如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">MyLock</span> &#123;</span><br><span class="line">    <span class="type">int</span> lock;</span><br><span class="line">    <span class="type">int</span> id;</span><br><span class="line">    </span><br><span class="line">    <span class="type">int</span> <span class="title function_">acquireLock</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (lock == <span class="number">0</span>) &#123;</span><br><span class="line">            lock = <span class="number">1</span>;</span><br><span class="line">            id = Thread.id;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="type">int</span> <span class="title function_">releaseLock</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (lock == <span class="number">1</span> &amp;&amp; id = Thread.id) &#123;</span><br><span class="line">            lock = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<h4 id="3、单Redis实例的分布式锁"><a href="#3、单Redis实例的分布式锁" class="headerlink" title="3、单Redis实例的分布式锁"></a>3、单Redis实例的分布式锁</h4><p>和单机的锁类似，分布式的锁可以用一个变量来表示。而且加锁和释放锁的逻辑也和上边类似，<strong>但是锁变量需要由一个共享存储系统来维护</strong>，只有这样，多个客户端才可以通过访问共享存储系统来访问锁变量。相应的，<strong>加锁和释放锁的操作就变成了读取、判断和设置共享存储系统中的锁变量值</strong>。</p>
-<p>分布式锁的两个要求：</p>
-<p>1、上述代码的逻辑需要原子的进行。例如，在判断完lock&#x3D;0进入修改lock的阶段，但是被中断，然后另一个线程此时也进入判断，lock此时还是0，就会导致两个线程都获取了锁。所以需要原子性。</p>
-<p>2、共享存储系统需要保证可靠。如果不可靠，如果存储系统崩溃，会导致获取锁的客户端无法释放锁，而其他线程又一直等待锁。</p>
-<p>使用Redis作为存储可以用下图表示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230317095916845.png" alt="image-20230317095916845"></p>
-<p>在上图中，客户端A和C同时请求加锁，但是Redis是使用单线程处理请求，所以即使客户端A和C同时把加锁请求发给Redis，Redis也会串行处理。首先是客户端A，他发现lock_key的value为0，说明没有客户端获取锁，所以他可以把value置为1。而客户端C来加锁时，会法师value为1，就返回加锁失败。</p>
-<p>释放锁的过程，判断改锁是否是该线程加的，如果是，则可以将value设置为0，然后其他客户端就可以加锁。</p>
-<p>但是加锁包含了三个操作，读取变量，判断value是否为0，以及设置value为1，我们需要保证这三个操作是原子进行的。在Redis中可以使用<strong>Redis 的单命令操作</strong>和使用 <strong>Lua 脚本</strong>。</p>
-<p>Redis单命令：</p>
-<p>首先是 SETNX 命令，它用于设置键值对的值。具体来说，就是这个命令在执行时会判断键值对是否存在，如果不存在，就设置键值对的值，如果存在，就不做任何设置。可以用该命令来加锁。</p>
-<p>对于释放锁操作来说，我们可以在执行完业务逻辑后，使用 DEL 命令删除锁变量。</p>
-<p>伪代码如下：</p>
-<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line">// 加锁</span><br><span class="line">SETNX lock_key <span class="number">1</span></span><br><span class="line">// 业务逻辑</span><br><span class="line">DO THINGS</span><br><span class="line">// 释放锁</span><br><span class="line">DEL lock_key</span><br></pre></td></tr></table></figure>
-
-<p>这样设计的两个风险：</p>
-<p>1、假如某个客户端执行SETNX命令，加锁之后却在操作共享数据时发生了异常，没有执行DEL命令释放锁，导致其他客户端无法访问共享数据。针对这个问题，一个有效的解决办法是<strong>给锁变量设置一个过期时间</strong>。这样即使出了异常，也不会导致一直持有锁。</p>
-<p>2、一个客户端加锁，却被另一个客户端释放了。这种情况的解决办法就是加id，用于表示该锁是哪一个客户端添加的，不是添加的客户端就无法释放锁。</p>
-<p>如果使用Lua脚本，则只需要考虑逻辑即可。因为Lua脚本本身就具有原子性，伪代码如下：</p>
-<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line">//释放锁 比较unique_value是否相等，避免误释放</span><br><span class="line"><span class="keyword">if</span> redis.call(<span class="string">&quot;get&quot;</span>,KEYS[<span class="number">1</span>]) == ARGV[<span class="number">1</span>] <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> redis.call(<span class="string">&quot;del&quot;</span>,KEYS[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
-
-<p>其中，KEYS[1]表示 lock_key，ARGV[1]是当前客户端的唯一标识，这两个值都是我们在执行 Lua 脚本时作为参数传入的。</p>
-<h4 id="4、基于多个-Redis-节点实现高可靠的分布式锁"><a href="#4、基于多个-Redis-节点实现高可靠的分布式锁" class="headerlink" title="4、基于多个 Redis 节点实现高可靠的分布式锁"></a>4、基于多个 Redis 节点实现高可靠的分布式锁</h4><p>为了避免Redis实例故障而导致锁无法工作，Redis开发者提出了分布式锁Redlock。</p>
-<p>Redlock 算法的基本思路，是让客户端和多个独立的 Redis 实例<strong>依次请求加锁</strong>，如果客户端能够和半数以上的实例成功地完成加锁操作，那么我们就认为，客户端成功地获得分布式锁了，否则加锁失败。这样一来，即使有单个 Redis 实例发生故障，因为锁变量在其它实例上也有保存，所以，客户端仍然可以正常地进行锁操作，锁变量并不会丢失。</p>
-<p>具体执行步骤如下（假如有N个Redis实例）：</p>
-<p><strong>1、获取客户端当前时间。</strong></p>
-<p><strong>2、客户端按顺序依次向N个Redis实例执行加锁操作。</strong></p>
-<p>这里的加锁操作和在单实例上执行的加锁操作一样，使用 SET 命令，带上 NX，EX&#x2F;PX 选项，以及带上客户端的唯一标识，并设置过期时间。</p>
-<p>如果客户端在和一个 Redis 实例请求加锁时，一直到超时都没有成功，那么此时，客户端会和下一个 Redis 实例继续请求加锁。加锁操作的超时时间需要远远地小于锁的有效时间，一般也就是设置为几十毫秒。</p>
-<p><strong>3、一旦客户端完成了和所有 Redis 实例的加锁操作，客户端就要计算整个加锁过程的总耗时。</strong></p>
-<p>客户端只有在满足下面的这两个条件时，才能认为是加锁成功。</p>
-<p>​	1）：客户端从超过半数（大于等于 N&#x2F;2+1）的 Redis 实例上成功获取到了锁；</p>
-<p>​	2）：客户端获取锁的总耗时没有超过锁的有效时间。</p>
-<p>在满足了这两个条件后，我们需要<strong>重新计算这把锁的有效时间</strong>，计算的结果是<strong>锁的最初有效时间减去客户端为获取锁的总耗时</strong>。如果锁的有效时间已经来不及完成共享数据的操作了，我们可以释放锁，以免出现还没完成数据操作，锁就过期了的情况。</p>
-<p>在 Redlock 算法中，释放锁的操作和在单实例上释放锁的操作一样，只要执行释放锁的 Lua 脚本就可以了。</p>
-<h4 id="5、Redis-分布式锁可靠性的问题"><a href="#5、Redis-分布式锁可靠性的问题" class="headerlink" title="5、Redis 分布式锁可靠性的问题"></a>5、Redis 分布式锁可靠性的问题</h4><p>使用单个 Redis 节点（只有一个master）使用分布锁，如果实例宕机，那么无法进行锁操作了。那么采用主从集群模式部署是否可以保证锁的可靠性？</p>
-<p>答案是也很难保证。如果在 master 上加锁成功，此时 master 宕机，由于主从复制是异步的，加锁操作的命令还未同步到 slave，此时主从切换，新 master 节点依旧会丢失该锁，对业务来说相当于锁失效了。</p>
-<h4 id="6、基于-Redis-使用分布锁的注意点"><a href="#6、基于-Redis-使用分布锁的注意点" class="headerlink" title="6、基于 Redis 使用分布锁的注意点"></a>6、基于 Redis 使用分布锁的注意点</h4><p>1、使用 SET $lock_key $unique_val EX $second NX 命令保证加锁原子性，并为锁设置过期时间 </p>
-<p>2、锁的过期时间要提前评估好，要大于操作共享资源的时间</p>
-<p>3、每个线程加锁时设置随机值，释放锁时判断是否和加锁设置的值一致，防止自己的锁被别人释放</p>
-<p>4、释放锁时使用 Lua 脚本，保证操作的原子性</p>
-<p>5、基于多个节点的 Redlock，加锁时超过半数节点操作成功，并且获取锁的耗时没有超过锁的有效时间才算加锁成功</p>
-<p>6、Redlock 释放锁时，要对所有节点释放（即使某个节点加锁失败了），因为加锁时可能发生服务端加锁成功，由于网络问题，给客户端回复网络包失败的情况，所以需要把所有节点可能存的锁都释放掉</p>
-<p>7、使用 Redlock 时要避免机器时钟发生跳跃，需要运维来保证，对运维有一定要求，否则可能会导致 Redlock 失效。例如共 3 个节点，线程 A 操作 2 个节点加锁成功，但其中 1 个节点机器时钟发生跳跃，锁提前过期，线程 B 正好在另外 2 个节点也加锁成功，此时 Redlock 相当于失效了（Redis 作者和分布式系统专家争论的重要点就在这）</p>
-<p>8、如果为了效率，使用基于单个 Redis 节点的分布式锁即可，此方案缺点是允许锁偶尔失效，优点是简单效率高</p>
-<p>9、如果是为了正确性，业务对于结果要求非常严格，建议使用 Redlock，但缺点是使用比较重，部署成本高</p>
-<p>第6点参考文章：<a href="http://zhangtielei.com/posts/blog-redlock-reasoning.html">http://zhangtielei.com/posts/blog-redlock-reasoning.html</a></p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>分布式锁</tag>
       </tags>
   </entry>
   <entry>
@@ -1766,6 +1700,72 @@
       </categories>
       <tags>
         <tag>事务</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>如何使用Redis实现分布式锁</title>
+    <url>/2023/03/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A8Redis%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</url>
+    <content><![CDATA[<h4 id="1、为什么要使用分布式锁"><a href="#1、为什么要使用分布式锁" class="headerlink" title="1、为什么要使用分布式锁"></a>1、为什么要使用分布式锁</h4><p>当Redis的客户端只有一个时，可以通过在客户端加锁来控制并发写操作对共享数据的修改，也可以使用原子操作。</p>
+<p>但是一个Redis往往不仅连接一个客户端，当有多个客户端需要并发修改数据时，这把锁加在客户端已经不起作用了。假如有3个客户端，在客户端加锁可以保证该客户端所处理的请求在同一时间内只有一个可以修改Redis数据，但是3个客户端意味着有3把锁，会出现同一时间内有3个客户端可以修改Redis数据。</p>
+<p>所以，在分布式系统中，当有多个客户端需要获取锁时，我们需要<strong>分布式锁</strong>。此时，锁是保存在一个<strong>共享存储系统中</strong>的，可以被多个客户端共享访问和获取。</p>
+<h4 id="2、简单锁的设计"><a href="#2、简单锁的设计" class="headerlink" title="2、简单锁的设计"></a>2、简单锁的设计</h4><p>先看单机上的锁。</p>
+<p>对锁进行简化，我们可以用一个变量来表示。变量值为0，表示没有线程获取锁，变量值为1，表示已经有线程获取到了锁。</p>
+<p>平时所说的加锁，解锁，其实就是该线程去检查这个变量，如果是0，就可以获取该锁，然后把变量值改为1。如果变量值本身就是1，那么就返回获取锁失败。除此之外，我们还需要知道哪一个线程获取了锁，所以还需要一个id来标识。一个最简单的锁伪代码可以设计如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">MyLock</span> &#123;</span><br><span class="line">    <span class="type">int</span> lock;</span><br><span class="line">    <span class="type">int</span> id;</span><br><span class="line">    </span><br><span class="line">    <span class="type">int</span> <span class="title function_">acquireLock</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (lock == <span class="number">0</span>) &#123;</span><br><span class="line">            lock = <span class="number">1</span>;</span><br><span class="line">            id = Thread.id;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="type">int</span> <span class="title function_">releaseLock</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (lock == <span class="number">1</span> &amp;&amp; id = Thread.id) &#123;</span><br><span class="line">            lock = <span class="number">0</span>;</span><br><span class="line">            <span class="keyword">return</span> <span class="number">1</span>;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="keyword">return</span> <span class="number">0</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h4 id="3、单Redis实例的分布式锁"><a href="#3、单Redis实例的分布式锁" class="headerlink" title="3、单Redis实例的分布式锁"></a>3、单Redis实例的分布式锁</h4><p>和单机的锁类似，分布式的锁可以用一个变量来表示。而且加锁和释放锁的逻辑也和上边类似，<strong>但是锁变量需要由一个共享存储系统来维护</strong>，只有这样，多个客户端才可以通过访问共享存储系统来访问锁变量。相应的，<strong>加锁和释放锁的操作就变成了读取、判断和设置共享存储系统中的锁变量值</strong>。</p>
+<p>分布式锁的两个要求：</p>
+<p>1、上述代码的逻辑需要原子的进行。例如，在判断完lock&#x3D;0进入修改lock的阶段，但是被中断，然后另一个线程此时也进入判断，lock此时还是0，就会导致两个线程都获取了锁。所以需要原子性。</p>
+<p>2、共享存储系统需要保证可靠。如果不可靠，如果存储系统崩溃，会导致获取锁的客户端无法释放锁，而其他线程又一直等待锁。</p>
+<p>使用Redis作为存储可以用下图表示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230317095916845.png" alt="image-20230317095916845"></p>
+<p>在上图中，客户端A和C同时请求加锁，但是Redis是使用单线程处理请求，所以即使客户端A和C同时把加锁请求发给Redis，Redis也会串行处理。首先是客户端A，他发现lock_key的value为0，说明没有客户端获取锁，所以他可以把value置为1。而客户端C来加锁时，会法师value为1，就返回加锁失败。</p>
+<p>释放锁的过程，判断改锁是否是该线程加的，如果是，则可以将value设置为0，然后其他客户端就可以加锁。</p>
+<p>但是加锁包含了三个操作，读取变量，判断value是否为0，以及设置value为1，我们需要保证这三个操作是原子进行的。在Redis中可以使用<strong>Redis 的单命令操作</strong>和使用 <strong>Lua 脚本</strong>。</p>
+<p>Redis单命令：</p>
+<p>首先是 SETNX 命令，它用于设置键值对的值。具体来说，就是这个命令在执行时会判断键值对是否存在，如果不存在，就设置键值对的值，如果存在，就不做任何设置。可以用该命令来加锁。</p>
+<p>对于释放锁操作来说，我们可以在执行完业务逻辑后，使用 DEL 命令删除锁变量。</p>
+<p>伪代码如下：</p>
+<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line">// 加锁</span><br><span class="line">SETNX lock_key <span class="number">1</span></span><br><span class="line">// 业务逻辑</span><br><span class="line">DO THINGS</span><br><span class="line">// 释放锁</span><br><span class="line">DEL lock_key</span><br></pre></td></tr></table></figure>
+
+<p>这样设计的两个风险：</p>
+<p>1、假如某个客户端执行SETNX命令，加锁之后却在操作共享数据时发生了异常，没有执行DEL命令释放锁，导致其他客户端无法访问共享数据。针对这个问题，一个有效的解决办法是<strong>给锁变量设置一个过期时间</strong>。这样即使出了异常，也不会导致一直持有锁。</p>
+<p>2、一个客户端加锁，却被另一个客户端释放了。这种情况的解决办法就是加id，用于表示该锁是哪一个客户端添加的，不是添加的客户端就无法释放锁。</p>
+<p>如果使用Lua脚本，则只需要考虑逻辑即可。因为Lua脚本本身就具有原子性，伪代码如下：</p>
+<figure class="highlight lua"><table><tr><td class="code"><pre><span class="line">//释放锁 比较unique_value是否相等，避免误释放</span><br><span class="line"><span class="keyword">if</span> redis.call(<span class="string">&quot;get&quot;</span>,KEYS[<span class="number">1</span>]) == ARGV[<span class="number">1</span>] <span class="keyword">then</span></span><br><span class="line">    <span class="keyword">return</span> redis.call(<span class="string">&quot;del&quot;</span>,KEYS[<span class="number">1</span>])</span><br><span class="line"><span class="keyword">else</span></span><br><span class="line">    <span class="keyword">return</span> <span class="number">0</span></span><br><span class="line"><span class="keyword">end</span></span><br></pre></td></tr></table></figure>
+
+<p>其中，KEYS[1]表示 lock_key，ARGV[1]是当前客户端的唯一标识，这两个值都是我们在执行 Lua 脚本时作为参数传入的。</p>
+<h4 id="4、基于多个-Redis-节点实现高可靠的分布式锁"><a href="#4、基于多个-Redis-节点实现高可靠的分布式锁" class="headerlink" title="4、基于多个 Redis 节点实现高可靠的分布式锁"></a>4、基于多个 Redis 节点实现高可靠的分布式锁</h4><p>为了避免Redis实例故障而导致锁无法工作，Redis开发者提出了分布式锁Redlock。</p>
+<p>Redlock 算法的基本思路，是让客户端和多个独立的 Redis 实例<strong>依次请求加锁</strong>，如果客户端能够和半数以上的实例成功地完成加锁操作，那么我们就认为，客户端成功地获得分布式锁了，否则加锁失败。这样一来，即使有单个 Redis 实例发生故障，因为锁变量在其它实例上也有保存，所以，客户端仍然可以正常地进行锁操作，锁变量并不会丢失。</p>
+<p>具体执行步骤如下（假如有N个Redis实例）：</p>
+<p><strong>1、获取客户端当前时间。</strong></p>
+<p><strong>2、客户端按顺序依次向N个Redis实例执行加锁操作。</strong></p>
+<p>这里的加锁操作和在单实例上执行的加锁操作一样，使用 SET 命令，带上 NX，EX&#x2F;PX 选项，以及带上客户端的唯一标识，并设置过期时间。</p>
+<p>如果客户端在和一个 Redis 实例请求加锁时，一直到超时都没有成功，那么此时，客户端会和下一个 Redis 实例继续请求加锁。加锁操作的超时时间需要远远地小于锁的有效时间，一般也就是设置为几十毫秒。</p>
+<p><strong>3、一旦客户端完成了和所有 Redis 实例的加锁操作，客户端就要计算整个加锁过程的总耗时。</strong></p>
+<p>客户端只有在满足下面的这两个条件时，才能认为是加锁成功。</p>
+<p>​	1）：客户端从超过半数（大于等于 N&#x2F;2+1）的 Redis 实例上成功获取到了锁；</p>
+<p>​	2）：客户端获取锁的总耗时没有超过锁的有效时间。</p>
+<p>在满足了这两个条件后，我们需要<strong>重新计算这把锁的有效时间</strong>，计算的结果是<strong>锁的最初有效时间减去客户端为获取锁的总耗时</strong>。如果锁的有效时间已经来不及完成共享数据的操作了，我们可以释放锁，以免出现还没完成数据操作，锁就过期了的情况。</p>
+<p>在 Redlock 算法中，释放锁的操作和在单实例上释放锁的操作一样，只要执行释放锁的 Lua 脚本就可以了。</p>
+<h4 id="5、Redis-分布式锁可靠性的问题"><a href="#5、Redis-分布式锁可靠性的问题" class="headerlink" title="5、Redis 分布式锁可靠性的问题"></a>5、Redis 分布式锁可靠性的问题</h4><p>使用单个 Redis 节点（只有一个master）使用分布锁，如果实例宕机，那么无法进行锁操作了。那么采用主从集群模式部署是否可以保证锁的可靠性？</p>
+<p>答案是也很难保证。如果在 master 上加锁成功，此时 master 宕机，由于主从复制是异步的，加锁操作的命令还未同步到 slave，此时主从切换，新 master 节点依旧会丢失该锁，对业务来说相当于锁失效了。</p>
+<h4 id="6、基于-Redis-使用分布锁的注意点"><a href="#6、基于-Redis-使用分布锁的注意点" class="headerlink" title="6、基于 Redis 使用分布锁的注意点"></a>6、基于 Redis 使用分布锁的注意点</h4><p>1、使用 SET $lock_key $unique_val EX $second NX 命令保证加锁原子性，并为锁设置过期时间 </p>
+<p>2、锁的过期时间要提前评估好，要大于操作共享资源的时间</p>
+<p>3、每个线程加锁时设置随机值，释放锁时判断是否和加锁设置的值一致，防止自己的锁被别人释放</p>
+<p>4、释放锁时使用 Lua 脚本，保证操作的原子性</p>
+<p>5、基于多个节点的 Redlock，加锁时超过半数节点操作成功，并且获取锁的耗时没有超过锁的有效时间才算加锁成功</p>
+<p>6、Redlock 释放锁时，要对所有节点释放（即使某个节点加锁失败了），因为加锁时可能发生服务端加锁成功，由于网络问题，给客户端回复网络包失败的情况，所以需要把所有节点可能存的锁都释放掉</p>
+<p>7、使用 Redlock 时要避免机器时钟发生跳跃，需要运维来保证，对运维有一定要求，否则可能会导致 Redlock 失效。例如共 3 个节点，线程 A 操作 2 个节点加锁成功，但其中 1 个节点机器时钟发生跳跃，锁提前过期，线程 B 正好在另外 2 个节点也加锁成功，此时 Redlock 相当于失效了（Redis 作者和分布式系统专家争论的重要点就在这）</p>
+<p>8、如果为了效率，使用基于单个 Redis 节点的分布式锁即可，此方案缺点是允许锁偶尔失效，优点是简单效率高</p>
+<p>9、如果是为了正确性，业务对于结果要求非常严格，建议使用 Redlock，但缺点是使用比较重，部署成本高</p>
+<p>第6点参考文章：<a href="http://zhangtielei.com/posts/blog-redlock-reasoning.html">http://zhangtielei.com/posts/blog-redlock-reasoning.html</a></p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>分布式锁</tag>
       </tags>
   </entry>
   <entry>
@@ -1886,6 +1886,46 @@
       </tags>
   </entry>
   <entry>
+    <title>虚拟机类加载机制之类加载时机</title>
+    <url>/2023/03/17/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%97%B6%E6%9C%BA/</url>
+    <content><![CDATA[<h4 id="虚拟机类加载机制"><a href="#虚拟机类加载机制" class="headerlink" title="虚拟机类加载机制"></a>虚拟机类加载机制</h4><p>Java虚拟机把描述类的数据从Class文件加载到内存，并对数据进行校验、转换解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这个过程被称作<strong>虚拟机的类加载机制</strong>。</p>
+<p>在Java语言中，类型的<strong>加载、连接和初始化过程</strong>都是在程序运行期间完成的，这会导致Java语言进行提前编译会面临额外的困难，也会让类加载时稍微增加一些性能开销，但是很灵活。例如，编写一个面向接口的应用程序，可以等到运行时再指定其实际的实现类。</p>
+<p>用户可以通过Java预置的或自定义类加载器，让某个本地的应用程序在运行时从网络或其他地方上加载一个二进制流作为其程序代码的一部分。</p>
+<p>本文以及后续所提到的“Class文件”也并非特指某个存在于具体磁盘中的文件，而应当是一串二进制字节流，无论其以何种形式存在，包括但不限于磁盘文件、网络、数据库、内存或者动态产生等。</p>
+<h4 id="类加载过程"><a href="#类加载过程" class="headerlink" title="类加载过程"></a>类加载过程</h4><p>一个类型从被加载到虚拟机内存中开始，到卸载出内存为止，它的整个生命周期将会经历<strong>加载</strong>（Loading）、<strong>验证</strong>（Verification）、准备（Preparation）、<strong>解析</strong>（Resolution）、<strong>初始化</strong>（Initialization）、<strong>使用</strong>（Using）和<strong>卸载</strong>（Unloading）七个阶段，其中验证、准备、解析三个部分统称为<strong>连接</strong>（Linking）。如下图所示:</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230317140148379.png" alt="image-20230317140148379"></p>
+<p>其中，加载、验证、准备、初始化和卸载这五个阶段的顺序是确定的，类型的加载过程必须按照这种顺序按部就班地<strong>开始</strong>。而解析则不一定，它在某些情况下可以在初始化阶段之后再开始，这是为了支持Java语言的运行时绑定特性（也称为<strong>动态绑定或晚期绑定</strong>）。</p>
+<h4 id="类加载时机"><a href="#类加载时机" class="headerlink" title="类加载时机"></a>类加载时机</h4><p>关于在什么情况下开始类加载过程的第一个阶段“加载”，并没有约束，但是对于初始化阶段，《Java虚拟机规范》规定了<strong>有且只有</strong>6种情况必须立即进行<strong>初始化</strong>（而加载、验证、准备自然需要在此之前开始）：</p>
+<p>​	1）遇到new、getstatic、putstatic或invokestatic这四条字节码指令时，如果类型没有进行过初始化，则需要先触发其初始化阶段。能够生成这四条指令的典型Java代码场景有：</p>
+<p>​		使用<strong>new关键字实例化</strong>对象的时候。</p>
+<p>​		<strong>读取或设置一个类型的静态字段</strong>（被final修饰、已在编译期把结果放入常量池的静态字段除外）的时候。</p>
+<p>​		<strong>调用一个类型的静态方法</strong>的时候。</p>
+<p>​	2）使用java.lang.reflect包的方法对类型进行<strong>反射调用的时候</strong>，如果类型没有进行过初始化，则需要先触发其初始化。</p>
+<p>​	3）当初始化类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化。</p>
+<p>​	4）当虚拟机启动时，用户需要指定一个要执行的主类（包含main()方法的那个类），虚拟机会先初始化这个主类。</p>
+<p>​	5）当使用JDK 7新加入的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后的解析结果为REF_getStatic、REF_putStatic、REF_invokeStatic、REF_newInvokeSpecial四种类型的方法句柄，并且这个方法句柄对应的类没有进行过初始化，则需要先触发其初始化。</p>
+<p>​	6）当一个接口中定义了JDK 8新加入的默认方法（被default关键字修饰的接口方法）时，如果有这个接口的实现类发生了初始化，那该接口要在其之前被初始化。</p>
+<p>以上六种场景中的行为称为对一个类型进行<strong>主动引用</strong>。</p>
+<h4 id="被动引用的例子"><a href="#被动引用的例子" class="headerlink" title="被动引用的例子"></a>被动引用的例子</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 被动使用类字段演示一：</span></span><br><span class="line"><span class="comment">* 通过子类引用父类的静态字段，不会导致子类初始化</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SuperClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;SuperClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">value</span> <span class="operator">=</span> <span class="number">123</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SubClass</span> <span class="keyword">extends</span> <span class="title class_">SuperClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;SubClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 非主动使用类字段演示</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NotInitialization</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		System.out.println(SubClass.value);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码会打印”SuperClass init!“，并不会打印”SubClass init!”。对于静态字段，只有直接定义这个字段的才会被初始化，这里就是SuperClass，因此在子类中引用父类的静态字段，只会触发父类的初始化方法，而不会触发子类的。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 被动使用类字段演示二：</span></span><br><span class="line"><span class="comment">* 常量在编译阶段会存入调用类的常量池中，本质上没有直接引用到定义常量的类，因此不会触发定义常量的</span></span><br><span class="line"><span class="comment">类的初始化</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConstClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;ConstClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HELLOWORLD</span> <span class="operator">=</span> <span class="string">&quot;hello world&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 非主动使用类字段演示</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NotInitialization</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		System.out.println(ConstClass.HELLOWORLD);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>上述代码运行后，也没有输出“ConstClass init！”，这是因为虽然引用了ConstClass类的常量HELLOWORLD，但是在编译阶段通过<strong>常量传播优化</strong>，已经将常量值HELLOWORLD存储在<strong>NotInitialization类的常量池中</strong>，以后NotInitialization对常量ConstClass.HELLOWORLD的引用都会被转化为NotInitialization类对自身常量池的引用了。也就是说，实际上NotInitialization的Class文件之中并没有ConstClass类的符号引用入口，这两个类在编译成Class文件后就已不存在任何联系了。</p>
+<p>接口的加载过程与类的加载过程稍有不同，针对接口做一些特殊的说明：</p>
+<p>接口也有初始化过程，与类一致，上面的代码都是用静态语句块static{}来输出初始化信息，而接口中不能使用static{}语句块，但是编译器仍然会为接口生成“<clinit>()”类构造器，用于初始化接口中所定义的成员变量。</p>
+<p><strong>接口与类真正有所区别的是</strong>前面讲述的六种“有且仅有”需要触发初始化场景中的第三种：当一个类在初始化时，要求其父类全部都已经初始化过了，但是一个接口在初始化时，<strong>并不要求其父接口全部都完成了初始化</strong>，<strong>只有在真正使用到父接口的时候（如引用接口中定义的常量）才会初始化</strong>。</p>
+]]></content>
+      <categories>
+        <category>Java</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
+        <tag>类加载机制</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>虚拟机类加载机制之类加载过程</title>
     <url>/2023/03/17/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E8%BF%87%E7%A8%8B/</url>
     <content><![CDATA[<p>这篇文章我们会详细了解Java虚拟机中类加载的全过程，即加载、验证、准备、解析和初始化这五个阶段所执行的具体动作。</p>
@@ -1927,46 +1967,6 @@
 <p>但是上面的规则对于invokedynamic指令并不成立。当碰到前面已经由invokedynamic指令解析的符号引用时，并不意味着这个解析对于其他invokedynamic指令同样生效。因为invokedynamic指令的目的本来就是用于动态语言支持，它对应的引用称为“<strong>动态调用点限定符</strong>”，这里“动态”的含义是指<strong>必须等到程序实际运行到这条指令时，解析动作才能进行</strong>。相对地，其余可触发解析的指令都是“静态”的，可以在刚刚完成加载阶段，还没有开始执行代码时就提前进行解析。</p>
 <h4 id="5、初始化"><a href="#5、初始化" class="headerlink" title="5、初始化"></a>5、初始化</h4><p>进行准备阶段时，变量已经赋过一次系统要求的初始零值，而在初始化阶段，则会根据程序员通过程序编码制定的主观计划去初始化类变量和其他资源。</p>
 <p>我们也可以从另外一种更直接的形式来表达：初始化阶段就是执行类构造器<clinit>()方法的过程。<clinit>()并不是程序员在Java代码中直接编写的方法，它是Javac编译器的自动生成物。</p>
-]]></content>
-      <categories>
-        <category>Java</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>深入理解Java虚拟机</tag>
-        <tag>类加载机制</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>虚拟机类加载机制之类加载时机</title>
-    <url>/2023/03/17/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%97%B6%E6%9C%BA/</url>
-    <content><![CDATA[<h4 id="虚拟机类加载机制"><a href="#虚拟机类加载机制" class="headerlink" title="虚拟机类加载机制"></a>虚拟机类加载机制</h4><p>Java虚拟机把描述类的数据从Class文件加载到内存，并对数据进行校验、转换解析和初始化，最终形成可以被虚拟机直接使用的Java类型，这个过程被称作<strong>虚拟机的类加载机制</strong>。</p>
-<p>在Java语言中，类型的<strong>加载、连接和初始化过程</strong>都是在程序运行期间完成的，这会导致Java语言进行提前编译会面临额外的困难，也会让类加载时稍微增加一些性能开销，但是很灵活。例如，编写一个面向接口的应用程序，可以等到运行时再指定其实际的实现类。</p>
-<p>用户可以通过Java预置的或自定义类加载器，让某个本地的应用程序在运行时从网络或其他地方上加载一个二进制流作为其程序代码的一部分。</p>
-<p>本文以及后续所提到的“Class文件”也并非特指某个存在于具体磁盘中的文件，而应当是一串二进制字节流，无论其以何种形式存在，包括但不限于磁盘文件、网络、数据库、内存或者动态产生等。</p>
-<h4 id="类加载过程"><a href="#类加载过程" class="headerlink" title="类加载过程"></a>类加载过程</h4><p>一个类型从被加载到虚拟机内存中开始，到卸载出内存为止，它的整个生命周期将会经历<strong>加载</strong>（Loading）、<strong>验证</strong>（Verification）、准备（Preparation）、<strong>解析</strong>（Resolution）、<strong>初始化</strong>（Initialization）、<strong>使用</strong>（Using）和<strong>卸载</strong>（Unloading）七个阶段，其中验证、准备、解析三个部分统称为<strong>连接</strong>（Linking）。如下图所示:</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230317140148379.png" alt="image-20230317140148379"></p>
-<p>其中，加载、验证、准备、初始化和卸载这五个阶段的顺序是确定的，类型的加载过程必须按照这种顺序按部就班地<strong>开始</strong>。而解析则不一定，它在某些情况下可以在初始化阶段之后再开始，这是为了支持Java语言的运行时绑定特性（也称为<strong>动态绑定或晚期绑定</strong>）。</p>
-<h4 id="类加载时机"><a href="#类加载时机" class="headerlink" title="类加载时机"></a>类加载时机</h4><p>关于在什么情况下开始类加载过程的第一个阶段“加载”，并没有约束，但是对于初始化阶段，《Java虚拟机规范》规定了<strong>有且只有</strong>6种情况必须立即进行<strong>初始化</strong>（而加载、验证、准备自然需要在此之前开始）：</p>
-<p>​	1）遇到new、getstatic、putstatic或invokestatic这四条字节码指令时，如果类型没有进行过初始化，则需要先触发其初始化阶段。能够生成这四条指令的典型Java代码场景有：</p>
-<p>​		使用<strong>new关键字实例化</strong>对象的时候。</p>
-<p>​		<strong>读取或设置一个类型的静态字段</strong>（被final修饰、已在编译期把结果放入常量池的静态字段除外）的时候。</p>
-<p>​		<strong>调用一个类型的静态方法</strong>的时候。</p>
-<p>​	2）使用java.lang.reflect包的方法对类型进行<strong>反射调用的时候</strong>，如果类型没有进行过初始化，则需要先触发其初始化。</p>
-<p>​	3）当初始化类的时候，如果发现其父类还没有进行过初始化，则需要先触发其父类的初始化。</p>
-<p>​	4）当虚拟机启动时，用户需要指定一个要执行的主类（包含main()方法的那个类），虚拟机会先初始化这个主类。</p>
-<p>​	5）当使用JDK 7新加入的动态语言支持时，如果一个java.lang.invoke.MethodHandle实例最后的解析结果为REF_getStatic、REF_putStatic、REF_invokeStatic、REF_newInvokeSpecial四种类型的方法句柄，并且这个方法句柄对应的类没有进行过初始化，则需要先触发其初始化。</p>
-<p>​	6）当一个接口中定义了JDK 8新加入的默认方法（被default关键字修饰的接口方法）时，如果有这个接口的实现类发生了初始化，那该接口要在其之前被初始化。</p>
-<p>以上六种场景中的行为称为对一个类型进行<strong>主动引用</strong>。</p>
-<h4 id="被动引用的例子"><a href="#被动引用的例子" class="headerlink" title="被动引用的例子"></a>被动引用的例子</h4><figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 被动使用类字段演示一：</span></span><br><span class="line"><span class="comment">* 通过子类引用父类的静态字段，不会导致子类初始化</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SuperClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;SuperClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="variable">value</span> <span class="operator">=</span> <span class="number">123</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SubClass</span> <span class="keyword">extends</span> <span class="title class_">SuperClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;SubClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 非主动使用类字段演示</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NotInitialization</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		System.out.println(SubClass.value);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这段代码会打印”SuperClass init!“，并不会打印”SubClass init!”。对于静态字段，只有直接定义这个字段的才会被初始化，这里就是SuperClass，因此在子类中引用父类的静态字段，只会触发父类的初始化方法，而不会触发子类的。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 被动使用类字段演示二：</span></span><br><span class="line"><span class="comment">* 常量在编译阶段会存入调用类的常量池中，本质上没有直接引用到定义常量的类，因此不会触发定义常量的</span></span><br><span class="line"><span class="comment">类的初始化</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConstClass</span> &#123;</span><br><span class="line">	<span class="keyword">static</span> &#123;</span><br><span class="line">		System.out.println(<span class="string">&quot;ConstClass init!&quot;</span>);</span><br><span class="line">	&#125;</span><br><span class="line">    </span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">final</span> <span class="type">String</span> <span class="variable">HELLOWORLD</span> <span class="operator">=</span> <span class="string">&quot;hello world&quot;</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">* 非主动使用类字段演示</span></span><br><span class="line"><span class="comment">**/</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NotInitialization</span> &#123;</span><br><span class="line">	<span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">		System.out.println(ConstClass.HELLOWORLD);</span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>上述代码运行后，也没有输出“ConstClass init！”，这是因为虽然引用了ConstClass类的常量HELLOWORLD，但是在编译阶段通过<strong>常量传播优化</strong>，已经将常量值HELLOWORLD存储在<strong>NotInitialization类的常量池中</strong>，以后NotInitialization对常量ConstClass.HELLOWORLD的引用都会被转化为NotInitialization类对自身常量池的引用了。也就是说，实际上NotInitialization的Class文件之中并没有ConstClass类的符号引用入口，这两个类在编译成Class文件后就已不存在任何联系了。</p>
-<p>接口的加载过程与类的加载过程稍有不同，针对接口做一些特殊的说明：</p>
-<p>接口也有初始化过程，与类一致，上面的代码都是用静态语句块static{}来输出初始化信息，而接口中不能使用static{}语句块，但是编译器仍然会为接口生成“<clinit>()”类构造器，用于初始化接口中所定义的成员变量。</p>
-<p><strong>接口与类真正有所区别的是</strong>前面讲述的六种“有且仅有”需要触发初始化场景中的第三种：当一个类在初始化时，要求其父类全部都已经初始化过了，但是一个接口在初始化时，<strong>并不要求其父接口全部都完成了初始化</strong>，<strong>只有在真正使用到父接口的时候（如引用接口中定义的常量）才会初始化</strong>。</p>
 ]]></content>
       <categories>
         <category>Java</category>
