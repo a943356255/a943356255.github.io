@@ -224,9 +224,9 @@
     <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
     
     
-    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
-    
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
   </entry>
   
