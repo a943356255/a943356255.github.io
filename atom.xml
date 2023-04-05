@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-04T02:17:02.191Z</updated>
+  <updated>2023-04-05T06:11:14.715Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,11 +17,35 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>CPU结构对Redis性能的影响</title>
+    <link href="http://example.com/2023/04/05/CPU%E7%BB%93%E6%9E%84%E5%AF%B9Redis%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/"/>
+    <id>http://example.com/2023/04/05/CPU%E7%BB%93%E6%9E%84%E5%AF%B9Redis%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/</id>
+    <published>2023-04-05T02:54:50.000Z</published>
+    <updated>2023-04-05T06:11:14.715Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="主流CPU架构"><a href="#主流CPU架构" class="headerlink" title="主流CPU架构"></a>主流CPU架构</h1><p>一个 CPU 处理器中一般有多个运行核心，我们把一个运行核心称为一个物理核。每个物理核都有私有的一级缓存（L1 cache）以及二级缓存（L2 cache），即其他物理核无法访问。</p><p>不同的物理核还会共享一个共同的三级缓存（L3 cache）</p><p>现在主流的 CPU 处理器中，每个物理核通常都会运行两个超线程，也叫作逻辑核。同一个物理核的逻辑核会共享使用 L1、L2 缓存。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110450816.png" alt="image-20230405110450816"></p><p>一个CPU会有多个物理核，而一个服务器上可能会有多个CPU，如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110614748.png" alt="image-20230405110614748"></p><p>在上图的这种CPU架构中，Redis可以在不同的CPU上运行，意味着它可以现在Socket1上运行，然后被调度到Socket2上执行。</p><p>这里就会出现问题，如果应用程序先在一个 Socket 上运行，并且把数据保存到了内存，然后被调度到另一个 Socket 上运行，此时，应用程序再进行内存访问时，就需要访问之前 Socket 上连接的内存，这种访问属于<strong>远端内存访问</strong>。<strong>和访问 Socket 直接连接的内存相比，远端内存访问会增加应用程序的延迟。</strong></p><p>每一个CPU会管理一部分内存，所以存在从Socket1切换到Socket2上存在远端访问。</p><h1 id="CPU多核对Redis的影响"><a href="#CPU多核对Redis的影响" class="headerlink" title="CPU多核对Redis的影响"></a>CPU多核对Redis的影响</h1><p>在一个 CPU 核上运行时，应用程序需要记录自身使用的软硬件资源信息（例如栈指针、CPU 核的寄存器值等），我们把这些信息称为<strong>运行时信息</strong>。同时，应用程序访问最频繁的指令和数据还会被缓存到 L1、L2 缓存上，以便提升执行速度。</p><p>Redis在不同cpu之前进行切换时，另一个cpu上并没有redis之前运行时频繁访问的指令和数据，所以这些数据都需要重新从L3缓存甚至是内存中加载，Redis需要等到这些加载完才处理请求，所以会导致较高的延迟。</p><p>如果在 CPU 多核场景下，Redis 实例被频繁调度到不同 CPU 核上运行的话，那么，对 Redis 实例的请求处理时间影响就更大了。<strong>每调度一次，一些请求就会受到运行时信息、指令和数据重新加载过程的影响，这就会导致某些请求的延迟明显高于其他请求</strong>。</p><h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>可以把Redis实例绑定到一个CPU的一个<strong>物理核</strong>上面。</p><p>这里是因为同一个CPU里面会有多个物理核，而物理核的L1和L2缓存是私有的，如果在同一个CPU的不同物理核切换，也会导致一些命令需要重新加载。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;主流CPU架构&quot;&gt;&lt;a href=&quot;#主流CPU架构&quot; class=&quot;headerlink&quot; title=&quot;主流CPU架构&quot;&gt;&lt;/a&gt;主流CPU架构&lt;/h1&gt;&lt;p&gt;一个 CPU 处理器中一般有多个运行核心，我们把一个运行核心称为一个物理核。每个物理核都有私有的一级</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
+    
+    
+    <category term="Redis核心技术实战" scheme="http://example.com/tags/Redis%E6%A0%B8%E5%BF%83%E6%8A%80%E6%9C%AF%E5%AE%9E%E6%88%98/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Redis缓冲区可能引发的问题</title>
-    <link href="http://example.com/2023/04/03/Redis%E7%BC%93%E5%86%B2%E5%8C%BA%E5%8F%AF%E8%83%BD%E5%BC%95%E5%8F%91%E7%9A%84%E9%97%AE%E9%A2%98/"/>
-    <id>http://example.com/2023/04/03/Redis%E7%BC%93%E5%86%B2%E5%8C%BA%E5%8F%AF%E8%83%BD%E5%BC%95%E5%8F%91%E7%9A%84%E9%97%AE%E9%A2%98/</id>
-    <published>2023-04-03T13:56:18.000Z</published>
-    <updated>2023-04-04T02:17:02.191Z</updated>
+    <link href="http://example.com/2023/04/04/Redis%E7%BC%93%E5%86%B2%E5%8C%BA%E5%8F%AF%E8%83%BD%E5%BC%95%E5%8F%91%E7%9A%84%E9%97%AE%E9%A2%98/"/>
+    <id>http://example.com/2023/04/04/Redis%E7%BC%93%E5%86%B2%E5%8C%BA%E5%8F%AF%E8%83%BD%E5%BC%95%E5%8F%91%E7%9A%84%E9%97%AE%E9%A2%98/</id>
+    <published>2023-04-04T13:56:18.000Z</published>
+    <updated>2023-04-05T02:54:41.656Z</updated>
     
     <content type="html"><![CDATA[<h1 id="Redis缓冲区"><a href="#Redis缓冲区" class="headerlink" title="Redis缓冲区"></a>Redis缓冲区</h1><p>缓冲区的作用主要就是用一块内存空间来<strong>暂时存放命令数据</strong>，以免出现因为<strong>数据和命令的处理速度</strong>慢于<strong>发送速度</strong>而导致的数据丢失和性能问题。但缓冲区的内存空间有限，如果往里面写入数据的速度持续地大于从里面读取数据的速度，就会导致缓冲区需要越来越多的内存来暂存数据。当缓冲区占用的内存超出了设定的上限阈值时，就会出现缓冲区溢出。</p><p>缓冲区在 Redis 中的一个主要应用场景，就是在客户端和服务器端之间进行通信时，用来<strong>暂存客户端发送的命令数据</strong>，或者是<strong>服务器端返回给客户端的数据结果</strong>。此外，缓冲区的另一个主要应用场景，是在主从节点间进行数据同步时，用来<strong>暂存主节点接收的写命令和数据</strong>。</p><h1 id="客户端输入和输出缓冲区"><a href="#客户端输入和输出缓冲区" class="headerlink" title="客户端输入和输出缓冲区"></a>客户端输入和输出缓冲区</h1><p>为了避免客户端和服务端的<strong>请求发送和处理速度不匹配</strong>，服务器端给每个连接的客户端都设置了一个输入缓冲区和输出缓冲区。</p><p>输入缓冲区会把客户端发送过来的命令暂存起来，Redis 主线程再从输入缓冲区中读取命令，进行处理，当Redis主线程处理完数据后，会把结果写入到输出缓冲区，再通过输出缓冲区返回给客户端。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230309095753245.png" alt="image-20230309095753245"></p><h2 id="如何应对输入缓冲区溢出"><a href="#如何应对输入缓冲区溢出" class="headerlink" title="如何应对输入缓冲区溢出"></a>如何应对输入缓冲区溢出</h2><p>可能溢出的情况：</p><p>1、写入了 bigkey，比如一下子写入了多个百万级别的集合类型数据；</p><p>2、服务器端处理请求的速度过慢，例如，Redis 主线程出现了间歇性阻塞，无法及时处理正常发送的请求，导致客户端发送的请求在缓冲区越积越多。</p><p>所以对应的两个解决方案：</p><p>1、调大缓冲区。</p><p>2、从数据命令的发送和处理速度入手。</p><p>缓冲区的大小是Redis代码中写死的1GB，无法调整。因为太大会导致客户端占用过多内存资源而崩溃。</p><p>只能从发送命令入手，避免写入bigKey，以及避免Redis主线程阻塞。</p><h2 id="如何应对输出缓冲区溢出"><a href="#如何应对输出缓冲区溢出" class="headerlink" title="如何应对输出缓冲区溢出"></a>如何应对输出缓冲区溢出</h2><p>Redis的输出缓冲区暂存的是Redis主线程返回给客户端的数据，分两种，一种是OK或者其他的报错信息，大小固定。另外一种是大小不固定的，包含具体数据的。</p><p>因此，Redis 为每个客户端设置的输出缓冲区也包括两部分：一部分，是一个大小为 16KB 的固定缓冲空间，用来暂存 OK 响应和出错信息；另一部分，是一个可以动态增加的缓冲空间，用来暂存大小可变的响应结果。</p><p>输出缓冲区溢出的三种情况：</p><p>1、服务器端返回 bigkey 的大量结果；</p><p>2、执行了 MONITOR 命令；</p><p>3、缓冲区大小设置得不合理。</p><p>其中，MONITOR 命令是用来监测 Redis 执行的。执行这个命令之后，就会持续输出监测到的各个命令操作。而MONITOR 的输出结果会持续占用输出缓冲区，并越占越多，最后的结果就是发生溢出。</p><h3 id="输出缓冲区大小设置"><a href="#输出缓冲区大小设置" class="headerlink" title="输出缓冲区大小设置"></a>输出缓冲区大小设置</h3><p>和输入缓冲区不同，我们可以通过 client-output-buffer-limit 配置项，来设置缓冲区的大小，可以设置以下两个方面：</p><p>1、设置缓冲区大小的上限阈值；</p><p>2、设置输出缓冲区持续写入数据的数量上限阈值，和持续写入数据的时间的上限阈值。</p><p>对于和 Redis 实例进行交互的应用程序来说，主要使用两类客户端和 Redis 服务器端交互，分别是常规和 Redis 服务器端进行读写命令交互的普通客户端，以及订阅了 Redis 频道的订阅客户端。此外，在 Redis 主从集群中，主节点上也有一类客户端（从节点客户端）用来和从节点进行数据同步。</p><p>对于普通客户端来说，它每发送完一个请求，会等到请求结果返回后，再发送下一个请求，这种发送方式称为阻塞式发送。</p><p>对于订阅客户端来说，一旦订阅的 Redis 频道有消息了，服务器端都会通过输出缓冲区把消息发给客户端。所以，订阅客户端和服务器间的消息发送方式，<strong>不属于阻塞式发送</strong>。不过，如果频道消息较多的话，也会占用较多的输出缓冲区空间。</p><h1 id="主从集群缓冲区"><a href="#主从集群缓冲区" class="headerlink" title="主从集群缓冲区"></a>主从集群缓冲区</h1><p>主从集群间的复制包括<strong>全量复制</strong>和<strong>增量复制</strong>两种。全量复制是同步所有数据，而增量复制只会把主从库网络断连期间主库收到的命令，同步给从库。</p><p>在全量复制过程中，主节点在向从节点传输 RDB 文件的同时，会继续接收客户端发送的写命令请求。这些写命令就会先保存在<strong>复制缓冲区</strong>中，等 RDB 文件传输完成后，再发送给从节点去执行。主节点上会为每个从节点都维护一个复制缓冲区，来保证主从节点间的数据同步。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230309105458692.png" alt="image-20230309105458692"></p><p>所以，如果在全量复制时，从节点接收和加载 RDB 较慢，同时主节点接收到了大量的写命令，写命令在复制缓冲区中就会越积越多，最终导致溢出。</p><p>而且主节点上复制缓冲区的内存开销，会是每个从节点客户端输出缓冲区占用内存的总和。如果集群中的从节点数非常多的话，主节点的内存开销就会非常大。所以，我们还必须得控制和主节点连接的从节点个数，不要使用大规模的主从集群。</p><h2 id="复制积压缓冲区的溢出问题"><a href="#复制积压缓冲区的溢出问题" class="headerlink" title="复制积压缓冲区的溢出问题"></a>复制积压缓冲区的溢出问题</h2><p>复制积压缓冲区是一个大小有限的<strong>环形缓冲区</strong>。当主节点把复制积压缓冲区写满后，<strong>会覆盖缓冲区中的旧命令数据</strong>。如果从节点还没有同步这些旧命令数据，就会造成主从节点间重新开始执行全量复制。</p><h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>主节点为每个从节点都会维护一个独立的复制缓冲区。只记录主从全量同步期间，主节点新收到的命令。</p><p>而复制积压缓冲区是redis2.8以后引入的，它一般配合复制偏移量一起使用，是用来进行增量同步的。整个master进程中只会存在一个，所有的slave公用。</p><p>在引入复制积压缓冲区后，在进行同步期间，主节点不仅会把命令写入复制缓冲区，供每一个从节点执行，也会写入复制积压缓冲区。如果从服务器断线重连，会根据偏移量去复制积压缓冲区查找缺少的数据，如果复制积压缓冲区没有对应的数据，则需要进行全量同步。</p>]]></content>
     
@@ -224,9 +248,9 @@
     <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
     
     
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
     <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
   </entry>
   
@@ -386,9 +410,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -512,38 +536,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
-  </entry>
-  
-  <entry>
-    <title>Java先行发生原则</title>
-    <link href="http://example.com/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/"/>
-    <id>http://example.com/2023/03/24/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</id>
-    <published>2023-03-24T13:39:50.000Z</published>
-    <updated>2023-03-30T07:09:28.123Z</updated>
-    
-    <content type="html"><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p><p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p><p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p><p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p><p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p><p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p><p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p><p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p><p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p><p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。&lt;/p&gt;
-&lt;p&gt;Java语言无须任何同步手段保障就能成立的先</summary>
-      
-    
-    
-    
-    <category term="Java" scheme="http://example.com/categories/Java/"/>
-    
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    <category term="内存模型" scheme="http://example.com/tags/%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B/"/>
     
   </entry>
   
