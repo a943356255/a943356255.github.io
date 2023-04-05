@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-05T07:36:17.770Z</updated>
+  <updated>2023-04-05T12:01:26.682Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,35 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>垃圾收集算法</title>
+    <link href="http://example.com/2023/04/05/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95/"/>
+    <id>http://example.com/2023/04/05/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95/</id>
+    <published>2023-04-05T07:46:20.000Z</published>
+    <updated>2023-04-05T12:01:26.682Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="分代收集理论"><a href="#分代收集理论" class="headerlink" title="分代收集理论"></a>分代收集理论</h1><p>分代收集理论建立在两个假说之上：</p><p>1）弱分代假说（Weak Generational Hypothesis）：绝大多数对象都是朝生夕灭的。</p><p>2）强分代假说（Strong Generational Hypothesis）：熬过越多次垃圾收集过程的对象就越难以消亡。</p><p>正是由于这两个假说，所以多款垃圾收集器都有一个设计原则：Java堆应该划分不同的区域，然后根据对象的年龄（对象熬过垃圾手机过程的次数）分配到不同的区域存储。</p><p>把那些朝生夕灭的对象放在一起存储，那么虚拟机只需要关注如果保留少量存活的对象即可，而不是大量的去进行标记。</p><p>把那些不容易被清除的对象放在一起，那么虚拟机就可以不那么频繁的去清理这部分的对象。</p><p>由于区域的划分，所以存在了<strong>Minor GC（指目标只是新生代的垃圾回收，也叫Young GC）</strong>，<strong>Major GC（指的是目标老年代的垃圾回收，也叫Old GC。目前只有CMS收集器有。）</strong>，<strong>Full GC（收集整个Java堆和方法区的垃圾收集）</strong>这样回收类型的划分。而且也根据不同区域对象存亡的特征，发展除了<strong>标记-复制算法</strong>，<strong>标记-清除算法</strong>，<strong>标记-整理算法</strong>。Mixed GC（混合收集）指目标是整个新生代和部分老年代的垃圾回收，目前只有G1垃圾回收有。</p><p>一个最基本的分代是分为新生代和老年代，在这种分代下，如果要进行一次针对新生代的垃圾收集，存在一种情况就是新生代的对象引用了老年代的对象，那么就不得不遍历整个老年代。所以引出了第三个假说：</p><p>3）跨代引用假说（Intergenerational Reference Hypothesis）：跨代引用相对于同代引用来说仅占极少数。</p><p>根据这条假说，我们可以在新生代建立一个叫做记忆集的数据结构，该结构把老年代划分为若干块，标识出老年代的哪一块内存存在跨代引用。此后发生Major GC时，只需要遍历存在跨代引用那些小块里面的对象。</p><h1 id="标记-清除算法"><a href="#标记-清除算法" class="headerlink" title="标记-清除算法"></a>标记-清除算法</h1><p>正如名字，如它的名字一样，算法分为标记和清除两个阶段。首先标记出所有需要回收的对象，标记完成后统一回收掉所有被标记的对象。也可以反过来，标记存活的，然后收集所有没有标记的。</p><p>存在的问题：</p><p>第一个是执行效率不稳定，如果Java堆中包含大量对象，而且其中大部分是需要被回收的，这时必须进行<strong>大量标记和清除的动作</strong>，导致标记和清除两个过程的执行效率都随对象数量增长而降低；</p><p>第二个是内存空间的<strong>碎片化问题</strong>，标记、清除之后会产生大量<strong>不连续的内存碎片</strong>，空间碎片太多可能会导致当以后在程序运行过程中需要分配较大对象时无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作。</p><h1 id="标记-复制算法"><a href="#标记-复制算法" class="headerlink" title="标记-复制算法"></a>标记-复制算法</h1><p>为了解决标记-清除算法面对大量对象效率低的问题，产生了一种半区复制算法，它将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另外一块上面，然后再把已使用过的内存空间一次清理掉。</p><p>该算法存在的问题：</p><p>1、如果大多数对象都是活着的，那么意味着会有大量的对象需要复制，会浪费很多内存开销。</p><p>2、原来一整块内存现在只能用其中的一半了。</p><h2 id="Appel式回收"><a href="#Appel式回收" class="headerlink" title="Appel式回收"></a>Appel式回收</h2><p>由于标记-复制算法大多数用在针对新生代的垃圾回收，大多数对象活不过一轮收集，所以并不需要按照1：1的比例进行空间划分，对其划分进行优化后，产生了一种Appel式的回收。</p><p>具体做法是把<strong>新生代</strong>分为一块较大的<strong>Eden空间</strong>和<strong>两块较小的Survivor空间</strong>，每次分配内存只使用Eden和其中一块Survivor。发生垃圾搜集时，将Eden和Survivor中仍然存活的对象一次性复制到另外一块Survivor空间上，然后直接清理掉Eden和已用过的那块Survivor空间。</p><p>HotSpot虚拟机默认Eden和Survivor的大小比例是8∶1，也就是说最多有1块Survivor没有，也就是10%。</p><p>Appel式回收时，如果那一块Survivor区不够用于存储还活着的对象，它会向老年区“借用”一部分区域。说白了，这些多余的对象会在分配担保机制下直接进入老年代。</p><h1 id="标记-整理算法"><a href="#标记-整理算法" class="headerlink" title="标记-整理算法"></a>标记-整理算法</h1><p>该算法主要针对老年代的回收，因为标记-复制算法要不需要浪费一半空间，要不就需要额外的空间进行担保，以防止所有对象都是存活的情况。</p><p>标记-整理算法的标记过程与标记-清理一样，但是标记完不是直接清除标记对象，而是把活着的对象向内存空间一端移动，然后直接清理掉边界以外的数据。具体如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405195521861.png" alt="image-20230405195521861"></p><h2 id="优点与缺点"><a href="#优点与缺点" class="headerlink" title="优点与缺点"></a>优点与缺点</h2><p>标记完后，如果移动存活的对象，移动对象并且更新这些对象的引用是一项繁重的操作，会带来性能影响。而且在移动的过程中还需要暂停用于程序，人们把暂停称为“stop the world”。</p><p>但是如果不移动对象，那么就会导致空间是散列开的，导致很严重的碎片化问题，就只能依赖于更复杂的内存分配器以及内存访问器来解决，譬如通过“分区空闲分配链表”来解决内存分配问题（计算机硬盘存储大文件就不要求物理连续的磁盘空间，能够在碎片化的硬盘上存储和访问就是通过硬盘分区表实现的）。</p><p>基于以上两点，是否移动对象都存在弊端，移动则内存回收时会更复杂，不移动则内存分配时会更复杂。</p><p>从垃圾收集的停顿时间来看，不移动对象停顿时间会更短，甚至可以不需要停顿，但是从整个程序的吞吐量来看，移动对象会更划算。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;分代收集理论&quot;&gt;&lt;a href=&quot;#分代收集理论&quot; class=&quot;headerlink&quot; title=&quot;分代收集理论&quot;&gt;&lt;/a&gt;分代收集理论&lt;/h1&gt;&lt;p&gt;分代收集理论建立在两个假说之上：&lt;/p&gt;
+&lt;p&gt;1）弱分代假说（Weak Generational Hypo</summary>
+      
+    
+    
+    
+    <category term="Java" scheme="http://example.com/categories/Java/"/>
+    
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    <category term="垃圾回收" scheme="http://example.com/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL为什么会卡一下</title>
@@ -434,9 +463,9 @@
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
     <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
+    
+    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
     
   </entry>
   
@@ -513,28 +542,6 @@
     
     
     <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何避免单线程的Redis阻塞</title>
-    <link href="http://example.com/2023/03/26/%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E5%8D%95%E7%BA%BF%E7%A8%8B%E7%9A%84Redis%E9%98%BB%E5%A1%9E/"/>
-    <id>http://example.com/2023/03/26/%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E5%8D%95%E7%BA%BF%E7%A8%8B%E7%9A%84Redis%E9%98%BB%E5%A1%9E/</id>
-    <published>2023-03-26T02:09:29.000Z</published>
-    <updated>2023-03-26T02:41:30.038Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="Redis有哪些阻塞点"><a href="#Redis有哪些阻塞点" class="headerlink" title="Redis有哪些阻塞点"></a>Redis有哪些阻塞点</h2><p><strong>客户端</strong>：网络 IO，键值对增删改查操作，数据库操作；</p><p><strong>磁盘</strong>：生成 RDB 快照，记录 AOF 日志，AOF 日志重写；</p><p><strong>主从节点</strong>：主库生成、传输 RDB 文件，从库接收 RDB 文件、清空数据库、加载 RDB 文件；</p><p><strong>切片集群实例</strong>：向其他实例传输哈希槽信息，数据迁移。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304101219130.png" alt="image-20230304101219130"></p><h3 id="一、和客户端交互时的阻塞点"><a href="#一、和客户端交互时的阻塞点" class="headerlink" title="一、和客户端交互时的阻塞点"></a>一、和客户端交互时的阻塞点</h3><p>Redis采用多路复用I&#x2F;O机制，避免了主线程一直处在等待网络连接或请求到来的状态，所以与客户端的网路通信不会是阻塞点。</p><h4 id="1、查询时的阻塞"><a href="#1、查询时的阻塞" class="headerlink" title="1、查询时的阻塞"></a>1、查询时的阻塞</h4><p>而Reddis中涉及到集合的操作，复杂度通常为O(N)，例如集合元素全量查询操作 HGETALL、SMEMBERS，以及集合的聚合统计操作，例如求交、并和差集。这些操作可以作为 Redis 的<strong>第一个阻塞点：集合全量查询和聚合操作</strong>。</p><h4 id="2、删除时的阻塞"><a href="#2、删除时的阻塞" class="headerlink" title="2、删除时的阻塞"></a>2、删除时的阻塞</h4><p>删除操作的本质是要释放键值对占用的内存空间，释放内存只是第一步，为了更加高效地管理内存空间，在应用程序释放内存时，<strong>操作系统需要把释放掉的内存块插入一个空闲内存块的链表</strong>，以便后续进行管理和再分配。这个过程本身需要一定时间，而且会阻塞当前释放内存的应用程序，所以，如果一下子释放了大量内存，空闲内存块链表操作时间就会增加，相应地就会造成 Redis 主线程的阻塞。</p><p>典型的操作，删出bigKey。</p><h4 id="3、清空数据库阻塞"><a href="#3、清空数据库阻塞" class="headerlink" title="3、清空数据库阻塞"></a>3、清空数据库阻塞</h4><p>在 Redis 的数据库级别操作中，清空数据库（例如 FLUSHDB 和 FLUSHALL 操作）必然也是一个潜在的阻塞风险，因为它涉及到删除和释放所有的键值对。</p><h3 id="二、和磁盘交互时的阻塞点"><a href="#二、和磁盘交互时的阻塞点" class="headerlink" title="二、和磁盘交互时的阻塞点"></a>二、和磁盘交互时的阻塞点</h3><p>虽然redis的设计已经考虑到磁盘IO会带来阻塞，设计时采用子进程方式生成RDB快照文件，以及执行AOF日志重写操作，这两个操作由子进程负责执行，慢速的磁盘 IO 就不会阻塞主线程了。</p><p>但是，Redis 直接记录 AOF 日志时，会根据不同的写回策略对数据做落盘保存。一个同步写磁盘的操作的耗时大约是 1～2ms，如果有大量的写操作需要记录在 AOF 日志中，并同步写回的话，就会阻塞主线程了。这就得到了 Redis 的<strong>第四个阻塞点了：AOF 日志同步写</strong>。</p><h3 id="三、主从节点交互时的阻塞点"><a href="#三、主从节点交互时的阻塞点" class="headerlink" title="三、主从节点交互时的阻塞点"></a>三、主从节点交互时的阻塞点</h3><p>在主从集群中，主库需要生成 RDB 文件，并传输给从库。主库在复制的过程中，创建和传输 RDB 文件都是由子进程来完成的，不会阻塞主线程。但是，对于从库来说，它在接收了 RDB 文件后，需要使用 FLUSHDB 命令清空当前数据库，这就正好撞上了刚才我们分析的<strong>第三个阻塞点。</strong></p><p>此外，从库在清空当前数据库后，还需要把 RDB 文件加载到内存，这个过程的快慢和 RDB 文件的大小密切相关，RDB 文件越大，加载过程越慢，所以，<strong>加载 RDB 文件就成为了 Redis 的第五个阻塞点</strong>。</p><h3 id="四、切片集群实例交互时的阻塞点"><a href="#四、切片集群实例交互时的阻塞点" class="headerlink" title="四、切片集群实例交互时的阻塞点"></a>四、切片集群实例交互时的阻塞点</h3><p>当我们部署 Redis 切片集群时，每个 Redis 实例上分配的哈希槽信息需要在不同实例间进行传递，同时，当需要进行负载均衡或者有实例增删时，数据会在不同的实例间进行迁移。不过，哈希槽的信息量不大，而数据迁移是渐进式执行的，所以，一般来说，这两类操作对 Redis 主线程的阻塞风险不大。</p><p>不过，如果使用了 Redis Cluster 方案，而且同时正好迁移的是 bigkey 的话，就会造成主线程的阻塞，因为 Redis Cluster 使用了同步迁移。</p><h2 id="上述哪些阻塞点可以异步执行？"><a href="#上述哪些阻塞点可以异步执行？" class="headerlink" title="上述哪些阻塞点可以异步执行？"></a>上述哪些阻塞点可以异步执行？</h2><p>首先，异步执行的要求：如果一个操作能被异步执行，就意味着，它并不是 Redis 主线程的关键路径上的操作。我再解释下关键路径上的操作是啥。这就是说，客户端把请求发送给 Redis 后，等着 Redis 返回数据结果的操作。</p><p>对于 Redis 来说，<strong>读操作是典型的关键路径操作</strong>，所以对于<strong>集合全量查询和聚合操作</strong>不能进行异步操作。</p><p>删除操作并不需要给客户端返回具体的数据结果，所以不算是关键路径操作。而上述bigKey删除以及清空数据库都属于删除操作，并不在关键路径上。因此，我们可以使用后台子线程来异步执行删除操作。</p><p>而对于AOF日志同步写来说，虽然需要保证落盘，这个操作需要实例等待，但是并不需要返回结果，所以可以用子进程来完成。</p><p>从库加载RDB这个操作，主库想要对客户端提供数据存取服务，就必须要RDB文件全部加载，所以这个操作也数据关键路径的操作，不能用子进程来完成。</p><h2 id="异步的子线程机制"><a href="#异步的子线程机制" class="headerlink" title="异步的子线程机制"></a>异步的子线程机制</h2><p>Redis 主线程启动后，会使用操作系统提供的 pthread_create 函数创建 3 个子线程，分别由它们负责 AOF 日志写操作、键值对删除以及文件关闭的异步执行。</p><p>主线程通过一个链表形式的任务队列和子线程进行交互。当收到键值对删除和清空数据库的操作时，主线程会把这个操作封装成一个任务，放入到任务队列中，然后给客户端返回一个完成信息，表明删除已经完成。</p><p>但实际上，这个时候删除还没有执行，等到后台子线程从任务队列中读取任务后，才开始实际删除键值对，并释放相应的内存空间。因此，我们把这种异步删除也称为惰性删除（lazy free）。此时，删除或清空操作不会阻塞主线程，这就避免了对主线程的性能影响。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230304111048551.png" alt="image-20230304111048551"></p><h2 id="有关lazy-free的一些细节"><a href="#有关lazy-free的一些细节" class="headerlink" title="有关lazy-free的一些细节"></a>有关lazy-free的一些细节</h2><p>1、lazy-free是4.0新增的功能，但是默认是关闭的，需要手动开启。</p><p>2、手动开启lazy-free时，有4个选项可以控制，分别对应不同场景下，要不要开启异步释放内存机制： </p><p>​a) lazyfree-lazy-expire：key在过期删除时尝试<strong>异步释放内存</strong> </p><p>​b) lazyfree-lazy-eviction：内存达到maxmemory并设置了淘汰策略时尝试异步释放内存 </p><p>​c) lazyfree-lazy-server-del：执行RENAME&#x2F;MOVE等命令或需要覆盖一个key时，删除旧key尝试异步释放内存 </p><p>​d) replica-lazy-flush：主从全量同步，从库清空数据库时异步释放内存 </p><p>3、即使开启了lazy-free，如果直接使用DEL命令还是会同步删除key，只有使用UNLINK命令才会可能异步删除key。 </p><p>4、这也是最关键的一点，上面提到开启lazy-free的场景，除了replica-lazy-flush之外，其他情况都只是<strong>可能</strong>去异步释放key的内存，并不是每次必定异步释放内存的。 </p><p>开启lazy-free后，Redis在释放一个key的内存时，首先会评估代价，如果释放内存的代价很小，那么就直接在主线程中操作了，没必要放到异步线程中执行（不同线程传递数据也会有性能消耗）。 </p><h3 id="什么情况才会真正异步释放内存？"><a href="#什么情况才会真正异步释放内存？" class="headerlink" title="什么情况才会真正异步释放内存？"></a>什么情况才会真正异步释放内存？</h3><p>这和key的类型、编码方式、元素数量都有关系（详细可参考源码中的lazyfreeGetFreeEffort函数）： </p><p>a) 当Hash&#x2F;Set底层采用哈希表存储（非ziplist&#x2F;int编码存储）时，并且元素数量超过64个 </p><p>b) 当ZSet底层采用跳表存储（非ziplist编码存储）时，并且元素数量超过64个 </p><p>c) 当List链表节点数量超过64个（注意，不是元素数量，而是链表节点的数量，List的实现是在每个节点包含了若干个元素的数据，这些元素采用ziplist存储） </p><p>只有以上这些情况，在删除key释放内存时，才会真正放到异步线程中执行，其他情况一律还是在主线程操作。 </p><p>也就是说String（不管内存占用多大）、List（少量元素）、Set（int编码存储）、Hash&#x2F;ZSet（ziplist编码存储）这些情况下的key在释放内存时，依旧在主线程中操作。 可见，即使开启了lazy-free，String类型的bigkey，在删除时依旧有阻塞主线程的风险。</p><p>所以，即便Redis提供了lazy-free，尽量不要在Redis中存储bigkey。 个人理解Redis在设计评估释放内存的代价时，不是看key的内存占用有多少，而是关注释放内存时的工作量有多大。从上面分析基本能看出，如果需要释放的内存是连续的，Redis作者认为释放内存的代价比较低，就放在主线程做。如果释放的内存不连续（大量指针类型的数据），这个代价就比较高，所以才会放在异步线程中去执行。</p><p><strong>Redis 6.0又提供一个选项：lazyfree-lazy-user-del。打开这个选项后，使用DEL和UNLINK就没有区别了。</strong></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;Redis有哪些阻塞点&quot;&gt;&lt;a href=&quot;#Redis有哪些阻塞点&quot; class=&quot;headerlink&quot; title=&quot;Redis有哪些阻塞点&quot;&gt;&lt;/a&gt;Redis有哪些阻塞点&lt;/h2&gt;&lt;p&gt;&lt;strong&gt;客户端&lt;/strong&gt;：网络 IO，键值对增删改查</summary>
-      
-    
-    
-    
-    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
-    
     
   </entry>
   
