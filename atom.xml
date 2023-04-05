@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-05T06:11:14.715Z</updated>
+  <updated>2023-04-05T07:36:17.770Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,30 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL为什么会卡一下</title>
+    <link href="http://example.com/2023/04/05/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/"/>
+    <id>http://example.com/2023/04/05/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/</id>
+    <published>2023-04-05T06:37:12.000Z</published>
+    <updated>2023-04-05T07:36:17.770Z</updated>
+    
+    <content type="html"><![CDATA[<p>InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo log）。</p><p>这些被修改过的数据页，或者说内存中的数据页与磁盘中的数据页不一样的，就叫做脏页。而MySQL卡的那一下，就是把脏页写回内存时发生的。</p><h1 id="写回脏页的时机"><a href="#写回脏页的时机" class="headerlink" title="写回脏页的时机"></a>写回脏页的时机</h1><p>1、redo log满了</p><p>redo log是一个循环队列，当它写满时，系统会停止当前的操作，把redo log中记录的一部分操作所对应的脏页写回内存，然后在redo log中腾出足够的地方。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405145823007.png" alt="image-20230405145823007" style="zoom:50%;" /><p>2、内存满了</p><p>在这种情况下，内存里无法加载更多的内存页，需要淘汰掉一部分内存页，而淘汰掉的内存页如果有脏页，就会把他们写入磁盘。</p><p>3、MySQL空闲时</p><p>4、MySQL正常关闭的情况。</p><h1 id="情况1和2对性能的影响"><a href="#情况1和2对性能的影响" class="headerlink" title="情况1和2对性能的影响"></a>情况1和2对性能的影响</h1><p>情况1是需要避免的，因为发生这种情况后，整个系统就无法处理新的请求。</p><p>情况2是一种常态，<strong>InnoDB用缓冲池（buffer pool）管理内存，缓冲池中的内存页有三种状态：</strong></p><ul><li>第一种是，还没有使用的；</li><li>第二种是，使用了并且是干净页；</li><li>第三种是，使用了并且是脏页。</li></ul><p>而当要读入的数据页没有在内存的时候，就必须到缓冲池中申请一个数据页。这时候只能把最久不使用的数据页从内存中淘汰掉：如果要淘汰的是一个干净页，就直接释放出来复用；但如果是脏页呢，就必须将脏页先刷到磁盘，变成干净页后才能复用。</p><p>如果一个查询要淘汰的数据页太多，那么就会很明显的影响性能。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo l</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
   
   <entry>
     <title>CPU结构对Redis性能的影响</title>
@@ -511,34 +535,6 @@
     
     <category term="Redis" scheme="http://example.com/categories/Redis/"/>
     
-    
-  </entry>
-  
-  <entry>
-    <title>Java与线程</title>
-    <link href="http://example.com/2023/03/25/Java%E4%B8%8E%E7%BA%BF%E7%A8%8B/"/>
-    <id>http://example.com/2023/03/25/Java%E4%B8%8E%E7%BA%BF%E7%A8%8B/</id>
-    <published>2023-03-25T13:23:47.000Z</published>
-    <updated>2023-03-30T07:09:43.009Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="线程的实现"><a href="#线程的实现" class="headerlink" title="线程的实现"></a>线程的实现</h2><p>线程是比进程更轻量级的调度执行单位，线程的引入可以把一个进程的资源分配和执行调度分开， 各个线程既可以共享进程资源（内存地址，I&#x2F;O等），又可以独立调度。</p><p>实现线程主要有3种方式，使用内核线程实现（1：1实现），使用用户线程实现（1：N实现），使用用户线程加轻量级进程混合实现（N：M实现）。</p><h3 id="内核线程的实现"><a href="#内核线程的实现" class="headerlink" title="内核线程的实现"></a>内核线程的实现</h3><p>内核线程（KLT）就是直接由操作系统内核支持的线程。这种线程由内核完成线程切换，由内核操纵调度器调度线程，并负责将线程的任务映射到处理器上。但是程序一般不直接使用内核线程，而是使用他的一种接口，轻量级进程（LWP），就是我们通常意义说的线程，每一个线程都有一个内核线程支持，这种轻量级进程与内核线程是1：1的关系。具体结构如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325151710589.png" alt="image-20230325151710589"></p><p>因为每个线程都有内核线程支持，可以当作一个独立的调度单元，即使其中一个被阻塞，也不影响整个进程继续工作。</p><p>局限性：由于是基于内核线程，所以线程的创建，同步等操作都需要系统调用。而系统调用需要从用户态切换为内核态。而且每个轻量级进程都需要一个内核线程支持，会消耗一定的内核资源。</p><h3 id="用户线程实现"><a href="#用户线程实现" class="headerlink" title="用户线程实现"></a>用户线程实现</h3><p>从广义上讲，一个线程只要不是内核线程，他就是用户线程的一种，从这里看，轻量级进程也属于用户线程。但轻量级线程始终需要建立在内核线程之上，并不具备通常意义上的线程。</p><p>而狭义上的用户线程指的是完全建立在用户空间的线程库上，系统内核不能感知到用户线程的存在及如何实现的。用户线程的建立、同步、销毁和调度完全在用户态中完成，不需要内核的帮助。</p><p>用户线程没有内核线程的帮助，所以线程的创建、销毁、切换和调度都是用户必须考虑的问题，由于操作系统只把处理器资源分配到进程，所以阻塞如何处理，多处理器系统种如何将线程映射到其他处理器上这类问题解决起来将会异常困难，甚至有些是不可能实现的。</p><h3 id="混合实现"><a href="#混合实现" class="headerlink" title="混合实现"></a>混合实现</h3><p>即存在用户线程，也存在轻量级进程，用户线程还是建立在用户空间之中。而轻量级进程则作为用户线程和内核之间的桥梁，这样可以使用内核提供的线程调度功能及处理器映射，并且用户线程的系统调用要通过轻量级进程来完成，这大大降低了整个进程被完全阻塞的风险。具体模型如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325161956615.png" alt="image-20230325161956615"></p><p>一个CPU对应多个内核线程，然后每个内核线程对应着一个轻量级进程，而一个进程又对应了多个用户线程。</p><h2 id="Java线程的实现"><a href="#Java线程的实现" class="headerlink" title="Java线程的实现"></a>Java线程的实现</h2><p>自jdk1.3起，主流java虚拟机的内存模型普遍被替换为基于操作系统原生线程模型来实现，即1：1的线程模型。以HotSpot为例，</p><p>它的每一个Java线程都是直接映射到一个操作系统原生线程来实现的，而且中间没有额外的间接结构，所以HotSpot自己是不会去干涉线程调度的（可以设置线程优先级给操作系统提供调度建议），全权交给底下的操作系统去处理，所以何时冻结或唤醒线程、该给线程分配多少处理器执行时间、该把线程安排给哪个处理器核心去执行等，都是由操作系统完成的，也都是由操作系统全权决定的。</p><h3 id="Java线程调度"><a href="#Java线程调度" class="headerlink" title="Java线程调度"></a>Java线程调度</h3><p>线程调度是指系统为线程分配处理器使用权的过程，调度主要方式有两种，分别是协同式（Cooperative Threads-Scheduling）线程调度和抢占式（Preemptive Threads-Scheduling）线程调度。</p><p>协同式调度：线程的执行时间由自己控制，一个线程把自己的工作做完之后，要通知系统去切换到另一个进程去执行。优点是实现简单，而且不会有线程同步的问题，但是缺点也比较明显，线程执行时间不可控，如果一个线程一直不告知系统进行切换，那程序就会一直阻塞在那里。</p><p>抢占式调度：每个线程将由系统来分配执行时间，线程的切换不由线程本身来决定。线程的执行时间是可控的，不会有一个线程阻塞导致整个系统崩溃的问题。</p><h3 id="状态转换"><a href="#状态转换" class="headerlink" title="状态转换"></a>状态转换</h3><p>java线程一共有6种状态，一个线程同一时间只能有其中的一种，而且可以通过特定语义进行转换。</p><p>1、新建（New）：创建后尚未启动的线程处于这种状态。</p><p>2、运行（Runnable）：包括操作系统线程状态中的Running和Ready，也就是处于此状态的线程有可能正在执行，也有可能正在等待着操作系统为它分配执行时间。</p><p>3、无限期等待（Waiting）：处于这种状态的线程不会被分配处理器执行时间，它们要等待被其他线程显式唤醒。以下方法会让线程陷入无限期的等待状态：</p><p>​1）没有设置Timeout参数的Object::wait()方法；</p><p>​2）没有设置Timeout参数的Thread::join()方法；</p><p>​3）LockSupport::park()方法。</p><p>4、限期等待（Timed Waiting）：处于这种状态的线程也不会被分配处理器执行时间，不过无须等待被其他线程显式唤醒，在一定时间之后它们会由系统自动唤醒。以下方法会让线程进入限期等待状态：</p><p>​1）Thread::sleep()方法；</p><p>​2）设置了Timeout参数的Object::wait()方法；</p><p>​3）设置了Timeout参数的Thread::join()方法；</p><p>​4）LockSupport::parkNanos()方法；</p><p>​5）LockSupport::parkUntil()方法。</p><p>5、阻塞（Blocked）：线程被阻塞了，“阻塞状态”与“等待状态”的区别是“阻塞状态”在等待着获取到一个排它锁，这个事件将在另外一个线程放弃这个锁的时候发生；而“等待状态”则是在等待一段时间，或者唤醒动作的发生。在程序等待进入同步区域的时候，线程将进入这种状态。</p><p>6、结束（Terminated）：已终止线程的线程状态，线程已经结束执行。</p><p>转换关系如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230325212241436.png" alt="image-20230325212241436"></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;线程的实现&quot;&gt;&lt;a href=&quot;#线程的实现&quot; class=&quot;headerlink&quot; title=&quot;线程的实现&quot;&gt;&lt;/a&gt;线程的实现&lt;/h2&gt;&lt;p&gt;线程是比进程更轻量级的调度执行单位，线程的引入可以把一个进程的资源分配和执行调度分开， 各个线程既可以共享进程资源（</summary>
-      
-    
-    
-    
-    <category term="Java" scheme="http://example.com/categories/Java/"/>
-    
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
   </entry>
   
