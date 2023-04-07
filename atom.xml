@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-07T04:37:25.790Z</updated>
+  <updated>2023-04-07T07:53:59.793Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,31 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Redis数据删除</title>
+    <link href="http://example.com/2023/04/07/Redis%E6%95%B0%E6%8D%AE%E5%88%A0%E9%99%A4/"/>
+    <id>http://example.com/2023/04/07/Redis%E6%95%B0%E6%8D%AE%E5%88%A0%E9%99%A4/</id>
+    <published>2023-04-07T06:42:37.000Z</published>
+    <updated>2023-04-07T07:53:59.793Z</updated>
+    
+    <content type="html"><![CDATA[<p>有时候，在删除了Redis中部分数据后，会发现Redis仍然占用了很多内存，这是因为当数据删除后，Redis 释放的内存空间会由内存分配器管理，并不会立即返回给操作系统。所以，操作系统仍然会记录着给 Redis 分配了大量内存。</p><p>但是这样会导致一个问题，这些空间可能都是碎片化的，Redis无法拿来存取数据，还占用了大量的内存空间。</p><h1 id="什么是内存碎片"><a href="#什么是内存碎片" class="headerlink" title="什么是内存碎片"></a>什么是内存碎片</h1><p>一个较为简单的解释，就是虽然存在空间，但是这些空间却由于零散的分布在内存的各个地方，导致无法使用。</p><h1 id="形成原因"><a href="#形成原因" class="headerlink" title="形成原因"></a>形成原因</h1><p>1、内因：内存分配器的分配策略</p><p>内存分配器一般是按固定大小来分配内存，而不是完全按照应用程序申请的内存空间大小给程序分配。比如说现在Redis需要申请20字节的空间，但是分配器可能会分配32字节，此时如果还要写入10字节的数据，就不需要在此分配空间。但是这会导致2字节的空间很难被在此利用。</p><p>2、外因：键值对大小不一样和删改操作</p><p>Redis用来存储不同的键值对，这样就需要申请不同的空间，这一点与内因相同。而修改和删除操作，就会导致空间的扩容和释放，这就会导致新的内存分配，另一方面，删除的键值对就不再需要内存空间了，此时，就会把空间释放出来，形成空闲空间。</p><h1 id="如何清理内存碎片"><a href="#如何清理内存碎片" class="headerlink" title="如何清理内存碎片"></a>如何清理内存碎片</h1><p>1、直接重启Redis。但是这样会带来一些问题：</p><ul><li>如果Redis中的数据没有持久化，则会丢失数据。</li><li>即使持久化了，重启后需要加载RDB和AOF文件进行恢复，恢复时长取决于AOF或RDB文件的大小。而且如果Redis是单机的，此时就无法对外提供服务。</li></ul><p>2、自动内存碎片清理。大致的原理是，通过对象移位的方式，把原本不连续的空间变为连续的。</p><p><strong>碎片清理是有代价的</strong>，操作系统需要把多份数据拷贝到新位置，把原有空间释放出来，这会带来时间开销。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;有时候，在删除了Redis中部分数据后，会发现Redis仍然占用了很多内存，这是因为当数据删除后，Redis 释放的内存空间会由内存分配器管理，并不会立即返回给操作系统。所以，操作系统仍然会记录着给 Redis 分配了大量内存。&lt;/p&gt;
+&lt;p&gt;但是这样会导致一个问题，这些空</summary>
+      
+    
+    
+    
+    <category term="Redis" scheme="http://example.com/categories/Redis/"/>
+    
+    
+    <category term="Redis设计与实现" scheme="http://example.com/tags/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
+    
+  </entry>
   
   <entry>
     <title>Java的线程池</title>
@@ -46,9 +71,9 @@
     <link href="http://example.com/2023/04/06/HotSpot%E7%9A%84%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82/"/>
     <id>http://example.com/2023/04/06/HotSpot%E7%9A%84%E5%AE%9E%E7%8E%B0%E7%BB%86%E8%8A%82/</id>
     <published>2023-04-06T08:24:48.000Z</published>
-    <updated>2023-04-06T13:13:59.755Z</updated>
+    <updated>2023-04-07T08:55:53.101Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="根节点枚举"><a href="#根节点枚举" class="headerlink" title="根节点枚举"></a>根节点枚举</h1><p>目前为止，所有收集器在根节点枚举这一步都必须暂停用户线程。</p><p>目前可达性分析算法耗时最长的查找引用链的过程可以与用户线程一起并发，但根节点枚举需要在一个类似于一致性快照才可以进行，这里一致性是指，整个枚举根节点的过程，子系统就像被冻结在某个点，这个过程中对象间的引用关系是不能发生变化的，否则分析的结果没有意义。</p><p>在暂停用户线程时，虚拟机使用了一组称为OopMap的数据结构来避免遍历所有的<strong>执行上下文</strong>和<strong>全局引用</strong>的位置。一旦类加载完成时，HotSpot就会把对象内每个偏移量上是什么类型的数据计算出来，也会在特定位置记录下栈里和寄存器里哪些位置是引用。这样收集器在扫描时就可以直接得到这些信息，就不用遍历了。</p><h1 id="安全点"><a href="#安全点" class="headerlink" title="安全点"></a>安全点</h1><p>上面提到使用OopMap来避免进行遍历所有的引用，但是导致OopMap进行变化的指令特别多，如果为每一条指令都生成OopMap，那么将耗费大量的内存空间。</p><p>实际上，HotSpot并没有为每一条都指令都生成对应的OopMap，而是在特定的位置记录了这些信息，这个特定的位置就是安全点。这也就意味着用户代码并不是在任何时候都可以暂停，然后进行垃圾回收，而是必须到达安全点才可以暂停。</p><p>安全点还需要考虑如何在垃圾收集发生时让所有线程（这里其实不包括执行JNI调用的线程）都跑到最近的安全点，然后停顿下来。这里有两种方案可供选择：<strong>抢先式中断</strong>（Preemptive Suspension）和<strong>主动式中断</strong>（Voluntary Suspension）</p><p>抢先式中断在垃圾收集发生时，系统首先把所有用户线程全部中断，如果发现有用户线程中断的地方不在安全点上，就恢复这条线程执行，让它一会再重新中断，直到跑到安全点上。几乎没有虚拟机使用。</p><p>主动式中断的思想是当垃圾收集需要中断线程的时候，不直接对线程操作，仅仅简单地设置一个标志位，各个线程执行过程时会不停地主动去轮询这个标志，一旦发现中断标志为真时就自己在最近的安全点上主动中断挂起。</p><h1 id="安全区域"><a href="#安全区域" class="headerlink" title="安全区域"></a>安全区域</h1><p>上面的安全点保证了正在执行的代码每隔一段时间都会遇到一个可以进行垃圾回收的点，但是对于那些没在运行的程序，就需要另外考虑。比如用户线程处于sleep状态或者Blocked状态，这时候线程无法响应虚拟机的中断请求，不能再走到安全点去中断挂起自己，这时候就需要引入安全区域。</p><p>安全区域能够保证在一段代码内，引用关系不会发生变化，因此在这段区域内任何地方进行垃圾回收都是安全的。</p><p>当用户线程执行到安全区域时，会标识自己已经进入，那样当这段时间里虚拟机要发起垃圾收集时就不必去管这些已声明自己在安全区域内的线程了。当线程要离开安全区域时，它要检查虚拟机是否已经完成了根节点枚举（或者垃圾收集过程中其他需要暂停用户线程的阶段），如果完成了，那线程就当作没事发生过，继续执行；否则它就必须一直等待，直到收到可以离开安全区域的信号为止。</p><h1 id="记忆收集卡"><a href="#记忆收集卡" class="headerlink" title="记忆收集卡"></a>记忆收集卡</h1><p>记忆集是一种用于记录从<strong>非收集区域指</strong>向<strong>收集区域</strong>的指针集合的抽象数据结构。存储在新生代当中。</p>]]></content>
+    <content type="html"><![CDATA[<h1 id="根节点枚举"><a href="#根节点枚举" class="headerlink" title="根节点枚举"></a>根节点枚举</h1><p>目前为止，所有收集器在根节点枚举这一步都必须暂停用户线程。</p><p>目前可达性分析算法耗时最长的查找引用链的过程可以与用户线程一起并发，但根节点枚举需要在一个类似于一致性快照才可以进行，这里一致性是指，整个枚举根节点的过程，子系统就像被冻结在某个点，这个过程中对象间的引用关系是不能发生变化的，否则分析的结果没有意义。</p><p>在暂停用户线程时，虚拟机使用了一组称为OopMap的数据结构来避免遍历所有的<strong>执行上下文</strong>和<strong>全局引用</strong>的位置。一旦类加载完成时，HotSpot就会把对象内每个偏移量上是什么类型的数据计算出来，也会在特定位置记录下栈里和寄存器里哪些位置是引用。这样收集器在扫描时就可以直接得到这些信息，就不用遍历了。</p><h1 id="安全点"><a href="#安全点" class="headerlink" title="安全点"></a>安全点</h1><p>上面提到使用OopMap来避免进行遍历所有的引用，但是导致OopMap进行变化的指令特别多，如果为每一条指令都生成OopMap，那么将耗费大量的内存空间。</p><p>实际上，HotSpot并没有为每一条都指令都生成对应的OopMap，而是在特定的位置记录了这些信息，这个特定的位置就是安全点。这也就意味着用户代码并不是在任何时候都可以暂停，然后进行垃圾回收，而是必须到达安全点才可以暂停。</p><p>安全点还需要考虑如何在垃圾收集发生时让所有线程（这里其实不包括执行JNI调用的线程）都跑到最近的安全点，然后停顿下来。这里有两种方案可供选择：<strong>抢先式中断</strong>（Preemptive Suspension）和<strong>主动式中断</strong>（Voluntary Suspension）</p><p>抢先式中断在垃圾收集发生时，系统首先把所有用户线程全部中断，如果发现有用户线程中断的地方不在安全点上，就恢复这条线程执行，让它一会再重新中断，直到跑到安全点上。几乎没有虚拟机使用。</p><p>主动式中断的思想是当垃圾收集需要中断线程的时候，不直接对线程操作，仅仅简单地设置一个标志位，各个线程执行过程时会不停地主动去轮询这个标志，一旦发现中断标志为真时就自己在最近的安全点上主动中断挂起。</p><h1 id="安全区域"><a href="#安全区域" class="headerlink" title="安全区域"></a>安全区域</h1><p>上面的安全点保证了正在执行的代码每隔一段时间都会遇到一个可以进行垃圾回收的点，但是对于那些没在运行的程序，就需要另外考虑。比如用户线程处于sleep状态或者Blocked状态，这时候线程无法响应虚拟机的中断请求，不能再走到安全点去中断挂起自己，这时候就需要引入安全区域。</p><p>安全区域能够保证在一段代码内，引用关系不会发生变化，因此在这段区域内任何地方进行垃圾回收都是安全的。</p><p>当用户线程执行到安全区域时，会标识自己已经进入，那样当这段时间里虚拟机要发起垃圾收集时就不必去管这些已声明自己在安全区域内的线程了。当线程要离开安全区域时，它要检查虚拟机是否已经完成了根节点枚举（或者垃圾收集过程中其他需要暂停用户线程的阶段），如果完成了，那线程就当作没事发生过，继续执行；否则它就必须一直等待，直到收到可以离开安全区域的信号为止。</p><h1 id="记忆收集卡"><a href="#记忆收集卡" class="headerlink" title="记忆收集卡"></a>记忆收集卡</h1><p>记忆集是一种用于记录从<strong>非收集区域指</strong>向<strong>收集区域</strong>的指针集合的抽象数据结构。存储在新生代当中。</p><p>有了记忆集之后，在进行垃圾收集时，收集器只需要通过记忆集判断出某一块非收集区域是否有指向目前正在收集区域的指针就可以了。</p><p>一种最常用的实现记忆集的方式是卡表，卡表的每个记录精确到一块内存区域，该区域内有对象含有的跨代指针。</p><p>一个具体的卡表结构如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230313203352373.png" alt="image-20230313203352373" style="zoom:50%;" /><p>字节数组CARD_TABLE的每一个元素都对应着其标识的内存区域中一块特定大小的内存块，这个内存块被称作“卡页”（Card Page）。</p><p>一个卡页的内存中通常包含不止一个对象，只要卡页内有一个（或更多）对象的字段存在着<strong>跨代指针</strong>，那就将对应卡表的数组元素的值标识为1，称为这个<strong>元素变脏（Dirty）</strong>，没有则标识为0。在垃圾收集发生时，<strong>只要筛选出卡表中变脏的元素</strong>，就能轻易得出哪些卡页内存块中包含跨代指针，把它们加入GC Roots中一并扫描。</p><h1 id="写屏障"><a href="#写屏障" class="headerlink" title="写屏障"></a>写屏障</h1><p>在有其他分代区域中的对象引用了本区域的对象时，卡表需要变脏，变脏的时间点原则上在发生引用类型字段赋值的那一刻。但是如何在赋值的那一刻更新维护卡表呢？如果是解释执行的字节码，好处理一点，因为虚拟机负责每条字节码指令的执行。但是在经过即时编译的代码已经是纯粹的机器指令，虚拟机无法处理。</p><p>在HotSpot虚拟机中是通过<strong>写屏障</strong>维护卡表状态的。写屏障可以看作在虚拟机层面对引用类型字段赋值这个动作的AOP切面，在引用对象赋值时会产生一个环形通知，供程序执行额外的动作，也就是说赋值的前后都在写屏障的覆盖范畴内。在赋值前的屏障叫做写前屏障，赋值后的屏障叫做写后屏障。</p><p>卡表在高并发场景下还面临着<strong>伪共享的问题</strong>。伪共享是处理并发底层细节时一种经常需要考虑的问题，现代中央处理器的缓存系统中是以缓存行（Cache Line）为单位存储的，当多线程修改互相独立的变量时，如果这些变量恰好共享同一个缓存行，就会彼此影响（写回、无效化或者同步）而导致性能降低，这就是伪共享问题。</p><p>为了避免伪共享问题，一种简单的解决方案是不采用无条件的写屏障，而是先检查卡表标记，只有当该卡表元素未被标记过时才将其标记为变脏。</p><h1 id="并发的可达性分析"><a href="#并发的可达性分析" class="headerlink" title="并发的可达性分析"></a>并发的可达性分析</h1>]]></content>
     
     
       
@@ -515,34 +540,6 @@
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
     <category term="事务" scheme="http://example.com/tags/%E4%BA%8B%E5%8A%A1/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Java线程安全</title>
-    <link href="http://example.com/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/"/>
-    <id>http://example.com/2023/03/29/Java%E7%BA%BF%E7%A8%8B%E5%AE%89%E5%85%A8/</id>
-    <published>2023-03-29T09:04:35.000Z</published>
-    <updated>2023-04-04T08:56:43.174Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="Java中的线程安全"><a href="#Java中的线程安全" class="headerlink" title="Java中的线程安全"></a>Java中的线程安全</h2><p>一个比较严格的线程安全定义：当多个线程同时访问一个对象时，如果不用考虑这些线程在运行时环境下的调度和交替执行，也不需要进行额外的同步，或者在调用方进行任何其他的协调操作，调用这个对象的行为都可以获得正确的结果，那就称这个对象是线程安全的</p><p>Java语言中的各种操作的共享数据可以分为以下五类：不可变，绝对线程安全，相对线程安全，线程兼容和线程对立。</p><h3 id="不可变"><a href="#不可变" class="headerlink" title="不可变"></a>不可变</h3><p>不可变的对象，他的线程一定是安全的。</p><h3 id="绝对线程安全"><a href="#绝对线程安全" class="headerlink" title="绝对线程安全"></a>绝对线程安全</h3><p>绝对线程安全需要满足上面提到的定义。而Java API中提到的线程安全的类，大多都是相对线程安全。比如说Vector是一个线程安全的容器，因为他的add(), get(), size()的方法都是用synchronized修饰的。尽管这样，并不意味着它永远不需要同步手段。</p><p>比如以下代码：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="keyword">static</span> Vector&lt;Integer&gt; vector = <span class="keyword">new</span> <span class="title class_">Vector</span>&lt;Integer&gt;();</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"><span class="keyword">while</span> (<span class="literal">true</span>) &#123;</span><br><span class="line"><span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">10</span>; i++) &#123;</span><br><span class="line">vector.add(i);</span><br><span class="line">&#125;</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">removeThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    vector.remove(i);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">        <span class="type">Thread</span> <span class="variable">printThread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; vector.size(); i++) &#123;</span><br><span class="line">                    System.out.println((vector.get(i)));</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        </span><br><span class="line">removeThread.start();</span><br><span class="line">printThread.start();</span><br><span class="line">        </span><br><span class="line"><span class="comment">//不要同时产生过多的线程，否则会导致操作系统假死</span></span><br><span class="line"><span class="keyword">while</span> (Thread.activeCount() &gt; <span class="number">20</span>);</span><br><span class="line">&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码运行之后就会报错，原因是如果一个线程在错误的时间删除一个元素，那么其他元素在获取对应下标时就会报错。虽然它的get和remove都是原子操作，但是原子操作组合原子操作并不一定是原子操作。</p><p>当调用vector.size()获取大小时，它确实是原子性的。但是后续循环中，vector中的元素会被删除，导致get操作获取错误的下标。</p><p>所以说在操作这些容器时，还是需要手动加锁。</p><h3 id="相对线程安全"><a href="#相对线程安全" class="headerlink" title="相对线程安全"></a>相对线程安全</h3><p>相对线程安全就是我们通常意义上所说的安全，它需要保证对这个对象单次的操作是线程安全的，我们在调用的时候不需要进行额外的操作，但是对于特定顺序的调用，就需要额外操作的同步手段来保证。</p><h3 id="线程兼容"><a href="#线程兼容" class="headerlink" title="线程兼容"></a>线程兼容</h3><p>线程兼容是指对象本身不是线程安全的，但是可以通过在调用端使用一些同步手段来保证线程安全。比如HashMap， ArrayList等。</p><h3 id="线程对立"><a href="#线程对立" class="headerlink" title="线程对立"></a>线程对立</h3><p>线程对立是指不管调用端是否采取了同步措施，都无法在多线程环境中并发使用代码。</p><h2 id="线程安全的实现方法"><a href="#线程安全的实现方法" class="headerlink" title="线程安全的实现方法"></a>线程安全的实现方法</h2><h3 id="1、互斥同步"><a href="#1、互斥同步" class="headerlink" title="1、互斥同步"></a>1、互斥同步</h3><p>互斥同步在多个线程访问共享数据时，保证共享数据在同一时刻只被一条线程使用。</p><p>Java中最基本的互斥同步手段就是synchronized关键字，这是一种块结构的同步语法。synchronized关键字经过Javac编译之后，会在同步块的前后分别形成monitorenter和monitorexit这两个字节码指令。这两个字节码指令都需要一个reference类型的参数来指明要锁定和解锁的对象。</p><p>如果Java源码中的synchronized明确指定了对象参数，那就以这个对象的引用作为reference；如果没有明确指定，那将根据synchronized修饰的方法类型（如实例方法或类方法），来决定是取代码所在的对象实例还是取类型对应的Class对象来作为线程要持有的锁。</p><p>在执行monitorenter时，会先尝试获取锁，如果对象没有被锁定，或者当前线程已经持有了那个对象的锁，就把锁的计数加一，而在执行monitorexit时就会把锁的计数器减一。计数器为0，释放锁。如果获取锁失败，就会被阻塞，直到请求锁定的对象上面的锁被释放。</p><p>这也就意味着，synchronized修饰的变量，一个线程获取锁后，可以在上面加很多把锁，也不会造成死锁，而且不可被中断。</p><p>除了synchronized关键字以外，jdk5以后，提供了JUC包的Lock接口，可以让用于以非块结构实现互斥同步。</p><p>ReentrantLock是Lock接口最常见的实现，它也是可重入锁，但是与synchronized有一定的区别，主要是以下三点：</p><p>1、等待可中断：当持有锁的线程长时间没有释放锁时，等待这把锁的线程可以选择放弃等待，而synchronized修饰的却不可以（获取锁失败会被阻塞）。</p><p>2、公平锁：多个线程等待锁，会按照申请锁的顺序依次获得。ReentrantLock默认情况下是非公平锁，一旦开启公平锁，会影响性能。</p><p>3、绑定多个条件：是指一个ReentrantLock对象可以同时绑定多个Condition对象。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Lock</span> <span class="variable">lock</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ReentrantLock</span>();</span><br><span class="line"></span><br><span class="line"><span class="type">Condition</span> <span class="variable">c1</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c2</span> <span class="operator">=</span> lock.newCondition();</span><br><span class="line"><span class="type">Condition</span> <span class="variable">c3</span> <span class="operator">=</span> lock.newCondition();</span><br></pre></td></tr></table></figure><p>这段代码就相当于把lock绑定了三个Condition，可以通过c1或者c2，在不同的情况下是一个线程休眠或者唤醒一个线程。而synchronized想要关联多个条件，则需要添加多个锁。</p><h3 id="2、非阻塞同步"><a href="#2、非阻塞同步" class="headerlink" title="2、非阻塞同步"></a>2、非阻塞同步</h3><p>互斥同步不可避免的面临线程唤醒时带来的性能开销，这种也称为阻塞同步。互斥同步可以理解为一种悲观锁，即不加锁就一定会出问题，所以无论是否出现竞争，都会加锁，这会导致用户态切换到核心态的转换、维护锁计数器和检查是否有阻塞的线程等待唤醒。</p><p>随着硬件发展，有了另一种方案，基于冲突检测的乐观并发策略，即不管风险，直接进行操作，如果没有其他线程竞争，则执行成功，否则就一直尝试，直到没有竞争。这种方案不需要把线程阻塞挂起，因此也成为非阻塞同步。</p><p>JDK5之后，java类库开始使用CAS操作。CAS指令需要有三个操作数，分别是内存位置，旧的预期值以及准备设置的新值。当该指令执行时，仅当内存位置的值符合预期值时，才会用新的值去更新内存位置的值。</p><p>但是CAS检查并不一定能保证该值没有被修改过，例如一个值本来是1，在执行CAS操作时，它的值被改为了2，然后又被改为了1，虽然检查时还是1，但是值已经被修改了。</p><p>JUC包对此做了修改，控制变量的版本来保证没有被修改过。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;Java中的线程安全&quot;&gt;&lt;a href=&quot;#Java中的线程安全&quot; class=&quot;headerlink&quot; title=&quot;Java中的线程安全&quot;&gt;&lt;/a&gt;Java中的线程安全&lt;/h2&gt;&lt;p&gt;一个比较严格的线程安全定义：当多个线程同时访问一个对象时，如果不用考虑这些线</summary>
-      
-    
-    
-    
-    <category term="Java" scheme="http://example.com/categories/Java/"/>
-    
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    <category term="线程" scheme="http://example.com/tags/%E7%BA%BF%E7%A8%8B/"/>
     
   </entry>
   
