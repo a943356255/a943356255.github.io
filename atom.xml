@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-07T07:53:59.793Z</updated>
+  <updated>2023-04-10T08:22:23.781Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,39 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>order by是怎么工作的</title>
+    <link href="http://example.com/2023/04/10/by%E6%98%AF%E6%80%8E%E4%B9%88%E5%B7%A5%E4%BD%9C%E7%9A%84/"/>
+    <id>http://example.com/2023/04/10/by%E6%98%AF%E6%80%8E%E4%B9%88%E5%B7%A5%E4%BD%9C%E7%9A%84/</id>
+    <published>2023-04-10T07:38:21.000Z</published>
+    <updated>2023-04-10T08:22:23.781Z</updated>
+    
+    <content type="html"><![CDATA[<p>假设我们现在有如下表，其中<strong>id是主键，city上有普通索引</strong>。</p><table><thead><tr><th>id</th><th>city</th><th>name</th><th>age</th></tr></thead><tbody><tr><td>1</td><td>杭州</td><td>张三</td><td>22</td></tr><tr><td>2</td><td>杭州</td><td>李四</td><td>23</td></tr><tr><td>3</td><td>郑州</td><td>王五</td><td>24</td></tr><tr><td>……</td><td>……</td><td>……</td><td>……</td></tr></tbody></table><p>现在需要查出city为杭州的人的性命和年龄，并按照年龄排序的前100个人。那么sql语句如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select city, name, age from t where city=&#x27;杭州&#x27; order by name limit 100;</span><br></pre></td></tr></table></figure><h1 id="全字段排序"><a href="#全字段排序" class="headerlink" title="全字段排序"></a>全字段排序</h1><p>先初始化sort_buffer，这是一块用于排序的内存，然后确定放入city，name，age三个字段。</p><p>之后，会在city索引树中找到值为杭州的记录，然后去主键索引取这一行的值存入sort_buffer，直到city不为杭州。</p><p>然后在sort_buffer中使用快排根据name字段进行排序，对排序结果取前100行返回给客户端。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410155143209.png" alt="image-20230410155143209" style="zoom: 67%;" /><p>其中，如果取出的数据量太大，无法存入sort_buffer，则需要利用磁盘临时文件辅助排序。</p><h1 id="rowid排序"><a href="#rowid排序" class="headerlink" title="rowid排序"></a>rowid排序</h1><p>上述情况可以把所有数据都放入sort_buffer中进行排序，但是如果不能全部放入，会把原来的文件分成多份，借助临时文件来进行归并排序。如果一行的数据量太大，则要分的份数太多，会影响性能。</p><p>MySQL提供了一个参数，max_length_for_sort_data用于限制排序的行数据的长度。比如我们设置它为16，如果sort_buffer在初始时确定放入字段的长度超过16，则会采用rowid排序。</p><p>现在的排序过程如下：</p><p>初始化sort_buffer，确定放入id和name字段（只放入排序相关的字段）。</p><p>这之后的步骤与上面的排序过程类似，不过在sort_buffer内排序完成后，需要根据id去主键上取city，name，age字段后，再返回给用户。相当于多了一次回表操作。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410160554644.png" alt="image-20230410160554644" style="zoom:67%;" /><h1 id="全字段排序和rowid排序"><a href="#全字段排序和rowid排序" class="headerlink" title="全字段排序和rowid排序"></a>全字段排序和rowid排序</h1><p>如果内存足够大，则会优先使用全字段排序，因为可以减少一次回表操作，否则会采用rowid排序。</p><p>这里也体现了MySQL的一个设计思想：能用内存就用，尽量减少磁盘访问。</p><h1 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h1><p>上述SQL需要排序是因为数据是无序的，但是如果我们保证了从city索引中取出的数据就是按name有序的，就可以省略掉排序的过程。</p><p>所以我们可以建立一个联合索引 (city, name)，然后执行流程如下：</p><p>1、从联合索引中找到city为杭州的记录。</p><p>2、去主键索引取name、city、age三个字段的值，作为结果集的一部分直接返回。</p><p>3、一直重复上述步骤，直到city不为杭州或者够100条记录。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410161831144.png" alt="image-20230410161831144" style="zoom:67%;" /><p>这样，就不需要使用临时表了。</p><p>如果创建了（city，name，age）的联合索引，则还可以省去回表的操作，进一步优化查询时间。但是会导致索引占用空间过多。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;假设我们现在有如下表，其中&lt;strong&gt;id是主键，city上有普通索引&lt;/strong&gt;。&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;id&lt;/th&gt;
+&lt;th&gt;city&lt;/th&gt;
+&lt;th&gt;name&lt;/th&gt;
+&lt;th&gt;age&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/the</summary>
+      
+    
+    
+    
+    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis数据删除</title>
@@ -403,9 +436,9 @@
     <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
     
     
-    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
-    
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
   </entry>
   
@@ -514,32 +547,6 @@
     
     
     <category term="缓存失效" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98%E5%A4%B1%E6%95%88/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL事务隔离</title>
-    <link href="http://example.com/2023/03/30/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/"/>
-    <id>http://example.com/2023/03/30/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</id>
-    <published>2023-03-30T01:27:07.000Z</published>
-    <updated>2023-04-02T07:27:19.570Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p><h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p><h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p><p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p><p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p><p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p><p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p><p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p><p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p><p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p><p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p><h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p><p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p><p>读未提交没有试图的概念，它永远返回最新值。</p><p>串行化是通过加锁避免并行访问。</p><h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p><p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p><p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p><h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p><p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p><p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;什么是事务&quot;&gt;&lt;a href=&quot;#什么是事务&quot; class=&quot;headerlink&quot; title=&quot;什么是事务&quot;&gt;&lt;/a&gt;什么是事务&lt;/h2&gt;&lt;p&gt;事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency</summary>
-      
-    
-    
-    
-    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-    <category term="事务" scheme="http://example.com/tags/%E4%BA%8B%E5%8A%A1/"/>
     
   </entry>
   
