@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-13T09:08:14.022Z</updated>
+  <updated>2023-04-14T09:09:45.106Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,96 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>调度：多级反馈队列</title>
+    <link href="http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/"/>
+    <id>http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</id>
+    <published>2023-04-14T08:10:53.000Z</published>
+    <updated>2023-04-14T09:09:45.106Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;基本规则&quot;&gt;&lt;a href=&quot;#基本规则&quot; class=&quot;headerlink&quot; title=&quot;基本规则&quot;&gt;&lt;/a&gt;基本规则&lt;/h1&gt;&lt;p&gt;MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+    <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>MySQL的幻读</title>
+    <link href="http://example.com/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/"/>
+    <id>http://example.com/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/</id>
+    <published>2023-04-14T05:55:01.000Z</published>
+    <updated>2023-04-14T07:35:40.932Z</updated>
+    
+    <content type="html"><![CDATA[<p>这篇文章将介绍MySQL幻读相关的内容。</p><p>假设数据库中有以下表：</p><table><thead><tr><th>id</th><th>c</th><th>d</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>5</td><td>5</td><td>5</td></tr><tr><td>10</td><td>10</td><td>10</td></tr><tr><td>15</td><td>15</td><td>15</td></tr><tr><td>20</td><td>20</td><td>20</td></tr><tr><td>25</td><td>25</td><td>25</td></tr></tbody></table><p>其中id是主键，c上建立有普通索引。</p><p>以下讨论场景除非必要说明，否则都是在可重复读的隔离级别下。</p><h1 id="什么是幻读"><a href="#什么是幻读" class="headerlink" title="什么是幻读"></a>什么是幻读</h1><p>现在考虑以下场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414141001291.png" alt="image-20230414141001291" style="zoom:50%;" /><p>其中，select * from table for update表示当前读，并且加上写锁。</p><p>幻读就是指在同一个事务中执行相同的sql，后一次查询看到了前一次没看到的数据。就比如Q3比Q2多了一条数据。</p><p>Q2看到Q1并不被称为幻读，幻读仅仅指新插入的数据。</p><p>在可重复读的隔离级别下，普通查询是看不到其他插入的数据，只有当前读（要能读到所有已经提交的记录的最新值）才有可能出现幻读。</p><h1 id="幻读存在的问题"><a href="#幻读存在的问题" class="headerlink" title="幻读存在的问题"></a>幻读存在的问题</h1><h2 id="1、语义的破坏"><a href="#1、语义的破坏" class="headerlink" title="1、语义的破坏"></a>1、语义的破坏</h2><p>session A已经声明了写锁，即要锁住d &#x3D; 5的行，不允许其他事务进行读写，而后续却插入了一条d &#x3D; 5的数据。</p><p>考虑另一个更明显的场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414143724913.png" alt="image-20230414143724913" style="zoom: 50%;" /><p>sessionB将id &#x3D; 0的这一行的d改成了5，然后又把c改成了5，也就是说变化为从（0，0，5）-&gt;（0，5，5）。这样破坏了sessionA要锁住所有d&#x3D;5的行的加锁声明。</p><p>sessionC也是同样的道理，修改了d &#x3D; 5，id &#x3D; 1的行。</p><h2 id="2、数据一致性问题"><a href="#2、数据一致性问题" class="headerlink" title="2、数据一致性问题"></a>2、数据一致性问题</h2><p>现在在sessionA追加一条语句：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414144337377.png" alt="image-20230414144337377" style="zoom:50%;" /><p>此时，sessionA要锁住d &#x3D; 5的这一行，然后把d 改为100，即sessionA在T1要做的操作为将（5，5，5）-&gt; (5，5，100)。</p><p>在T2时刻，id &#x3D; 0这一行变成了（0，5，5）</p><p>在T4时刻，数据库多了一条（1，5，5）的记录。</p><p>但是我们看binlog的内容：</p><p>在T2时刻，sessionB提交，写入两条语句，两条update。</p><p>T4时刻，sessionC提交，写入两条语句，一条insert，一条update。</p><p>把上面的语句放在一起，顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/* sessionB */</span><br><span class="line">update t set d = 5 where id = 0; /*(0,0,5)*/</span><br><span class="line">update t set c = 5 where id = 0; /*(0,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionC */</span><br><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c = 5 where id = 1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionA */</span><br><span class="line">update t set d = 100 where d = 5;/*所有d=5的行，d改成100*/</span><br></pre></td></tr></table></figure><p>通过这个语句的顺序，如果我们要拿它来恢复数据，最终恢复出来的数据会变为： (0,5,100)、(1,5,100) 和 (5,5,100)。</p><p>而正确的数据应该是（0，5，5），（1，5，5）和（5，5，100）。因为在可重复读隔离级别下，事务A没提交，事务B和C看不到A的修改，而事务A在提交之前看不到B和C的修改。</p><p>这里的数据不一致是因为我们假设了select * from t where d&#x3D;5 for update这条语句只给id &#x3D; 5这一样加锁导致的。</p><p>现在我们假设把扫描过程中的所有行都加锁，场景如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414150914211.png" alt="image-20230414150914211" style="zoom:50%;" /><p>这个时候，id &#x3D; 0的这一行在修改时，由于被加了锁，所以无法执行。也就是说现在的执行顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c=5 where id=1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">update t set d=100 where d=5;/*所有d=5的行，d改成100*/</span><br><span class="line"></span><br><span class="line">update t set d=5 where id=0; /*(0,0,5)*/</span><br><span class="line">update t set c=5 where id=0; /*(0,5,5)*/</span><br></pre></td></tr></table></figure><p>此时，id &#x3D; 0的这一行数据正确，但是新插入的id &#x3D; 1的问题还是没有解决。</p><p><strong>也就是说，即使把所有的记录都加上锁，还是阻止不了新插入的记录</strong>，这也是为什么要单独解决幻读。</p><h1 id="如何解决"><a href="#如何解决" class="headerlink" title="如何解决"></a>如何解决</h1><p>即使我们在一开始就锁住所有行，但是由于插入语句是在行的间隙进行的，所以InnoDB的解决办法是引入了间隙锁(Gap Lock)。比如开头的表，有6行数据，7个间隙。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414151304834.png" alt="image-20230414151304834" style="zoom:67%;" /><p>这样，当你执行 select * from t where d&#x3D;5 for update的时候，就不止是给数据库中已有的6个记录加上了行锁，还同时加了7个间隙锁。这样就确保了无法再插入新的记录。</p><p>间隙锁和间隙锁之间不冲突，两个事务可以在同一个间隙加间隙锁，与间隙锁冲突的是往间隙插入数据的操作。</p><p><strong>间隙锁和行锁合称next-key lock</strong>，每个next-key lock是前开后闭区间，</p><p>间隙锁只有在可重复读的隔离级别下才有。而且引入间隙锁会降低并发度，并且有可能造成死锁。</p><p>另外一种解决幻读的方式是采用读提交的隔离级别加binlog_format&#x3D;row。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;这篇文章将介绍MySQL幻读相关的内容。&lt;/p&gt;
+&lt;p&gt;假设数据库中有以下表：&lt;/p&gt;
+&lt;table&gt;
+&lt;thead&gt;
+&lt;tr&gt;
+&lt;th&gt;id&lt;/th&gt;
+&lt;th&gt;c&lt;/th&gt;
+&lt;th&gt;d&lt;/th&gt;
+&lt;/tr&gt;
+&lt;/thead&gt;
+&lt;tbody&gt;&lt;tr&gt;
+&lt;td&gt;0&lt;/td&gt;
+</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>DNS域名解析</title>
+    <link href="http://example.com/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/"/>
+    <id>http://example.com/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/</id>
+    <published>2023-04-14T02:22:20.000Z</published>
+    <updated>2023-04-14T03:15:16.934Z</updated>
+    
+    <content type="html"><![CDATA[<p>DNS是一个由分层的DNS服务器实现的分布式数据库，它主要记录了域名与IP地址的对应关系。</p><p>我们平时访问网站，都是输入域名，而不是IP地址，而域名被解析为对应IP地址这一步，就是由DNS实现的。</p><p>它还提供了一些其他的服务，比如说将一个域名映射到多个IP地址上，用于减轻单个服务器的压力。</p><h1 id="DNS架构"><a href="#DNS架构" class="headerlink" title="DNS架构"></a>DNS架构</h1><p>它是一个分布式的数据库，且分多层次。</p><p>不采用单点是因为如果单点故障，那么整个因特网就不能用，而且单点无法承载那么大的请求量，存储那么多的数据。如果采用单点，还会因为地理位置原因导致很大的时延。</p><h2 id="分层"><a href="#分层" class="headerlink" title="分层"></a>分层</h2><p>DNS分为根域名服务器，顶级域名服务器，权威域名服务器和本地域名服务器。</p><p>一个用户在浏览器中输入一个域名，解析的过程大致如下（迭代查询）：</p><p>1、向本地域名服务器发送请求。</p><p>2、本地域名服务器向根域名服务器发送请求，根域名服务器返回顶级域名服务器的地址。</p><p>3、本地再向顶级域名服务器发起请求，顶级域名服务器返回权威域名服务器的地址，到这一步就可以获取到IP。</p><p>4、本地域名服务器将获取到的ip返回给用户浏览器。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/test.png" alt="test" style="zoom: 50%;" /><p>递归查询：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414110639339.png" alt="image-20230414110639339" style="zoom: 67%;" /><h2 id="DNS缓存"><a href="#DNS缓存" class="headerlink" title="DNS缓存"></a>DNS缓存</h2><p>某一个DNS服务器接受一个DNS回答时，它可以将映射存储在本地的存储器中，下一次如果有同样的映射，可以直接返回而不用去往下一层请求。</p><p>但是该缓存并不是永久存在的，过一段时间会被清除。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;DNS是一个由分层的DNS服务器实现的分布式数据库，它主要记录了域名与IP地址的对应关系。&lt;/p&gt;
+&lt;p&gt;我们平时访问网站，都是输入域名，而不是IP地址，而域名被解析为对应IP地址这一步，就是由DNS实现的。&lt;/p&gt;
+&lt;p&gt;它还提供了一些其他的服务，比如说将一个域名映射到多</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    
+  </entry>
   
   <entry>
     <title>进程调度：介绍</title>
@@ -77,9 +167,9 @@
     <link href="http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/"/>
     <id>http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/</id>
     <published>2023-04-12T11:03:29.000Z</published>
-    <updated>2023-04-13T08:11:35.276Z</updated>
+    <updated>2023-04-14T08:11:55.119Z</updated>
     
-    <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h3 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h3><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h3 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h3><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h3 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h3><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+    <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h1 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h1><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h1 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h1><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h1 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h1><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
     
       
@@ -91,12 +181,12 @@
     
     
     
-    <category term="操作系统" scheme="http://example.com/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
     
     <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
-    
-    <category term="学习笔记" scheme="http://example.com/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
     
   </entry>
   
@@ -491,92 +581,6 @@
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
     <category term="事务" scheme="http://example.com/tags/%E4%BA%8B%E5%8A%A1/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Java对象的共享</title>
-    <link href="http://example.com/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/"/>
-    <id>http://example.com/2023/04/02/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/</id>
-    <published>2023-04-02T02:14:27.000Z</published>
-    <updated>2023-04-13T09:20:59.325Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="可见性"><a href="#可见性" class="headerlink" title="可见性"></a>可见性</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">NoVisibility</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">boolean</span> ready;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="type">int</span> number;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> <span class="keyword">class</span> <span class="title class_">ReaderThread</span> <span class="keyword">extends</span> <span class="title class_">Thread</span> &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">            <span class="keyword">while</span> (!ready) &#123;</span><br><span class="line">                <span class="comment">// 暂停当前正在执行的线程，放弃CPU资源，并执行其他线程。</span></span><br><span class="line">                Thread.<span class="keyword">yield</span>();</span><br><span class="line">            &#125;</span><br><span class="line">            System.out.println(number);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">ReaderThread</span>().start();</span><br><span class="line">        number = <span class="number">42</span>;</span><br><span class="line">        ready = <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码，在JDK8以前的版本中，可能会出现死循环或者输出0的情况，这里需要考虑线程执行到一半被中断的情况。</p><p>ReaderThread可能会看不到ready的值，导致它会一直处于循环状态。因为Java每个线程对数据的修改只能在工作内存中，然后同步会主内存。另外的一个线程需要从主内存读取才可以看到数据的变化。</p><p>而输出0的原因是指令重排序，也就是说虚拟机优化后，先执行了ready &#x3D; true的设定，这一步被ReaderThread看到，而给number赋值的操作在执行时，ReaderThread线程已经执行完毕了，所以打印了0。</p><p>但是这段代码在JDK8及其以上版本不会出现问题，因为在JDK8及其以上版本的Java内存模型中，针对静态域和final域的处理有所改进，多个线程间对这些域的访问不再存在可见性问题。</p><h2 id="失效数据"><a href="#失效数据" class="headerlink" title="失效数据"></a>失效数据</h2><p>上述代码出现循环的情况展示了非同步导致的一个问题，失效数据。也就是说ReaderThread线程读到的ready值是隐式初始化的一个false，但是这个false其实已经被改为了true，但是它却错误的读到了false。</p><h2 id="非原子的64位操作"><a href="#非原子的64位操作" class="headerlink" title="非原子的64位操作"></a>非原子的64位操作</h2><p>非volatile类型的64位的long和double，JVM允许将64位的读操作和写操作分解成两个32位的操作，如果对该变量的读操作和写操作不在同线程中执行，那么可能会读到某个数的高32位和另一个值得低32位，导致线程不安全。</p><h2 id="加锁与可见性"><a href="#加锁与可见性" class="headerlink" title="加锁与可见性"></a>加锁与可见性</h2><p>加锁得含义不仅仅局限于互斥行为，还包括可见性。为了确保所有线程都能看到共享变量得最新值，所有执行读操作或者写操作得线程都必须在同一个锁上同步。</p><h2 id="volatile变量"><a href="#volatile变量" class="headerlink" title="volatile变量"></a>volatile变量</h2><p>在Java内存模型中，volatile关键字的可见性是通过使用内存屏障来保证的。内存屏障是CPU指令的一种，可以强制CPU在指令序列中插入一条特殊指令，它会让CPU在执行到该指令时停下来，然后刷新缓存中的数据，让数据立即写入主内存，同时让其他CPU缓存中的数据无效，让其他CPU从主内存重新读取数据。</p><p>当一个变量被volatile关键字修饰时，Java编译器会在生成的字节码中插入内存屏障指令，这样在访问volatile变量时，读线程会强制从主内存中读取该变量的最新值，而不是使用本地缓存中的旧值。类似地，写线程写入volatile变量时，会强制将该变量的值刷新到主内存中，而不是仅仅保存在本地缓存中。</p><p>由于内存屏障的存在，保证了volatile变量的读写操作具有原子性和可见性。读线程读取到的是最新值，写线程写入的也是最新值，其他线程在读写该变量时也能读写到最新的值。因此，使用volatile关键字修饰的变量可以在多线程并发访问时保证数据的正确性。</p><h1 id="发布与逃逸"><a href="#发布与逃逸" class="headerlink" title="发布与逃逸"></a>发布与逃逸</h1><p>发布指的使一个对象可以在当前作用域之外的地方使用。例如将一个指向局部变量的指针保存在其他代码可以访问的地方。发布最简单的做法是将一个对象的引用放到一个共有的静态变量当中。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Set&lt;Secret&gt; knowSecrets;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">initialize</span><span class="params">()</span> &#123;</span><br><span class="line">    knowSecrets = <span class="keyword">new</span> <span class="title class_">HashSet</span>&lt;&gt;();</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>而发布knowSecrets对象是，可能会导致在该集合中的对象被间接的发布，因为能拿到knowSecrets，就可以操作其里面的内容。</p><h2 id="一个this引用逃逸的例子"><a href="#一个this引用逃逸的例子" class="headerlink" title="一个this引用逃逸的例子"></a>一个this引用逃逸的例子</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                    doSomething(e);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        )</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这里涉及到匿名内部类，一个匿名内部类在构造时，编译器会默认把父类的引用隐式的传进来。也就意味着，上面的onEvent方法，他调用的doSomething可能是父类的某个方法，只不过采用省略写法，没有用this.doSomething(e)。以下是换一种不抽象的写法：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ThisEscape</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> num;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">ThisEscape</span><span class="params">(EventSource source)</span> &#123;</span><br><span class="line">        source.registerListener(</span><br><span class="line">            <span class="comment">// 这里是一个匿名的内部类</span></span><br><span class="line">            <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">onEvent</span><span class="params">(<span class="type">int</span> num)</span> &#123;</span><br><span class="line">                    add(num);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        );</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> val)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.num += val;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>以上这种情况，如果在外部类，也就是ThisEscape初始化时，对num进行赋值，初始化还未完成时，却可以通过内部类对num进行修改，就会导致在num未初始化完成时，对其进行了修改。出现这种现象的原因是，ThisEscape的引用被EventListener提前暴露出去。</p><h2 id="使用工厂方法来防止this引用逃逸"><a href="#使用工厂方法来防止this引用逃逸" class="headerlink" title="使用工厂方法来防止this引用逃逸"></a>使用工厂方法来防止this引用逃逸</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SafeListener</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">final</span> EventListener eventListener;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">SafeListener</span><span class="params">()</span> &#123;</span><br><span class="line">        eventListener = <span class="keyword">new</span> <span class="title class_">EventListener</span>() &#123;</span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">doEvent</span><span class="params">(Event e)</span> &#123;</span><br><span class="line">                <span class="comment">// doSomething(e);</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> SafeListener <span class="title function_">newInstance</span><span class="params">(EventSource eventSource)</span> &#123;</span><br><span class="line">        <span class="type">SafeListener</span> <span class="variable">safeListener</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SafeListener</span>();</span><br><span class="line">        eventSource.registerListener(safeListener.eventListener);</span><br><span class="line">        <span class="keyword">return</span> safeListener;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种方法，使得注册监听在构造方法之后完成，所以不会导致引用逃逸。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Java并发编程实战》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;可见性&quot;&gt;&lt;a href=&quot;#可见性&quot; class=&quot;headerlink&quot; title=&quot;可见性&quot;&gt;&lt;/a&gt;可见性&lt;/h1&gt;&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;sp</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
-    
-    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
-    
-    
-    <category term="Java并发编程实战" scheme="http://example.com/tags/Java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%AE%9E%E6%88%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>HotSpot虚拟机中的对象</title>
-    <link href="http://example.com/2023/04/01/HotSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/"/>
-    <id>http://example.com/2023/04/01/HotSpot%E8%99%9A%E6%8B%9F%E6%9C%BA%E4%B8%AD%E7%9A%84%E5%AF%B9%E8%B1%A1/</id>
-    <published>2023-04-01T11:59:24.000Z</published>
-    <updated>2023-04-13T10:08:22.209Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文所涉及的内容都是基于HostSpot虚拟机而言的。</p><h1 id="对象的创建"><a href="#对象的创建" class="headerlink" title="对象的创建"></a>对象的创建</h1><p>一个对象的创建（这里不包括数组和Class对象），在Java中仅仅是一个new关键字，当虚拟机遇到字节码new指令时，它会先检查指令中的参数能否在常量池（①）中定位到一个<strong>符号引用</strong>（②），并且检查这个符号引用代表的类是否已经被加载、解析和初始化过，如果没有，那必须先执行类加载。</p><p>类加载检验通过后，虚拟机会在堆中为它划分一块区域，区域的大小在类加载完成后可以确定。这里划分区域根据不同虚拟机的设计，会有不同的方案。</p><p>如果Java堆内存是绝对规整的，一半放用过的，一半放空闲的，中间有一个指针用作分界。那么内存分配只需要将那个指针向空闲的方向移动与对象大小的位置即可，这种分配方式称为指针碰撞。</p><p>如果内存是不规整的，即使用的和未使用的内存交错在一起，虚拟机就需要维护一个列表，记录哪些内存是可以使用的，在分配时就需要从虚拟机中找到足够大小的空间划分给对象，并更新列表记录，这种称为空闲列表。</p><p>采用那种分配方案取决于堆是否规整，而是否规整又取决于垃圾收集器是否带有空间压缩整理的能力。</p><p>由于内存分配是特别频繁的一件事，指针移动这一操作并不是线程安全的，虚拟机采用的解决方案是CAS（③）配上失败重试的方式保证更新操作的原子性。</p><p>内存分配完成后，虚拟机会把分配到的内存空间都初始化为零值，这一步保证了对象实例字段在Java代码中可以不赋初始值就可以使用。</p><p>接下来，虚拟机就要设置对象的基本属性，比如这个对象是哪个类的实例，如何找到类的元数据，对象的哈希码，对象的GC分代年龄等信息。这些信息被放在<strong>对象头</strong>中。</p><h1 id="对象的内存布局"><a href="#对象的内存布局" class="headerlink" title="对象的内存布局"></a>对象的内存布局</h1><p>对象在堆中的存储布局可以划分为三个部分，对象头，实例数据，对齐填充。</p><p>对象头包括两部分信息，第一部分是存储自身运行时数据，如哈希码，GC分代年龄，锁状态标志，线程持有的锁，偏向线程ID等，这部分被称为Mark Word。这里面的有部分信息会在偏向锁，轻量级锁的实现中用到。</p><p>第二部分是类型指针，即对象指向它的类型元数据的指针，Java虚拟机通过该指针确定对象是哪个类的实例。这个指针指向每个对象生成的Class对象，位于方法区中。</p><p>数据实例部分是对象真正存储的有效信息，即我们在代码中定义的各种字段。</p><p>对齐填充并不是必定存在的，也没有特别含义。</p><h1 id="对象的访问定位"><a href="#对象的访问定位" class="headerlink" title="对象的访问定位"></a>对象的访问定位</h1><p>对象创建完后，会通过栈上的reference数据来操作堆上的对象，主流访问方式有以下两种：</p><h3 id="使用句柄"><a href="#使用句柄" class="headerlink" title="使用句柄"></a>使用句柄</h3><p>如果使用句柄的话，堆中会划分出一块内存来作为句柄池，reference存储的就是对象的句柄地址，句柄中包含了对象实例数据与类型数据各自具体的信息。具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092744890.png" alt="image-20230402092744890"></p><h3 id="直接指针"><a href="#直接指针" class="headerlink" title="直接指针"></a>直接指针</h3><p>如果使用直接指针访问的话，Java堆中对象的内存布局就必须考虑如何放置访问类型数据的相关信息，<strong>reference中存储的直接就是对象地址</strong>，如果只是访问对象本身的话，就不需要多一次间接访问的开销。直接指针的最大好处是省略了一次指针定位的开销。</p><p>具体结构如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402092841557.png" alt="image-20230402092841557"></p><h1 id="名词解释"><a href="#名词解释" class="headerlink" title="名词解释"></a>名词解释</h1><p>①常量池：常量池位于方法区中，用于存放编译器生成的各种<strong>字面量</strong>与<strong>符号引用</strong></p><p>②符号引用：在Java虚拟机中，当一个类被加载时，它的类信息会被存储在运行时常量池中，包括类的名称、方法的名称和参数类型等信息，这些信息构成了符号引用。</p><p>③CAS操作：类似于版本控制，不过是在字节码层面的。它涉及到3个值，原值A，以及A的副本，要修改的值C。在修改时，它会验证A的值是否等于副本A，如果等，再将C的值写入。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;本文所涉及的内容都是基于HostSpot虚拟机而言的。&lt;/p&gt;
-&lt;h1 id=&quot;对象的创建&quot;&gt;&lt;a href=&quot;#对象的创建&quot; class=&quot;headerlink&quot; title=&quot;对象的创建&quot;&gt;&lt;/a&gt;对象的创建&lt;/h1&gt;&lt;p&gt;一个对象的创建（这里不包括数组和Class对象</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
-    
-    <category term="虚拟机" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL全局锁和表锁</title>
-    <link href="http://example.com/2023/04/01/MySQL%E5%85%A8%E5%B1%80%E9%94%81%E5%92%8C%E8%A1%A8%E9%94%81/"/>
-    <id>http://example.com/2023/04/01/MySQL%E5%85%A8%E5%B1%80%E9%94%81%E5%92%8C%E8%A1%A8%E9%94%81/</id>
-    <published>2023-04-01T05:12:19.000Z</published>
-    <updated>2023-04-01T08:45:24.791Z</updated>
-    
-    <content type="html"><![CDATA[<p><strong>根据加锁的范围，MySQL里面的锁大致可以分成全局锁、表级锁和行锁三类</strong></p><h1 id="全局锁"><a href="#全局锁" class="headerlink" title="全局锁"></a>全局锁</h1><p>全局锁就是对整个数据库实例进行加锁。它的一个经典使用场景就是做全库的逻辑备份，也就是把整个库的数据都查出来存成文本。</p><p>加了全局锁之后，整个数据库系统就变为了只读状态，意味着很多业务不可以进行。但是如果不加，那么考虑以下情况：</p><p>现在有一个用户余额表以及用户库存表，假设用户购买商品时发起了逻辑备份，如果先备份余额表，后备份商品表，那么在扣除余额前余额表备份完成，添加商品到用户库存后才备份的库存表，这时如果用备份进行恢复，那么就会导致用户账户没有扣钱，但是却多了库存。如果反过来，则会导致用户账户被扣，而且没有商品。</p><p>而我们会发现，在真正导出数据时，是可以对数据库做修改。这是因为导出数据前，数据库开启了一个<strong>可重复读</strong>隔离级别的事务，保证了在事务执行期间读到的数据和事务开始时是一致的。</p><h1 id="表级锁"><a href="#表级锁" class="headerlink" title="表级锁"></a>表级锁</h1><p>MySQL的表级锁有两种，一种是表锁，一种是元数据锁（MDL），</p><h2 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h2><p>可以使用<strong>lock tables … read&#x2F;write</strong>给数据库加表锁，可以使用unlock tables主动释放锁，也可以在客户端断开时自动释放。</p><p> 但是需要注意，加了表锁以后，其他线程无法访问这个表，而且加锁的线程接下来的操作也会受到限制。</p><p>比如线程A对执行了以下操作：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lock tables t1 read, t2 write</span><br></pre></td></tr></table></figure><p>那么其他所有线程写t1，读写t2的语句都会被阻塞，同时在线程A释放锁之前，它只能对表t1进行读操作，t2进行读写操作，而且不允许操作其他表。</p><h2 id="元数据锁（MDL）"><a href="#元数据锁（MDL）" class="headerlink" title="元数据锁（MDL）"></a>元数据锁（MDL）</h2><p>MDL锁并不用显式使用，在访问一个表时会被自动追加。它的作用是保证读写的正确性。</p><p>假如一个线程在遍历一张表获取数据，此时有另外一个线程删除了表中的一列，这样肯定是不行的。所以在MySQL5.5版本引入了MDL锁。当对一个表做增删改查操作时，加MDL共享锁（读锁），当需要对表结构做调整时，加MDL（排他锁）写锁。</p><p>MDL<strong>读锁</strong>之间不互斥，所以加读锁可以允许有多个线程同时对一张表进行增删改查。</p><p><strong>读锁与写锁</strong>之间以及<strong>写锁</strong>之间是互斥的，这就意味着如果有线程在进行正删改查时是不可以进行表结构调整，而调整时也不能进行增删改查。</p><p>正是由于上面的原因，考虑以下场景：</p><p>在一个事务中，线程A执行了查询语句，加了MDL读锁，线程B也执行查询操作，也加了MDL读锁，之后线程C试图修改表结构，需要MDL写锁，这时由于事务没有结束，线程A加的MDL读锁未释放，就会导致线程C被阻塞。但是后续申请MDL读锁的操作也会被线程C阻塞，这就导致了整个表的数据不可访问，严重时会导致数据库崩溃。</p><h1 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a>行锁</h1><p>MySQL的行锁是由各个存储引擎实现的，有些引擎是不支持行锁的。</p><h2 id="两阶段锁"><a href="#两阶段锁" class="headerlink" title="两阶段锁"></a>两阶段锁</h2><p>考虑以下场景：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401155349241.png" alt="image-20230401155349241"></p><p>事务B会被阻塞，直到事务A提交。这就意味着，事务A持有了id &#x3D; 1和id &#x3D; 2的行锁，但是在修改完它并不会立即释放该锁，而是等到事务结束后才释放。这个就是两阶段锁协议。</p><p>根据这个协议，我们应该在事务中需要锁多个行时，要把最可能造成冲突的、最可能影响并发度的锁尽量往后放。</p><h2 id="死锁和死锁检测"><a href="#死锁和死锁检测" class="headerlink" title="死锁和死锁检测"></a>死锁和死锁检测</h2><p>死锁，简单来说，就是线程A对资源C加了锁，线程B也对资源D加了锁，而线程A释放锁需要资源D，线程B释放锁需要资源C，就会导致死锁。</p><p>在MySQL中，考虑以下情况：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401160812101.png" alt="image-20230401160812101"></p><p>事务A对id &#x3D; 1的行加了锁， 事务B对id &#x3D; 2的行加了锁，然后事务A在修改 id &#x3D; 2时会被阻塞，事务B修改id &#x3D; 1时会被阻塞。但此时，他们两个会互相等待对方释放资源，导致死锁。</p><p>在MySQL中，可以设置超时时间，或者发起死锁检测，发现死锁后，主动回滚死锁链条中的某一个事务。将innodb_deadlock_detect参数设置未on表示开启死锁检测。</p><p>但是死锁的检测是一个时间复杂度为O(N)的操作，即每一个被堵住的线程，都要去判断是不是因为自己的加入导致了死锁，判断的方法就是遍历之前的线程去做判断。</p><h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>InnoDB行锁是<strong>通过给索引上的索引项加锁来实现的</strong>。这个索引项指的是在B+树索引结构中，指向一个具体行记录的索引项。索引项是一个键值和一个指向数据页和行号的指针。</p><p>InnoDB的索引是建立在数据页上面，而每一个数据页里面有很多条记录，每条记录都有一个对应的索引项。行锁就是锁住了这个索引项，也就是对应的每一条记录。</p><p>这也就意味着，如果查询或者修改的条件字段没有索引，那么就不会加行锁，而是直接加表锁。</p><p>比如说下面语句：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">update table1 set name = 1 where age = 20</span><br></pre></td></tr></table></figure><p>如果age字段没有索引，那么就会对table1整张表加锁。如果age有索引，那么就会加行锁。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;根据加锁的范围，MySQL里面的锁大致可以分成全局锁、表级锁和行锁三类&lt;/strong&gt;&lt;/p&gt;
-&lt;h1 id=&quot;全局锁&quot;&gt;&lt;a href=&quot;#全局锁&quot; class=&quot;headerlink&quot; title=&quot;全局锁&quot;&gt;&lt;/a&gt;全局锁&lt;/h1&gt;&lt;p&gt;全局锁就是对</summary>
-      
-    
-    
-    
-    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
-    
-    
-    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
   </entry>
   

@@ -4,6 +4,81 @@
   
     
     <entry>
+      <title>调度：多级反馈队列</title>
+      <link href="/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/"/>
+      <url>/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</url>
+      
+        <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> 操作系统 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 虚拟内存 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>MySQL的幻读</title>
+      <link href="/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/"/>
+      <url>/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/</url>
+      
+        <content type="html"><![CDATA[<p>这篇文章将介绍MySQL幻读相关的内容。</p><p>假设数据库中有以下表：</p><table><thead><tr><th>id</th><th>c</th><th>d</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>5</td><td>5</td><td>5</td></tr><tr><td>10</td><td>10</td><td>10</td></tr><tr><td>15</td><td>15</td><td>15</td></tr><tr><td>20</td><td>20</td><td>20</td></tr><tr><td>25</td><td>25</td><td>25</td></tr></tbody></table><p>其中id是主键，c上建立有普通索引。</p><p>以下讨论场景除非必要说明，否则都是在可重复读的隔离级别下。</p><h1 id="什么是幻读"><a href="#什么是幻读" class="headerlink" title="什么是幻读"></a>什么是幻读</h1><p>现在考虑以下场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414141001291.png" alt="image-20230414141001291" style="zoom:50%;" /><p>其中，select * from table for update表示当前读，并且加上写锁。</p><p>幻读就是指在同一个事务中执行相同的sql，后一次查询看到了前一次没看到的数据。就比如Q3比Q2多了一条数据。</p><p>Q2看到Q1并不被称为幻读，幻读仅仅指新插入的数据。</p><p>在可重复读的隔离级别下，普通查询是看不到其他插入的数据，只有当前读（要能读到所有已经提交的记录的最新值）才有可能出现幻读。</p><h1 id="幻读存在的问题"><a href="#幻读存在的问题" class="headerlink" title="幻读存在的问题"></a>幻读存在的问题</h1><h2 id="1、语义的破坏"><a href="#1、语义的破坏" class="headerlink" title="1、语义的破坏"></a>1、语义的破坏</h2><p>session A已经声明了写锁，即要锁住d &#x3D; 5的行，不允许其他事务进行读写，而后续却插入了一条d &#x3D; 5的数据。</p><p>考虑另一个更明显的场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414143724913.png" alt="image-20230414143724913" style="zoom: 50%;" /><p>sessionB将id &#x3D; 0的这一行的d改成了5，然后又把c改成了5，也就是说变化为从（0，0，5）-&gt;（0，5，5）。这样破坏了sessionA要锁住所有d&#x3D;5的行的加锁声明。</p><p>sessionC也是同样的道理，修改了d &#x3D; 5，id &#x3D; 1的行。</p><h2 id="2、数据一致性问题"><a href="#2、数据一致性问题" class="headerlink" title="2、数据一致性问题"></a>2、数据一致性问题</h2><p>现在在sessionA追加一条语句：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414144337377.png" alt="image-20230414144337377" style="zoom:50%;" /><p>此时，sessionA要锁住d &#x3D; 5的这一行，然后把d 改为100，即sessionA在T1要做的操作为将（5，5，5）-&gt; (5，5，100)。</p><p>在T2时刻，id &#x3D; 0这一行变成了（0，5，5）</p><p>在T4时刻，数据库多了一条（1，5，5）的记录。</p><p>但是我们看binlog的内容：</p><p>在T2时刻，sessionB提交，写入两条语句，两条update。</p><p>T4时刻，sessionC提交，写入两条语句，一条insert，一条update。</p><p>把上面的语句放在一起，顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/* sessionB */</span><br><span class="line">update t set d = 5 where id = 0; /*(0,0,5)*/</span><br><span class="line">update t set c = 5 where id = 0; /*(0,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionC */</span><br><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c = 5 where id = 1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionA */</span><br><span class="line">update t set d = 100 where d = 5;/*所有d=5的行，d改成100*/</span><br></pre></td></tr></table></figure><p>通过这个语句的顺序，如果我们要拿它来恢复数据，最终恢复出来的数据会变为： (0,5,100)、(1,5,100) 和 (5,5,100)。</p><p>而正确的数据应该是（0，5，5），（1，5，5）和（5，5，100）。因为在可重复读隔离级别下，事务A没提交，事务B和C看不到A的修改，而事务A在提交之前看不到B和C的修改。</p><p>这里的数据不一致是因为我们假设了select * from t where d&#x3D;5 for update这条语句只给id &#x3D; 5这一样加锁导致的。</p><p>现在我们假设把扫描过程中的所有行都加锁，场景如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414150914211.png" alt="image-20230414150914211" style="zoom:50%;" /><p>这个时候，id &#x3D; 0的这一行在修改时，由于被加了锁，所以无法执行。也就是说现在的执行顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c=5 where id=1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">update t set d=100 where d=5;/*所有d=5的行，d改成100*/</span><br><span class="line"></span><br><span class="line">update t set d=5 where id=0; /*(0,0,5)*/</span><br><span class="line">update t set c=5 where id=0; /*(0,5,5)*/</span><br></pre></td></tr></table></figure><p>此时，id &#x3D; 0的这一行数据正确，但是新插入的id &#x3D; 1的问题还是没有解决。</p><p><strong>也就是说，即使把所有的记录都加上锁，还是阻止不了新插入的记录</strong>，这也是为什么要单独解决幻读。</p><h1 id="如何解决"><a href="#如何解决" class="headerlink" title="如何解决"></a>如何解决</h1><p>即使我们在一开始就锁住所有行，但是由于插入语句是在行的间隙进行的，所以InnoDB的解决办法是引入了间隙锁(Gap Lock)。比如开头的表，有6行数据，7个间隙。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414151304834.png" alt="image-20230414151304834" style="zoom:67%;" /><p>这样，当你执行 select * from t where d&#x3D;5 for update的时候，就不止是给数据库中已有的6个记录加上了行锁，还同时加了7个间隙锁。这样就确保了无法再插入新的记录。</p><p>间隙锁和间隙锁之间不冲突，两个事务可以在同一个间隙加间隙锁，与间隙锁冲突的是往间隙插入数据的操作。</p><p><strong>间隙锁和行锁合称next-key lock</strong>，每个next-key lock是前开后闭区间，</p><p>间隙锁只有在可重复读的隔离级别下才有。而且引入间隙锁会降低并发度，并且有可能造成死锁。</p><p>另外一种解决幻读的方式是采用读提交的隔离级别加binlog_format&#x3D;row。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> MySQL </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> MySQL45讲 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>DNS域名解析</title>
+      <link href="/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/"/>
+      <url>/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/</url>
+      
+        <content type="html"><![CDATA[<p>DNS是一个由分层的DNS服务器实现的分布式数据库，它主要记录了域名与IP地址的对应关系。</p><p>我们平时访问网站，都是输入域名，而不是IP地址，而域名被解析为对应IP地址这一步，就是由DNS实现的。</p><p>它还提供了一些其他的服务，比如说将一个域名映射到多个IP地址上，用于减轻单个服务器的压力。</p><h1 id="DNS架构"><a href="#DNS架构" class="headerlink" title="DNS架构"></a>DNS架构</h1><p>它是一个分布式的数据库，且分多层次。</p><p>不采用单点是因为如果单点故障，那么整个因特网就不能用，而且单点无法承载那么大的请求量，存储那么多的数据。如果采用单点，还会因为地理位置原因导致很大的时延。</p><h2 id="分层"><a href="#分层" class="headerlink" title="分层"></a>分层</h2><p>DNS分为根域名服务器，顶级域名服务器，权威域名服务器和本地域名服务器。</p><p>一个用户在浏览器中输入一个域名，解析的过程大致如下（迭代查询）：</p><p>1、向本地域名服务器发送请求。</p><p>2、本地域名服务器向根域名服务器发送请求，根域名服务器返回顶级域名服务器的地址。</p><p>3、本地再向顶级域名服务器发起请求，顶级域名服务器返回权威域名服务器的地址，到这一步就可以获取到IP。</p><p>4、本地域名服务器将获取到的ip返回给用户浏览器。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/test.png" alt="test" style="zoom: 50%;" /><p>递归查询：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414110639339.png" alt="image-20230414110639339" style="zoom: 67%;" /><h2 id="DNS缓存"><a href="#DNS缓存" class="headerlink" title="DNS缓存"></a>DNS缓存</h2><p>某一个DNS服务器接受一个DNS回答时，它可以将映射存储在本地的存储器中，下一次如果有同样的映射，可以直接返回而不用去往下一层请求。</p><p>但是该缓存并不是永久存在的，过一段时间会被清除。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> 计算机网络 </category>
+          
+      </categories>
+      
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>进程调度：介绍</title>
       <link href="/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/"/>
       <url>/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/</url>
@@ -62,10 +137,12 @@
       <link href="/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/"/>
       <url>/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/</url>
       
-        <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h3 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h3><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h3 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h3><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h3 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h3><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+        <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h1 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h1><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h1 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h1><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h1 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h1><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
       
       
       <categories>
+          
+          <category> 学习笔记 </category>
           
           <category> 操作系统 </category>
           
@@ -75,8 +152,6 @@
         <tags>
             
             <tag> 虚拟内存 </tag>
-            
-            <tag> 学习笔记 </tag>
             
         </tags>
       
