@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-14T09:09:45.106Z</updated>
+  <updated>2023-04-14T12:55:14.960Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,11 +17,40 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>多处理器调度</title>
+    <link href="http://example.com/2023/04/14/%E5%A4%9A%E5%A4%84%E7%90%86%E5%99%A8%E8%B0%83%E5%BA%A6/"/>
+    <id>http://example.com/2023/04/14/%E5%A4%9A%E5%A4%84%E7%90%86%E5%99%A8%E8%B0%83%E5%BA%A6/</id>
+    <published>2023-04-14T09:20:38.000Z</published>
+    <updated>2023-04-14T12:55:14.960Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="多处理器架构"><a href="#多处理器架构" class="headerlink" title="多处理器架构"></a>多处理器架构</h1><p>多处理器与单处理器最大的区别在于对硬件缓存的使用，以及处理器之间共享数据的方式。</p><p>在单CPU系统中，存在多级硬件缓存，一般会让程序执行更快。</p><p>假设一个程序需要从内存中加载指令并读取一个值，在它第一次读取时，需要从内存中读取，之后处理器判定在短期内很可能会再次使用这个数据，会将其放入缓存中，下一次再请求时，直接从缓存中取即可。</p><p>在多CPU系统中，缓存则会变得复杂。</p><p>假如有两个CPU，一个内存。现在有一个运行在CPU1上的程序，要去地址A读值，但是CPU1里面没有该数据的缓存，所以需要去内存中读取，读取完成后，程序要修改地址A上的值，假设改为D，它会先写入缓存中，然后再去写入内存。但是写入内存时发生了中断，中断完后此程序交由CPU2执行，但是CPU2中没有数据的缓存，就需要从内存中读，这时候就会读到旧得数据，而不是修改后得D。</p><p>硬件提供了这个问题得解决方案：通过监控内存得访问，硬件可以保证获得正确数据，并确保共享内存的唯一性。</p><h1 id="单队列调度"><a href="#单队列调度" class="headerlink" title="单队列调度"></a>单队列调度</h1><p>这种调度方式就是采用一个队列来存储任务，然后有多个cpu从中获取任务，然后执行。但是这里需要用加锁的方式来保证调度的正确性，而加锁又会带来性能上的损耗。而且可能存在一种情况，一个任务频繁的在不同的cpu上运行，导致cpu的缓存几乎不起作用。我们应该尽可能保证一个任务一直在一个cpu上处理，来尽可能多的提高缓存命中率。</p><p>一个cpu缓存命中率特别低的情况：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205315810.png" alt="image-20230414205315810"></p><h1 id="多队列调度"><a href="#多队列调度" class="headerlink" title="多队列调度"></a>多队列调度</h1><p>这种设计下，队列与CPU是多对多的关系，我们可以让一个队列对应一个CPU。</p><p>这样锁的竞争就会小很多，如果每一个CPU只从固定的一个队列获取任务，甚至可以消除锁竞争。而且它的缓存亲和性比较好，一个队列里面的任务会固定在一个CPU上运行。</p><p>如果按照一个CPU只处理自己对应队列的任务，会存在一种情况，cpu1里的任务已经执行完了，而cpu2里的任务还没有，那么cpu2一直在忙碌 ，cpu1却在空闲，导致负载不均衡。</p><p>如下图：A独占cpu0，而B 和 D交替执行在cpu1上。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205421683.png" alt="image-20230414205421683"></p><p>若A执行完成，则会变成如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205507938.png" alt="image-20230414205507938"></p><p>解决办法：迁移。通过工作的跨cpu迁移，可以实现负载均衡。</p><p><strong>即cpu1可以处理cpu2对应队列中的任务。</strong></p><p>假如cpu1队列中一开始只有任务A，而cpu2中有任务B和D，那么在迁移的设计下，执行过程如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205237310.png" alt="image-20230414205237310"></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;多处理器架构&quot;&gt;&lt;a href=&quot;#多处理器架构&quot; class=&quot;headerlink&quot; title=&quot;多处理器架构&quot;&gt;&lt;/a&gt;多处理器架构&lt;/h1&gt;&lt;p&gt;多处理器与单处理器最大的区别在于对硬件缓存的使用，以及处理器之间共享数据的方式。&lt;/p&gt;
+&lt;p&gt;在单CPU系</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
     <title>调度：多级反馈队列</title>
     <link href="http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/"/>
     <id>http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</id>
     <published>2023-04-14T08:10:53.000Z</published>
-    <updated>2023-04-14T09:09:45.106Z</updated>
+    <updated>2023-04-14T09:19:29.112Z</updated>
     
     <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>]]></content>
     
@@ -37,8 +66,10 @@
     
     <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
+    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
-    <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -111,7 +142,7 @@
     <link href="http://example.com/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/"/>
     <id>http://example.com/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/</id>
     <published>2023-04-13T08:00:56.000Z</published>
-    <updated>2023-04-13T09:08:14.022Z</updated>
+    <updated>2023-04-14T09:19:58.110Z</updated>
     
     <content type="html"><![CDATA[<p>本文主要介绍一些基础的调度策略。</p><h1 id="调度指标"><a href="#调度指标" class="headerlink" title="调度指标"></a>调度指标</h1><p>以下算法的性能指标只考虑周转时间。</p><p>周转时间 &#x3D; 完成时间 - 到达时间</p><h1 id="先进先出（FIFO）"><a href="#先进先出（FIFO）" class="headerlink" title="先进先出（FIFO）"></a>先进先出（FIFO）</h1><p>这个算法的思路很简单，先来的先执行，并且易于实现。就好比有三个任务A，B，C，他们到来的顺序是B，A，C，那么就按照他们到来的顺序进行执行。</p><p>存在的问题：如果先来的任务执行了很长时间，会导致后边的任务等待很久才可以执行，这样会导致系统的周转时间变的很长。</p><h1 id="最短任务优先（SJF）"><a href="#最短任务优先（SJF）" class="headerlink" title="最短任务优先（SJF）"></a>最短任务优先（SJF）</h1><p>该算法会先运行短任务，然后运行次短任务，依次下去。如果任务同时到达，该算法较FIFO算法可以很好的解决平均周转时间长的问题。</p><p>但是如果任务不同时到达，那么执行时间长的任务比短时任务先到达，还是会导致短任务需要等待。</p><h1 id="最短完成时间优先（STCF）"><a href="#最短完成时间优先（STCF）" class="headerlink" title="最短完成时间优先（STCF）"></a>最短完成时间优先（STCF）</h1><p>上面两种算法都是非抢占式的。</p><p>而最短完成时间优先可以理解为一种抢占式的最短任务优先算法。</p><p>该算法下，没当有任务进入系统，会判断当前正在执行任务的剩余时间和新任务的时间，哪个短就执行哪个。</p><h1 id="新的性能指标"><a href="#新的性能指标" class="headerlink" title="新的性能指标"></a>新的性能指标</h1><p>从现在开始，性能不仅考虑周转时间，还要考虑响应时间。</p><p>响应时间 &#x3D; 首次运行 - 到达时间。</p><h1 id="轮转"><a href="#轮转" class="headerlink" title="轮转"></a>轮转</h1><p>在加入新的性能指标后，上述算法就会出现问题，因为会导致长任务的响应时间特别长。</p><p>轮转的思想是，每一个任务执行一个时间片，然后切换到队列中的下一个任务，而不是一个任务一直执行，直到完毕。</p><p>该算法需要考虑时间片长短的问题，太短会导致频繁切换而导致性能下降，而太长，则会导致周转时间和响应时间太长，所以需要权衡考虑。</p><h1 id="结合I-x2F-O"><a href="#结合I-x2F-O" class="headerlink" title="结合I&#x2F;O"></a>结合I&#x2F;O</h1><p>现在假设任务都需要进行I&#x2F;O操作，那么轮转这种设计方法就会体现出它的优势。</p><p>如果不进行轮转，先到来的任务占用处理器资源，然后又进行了I&#x2F;O操作，那么会导致一个任务占用处理器资源却不使用，而是进行I&#x2F;O操作，导致其他任务也无法执行，这是对处理器的浪费。</p><p>而轮转却能很好的解决该问题，因为任务在执行I&#x2F;O操作时，可以让出处理器，让其他任务使用。</p><h1 id="无法预知"><a href="#无法预知" class="headerlink" title="无法预知"></a>无法预知</h1><p>上面的讨论都是建立在操作系统知道任务需要处理多长时间，而事实情况是，执行时间是无法估计的，所以像SJF或者STCF这种算法，几乎无法实现。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
@@ -125,12 +156,14 @@
     
     
     
-    <category term="操作系统" scheme="http://example.com/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
     
-    <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
-    
-    <category term="学习笔记" scheme="http://example.com/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -139,7 +172,7 @@
     <link href="http://example.com/2023/04/12/%E6%9C%BA%E5%88%B6%EF%BC%9A%E5%8F%97%E9%99%90%E7%9B%B4%E6%8E%A5%E6%89%A7%E8%A1%8C/"/>
     <id>http://example.com/2023/04/12/%E6%9C%BA%E5%88%B6%EF%BC%9A%E5%8F%97%E9%99%90%E7%9B%B4%E6%8E%A5%E6%89%A7%E8%A1%8C/</id>
     <published>2023-04-12T12:05:09.000Z</published>
-    <updated>2023-04-13T09:09:21.622Z</updated>
+    <updated>2023-04-14T09:19:46.585Z</updated>
     
     <content type="html"><![CDATA[<p>当我们采用时分共享或者空分共享虚化CPU时，也要考虑它带来的问题，第一个是性能问题，频繁的进行上下文切换必然会导致性能下降。第二个是控制权，如何有效的运行进程，同时保留对CPU的控制。</p><p>关键问题：如何高效、可控的进行虚化。</p><h1 id="受限直接执行"><a href="#受限直接执行" class="headerlink" title="受限直接执行"></a>受限直接执行</h1><h2 id="1、直接执行"><a href="#1、直接执行" class="headerlink" title="1、直接执行"></a>1、直接执行</h2><p>直接执行比较好理解，即直接在CPU资源上运行程序即可。</p><p>当程序需要运行时，直接将代码加载到内存中，然后找到入口点运行用户代码。</p><p>但是如果没有限制，那么会产生问题：如何保证程序不做我们不想让它做的事情，另一方面是如何停止一个进程让另一个进程运行。</p><h2 id="2、受限制的操作"><a href="#2、受限制的操作" class="headerlink" title="2、受限制的操作"></a>2、受限制的操作</h2><p>关键问题：如何执行受限制的操作</p><p>一个进程要能够执行I&#x2F;O和其他一些受限制的操作，但又不能让进程控制系统。</p><p>针对这个问题，引入了一个新的处理器模式：用户模式。在用户模式下运行的代码会收到限制，比如不能发出I&#x2F;O请求。</p><p>与之对应的是内核模式。该模式代码可以做任何操作。</p><p>目前硬件提供了用户程序执行<strong>系统调用</strong>的功能，即用户代码可以通过系统调用执行如创建和销毁进程，与其他进程通信等。</p><p>要执行系统调用，程序必须执行特殊的陷阱（trap）指令。该指令跳入内核并将特权级别提升到内核模式。但是执行该指令时需要有足够多的寄存器来存储程序目前的状态，确保程序能够正确返回。</p><p>很明显的一点是，发起系统调用的过程不能让程序决定跳转到内核的哪里，因为这样会导致恶意程序在内核运行。</p><p>解决办法是由一个陷阱表，可以理解为一个map，记录了发生某种指令时需要运行那些代码，这样当用户程序执行系统调用，就会执行对应的位置的代码，而不再由程序决定跳入内核的那个位置。</p><h2 id="3、在进程之间切换"><a href="#3、在进程之间切换" class="headerlink" title="3、在进程之间切换"></a>3、在进程之间切换</h2><p>一个很关键的问题，如果进程在CPU上运行，那就意味着操作系统此时没有运行，那操作系统如何拿回控制权呢？</p><h3 id="协作方式：等待系统调用"><a href="#协作方式：等待系统调用" class="headerlink" title="协作方式：等待系统调用"></a>协作方式：等待系统调用</h3><p>在这种方式下，运行时间过长的进程会被<strong>假定主动放弃</strong>CPU，以便操作系统决定运行其他任务。注意，这里需要程序手动的将控制权交还给操作系统。</p><p>但是也有恶意或者不小的代码执行一些非法操作，就会陷入操作系统，此时操作系统将再次获得CPU。</p><h3 id="非协作方式：操作系统进行控制"><a href="#非协作方式：操作系统进行控制" class="headerlink" title="非协作方式：操作系统进行控制"></a>非协作方式：操作系统进行控制</h3><p>这里要解决的问题：如何在没有协作的情况下获得控制权。</p><p>上面的那种方式，在出现非法操作时会导致进程陷入操作系统，但是如果一个进程进入无限循环，它不进行系统调用也不出错，那么操作系统就无法获得控制权。</p><p>这个问题的解决办法是<strong>时钟中断</strong>。</p><p>时钟设备可以便成为每几毫秒产生一次中断，中断发生时，正在运行的进程停止，操作系统预先配置的中断程序会运行，然后操作系统会获得CPU的控制权。然后它就可以停止当前进程，运行另外一个进程。</p><h3 id="保存和恢复上下文"><a href="#保存和恢复上下文" class="headerlink" title="保存和恢复上下文"></a>保存和恢复上下文</h3><p>当操作系统获得CPU时，它就要确定是继续执行当前进程还是进行切换。如果进行切换，就需要为当前正在运行的进行保存一些信息到寄存器（通用寄存器，程序计数器，当前正在运行进程的内核指针），并且恢复将要运行的进程恢复一些寄存器的值。这个过程就叫做上下文切换。</p><p>当发生时钟中断时，运行进程由用户寄存器隐式保存，使用该进程的内核栈。</p><p>当操作系统决定从A切换到B，内核寄存器被操作系统（OS）明确的保存在该进程的进程结构的内存中。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
@@ -153,12 +186,14 @@
     
     
     
-    <category term="操作系统" scheme="http://example.com/categories/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
     
-    <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
-    
-    <category term="学习笔记" scheme="http://example.com/tags/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -167,7 +202,7 @@
     <link href="http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/"/>
     <id>http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/</id>
     <published>2023-04-12T11:03:29.000Z</published>
-    <updated>2023-04-14T08:11:55.119Z</updated>
+    <updated>2023-04-14T09:19:09.224Z</updated>
     
     <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h1 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h1><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h1 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h1><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h1 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h1><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
@@ -185,8 +220,10 @@
     
     <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
     
+    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
-    <category term="虚拟内存" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%86%85%E5%AD%98/"/>
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
@@ -551,36 +588,6 @@
     
     
     <category term="Java并发编程实战" scheme="http://example.com/tags/Java%E5%B9%B6%E5%8F%91%E7%BC%96%E7%A8%8B%E5%AE%9E%E6%88%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL事务隔离（2）</title>
-    <link href="http://example.com/2023/04/02/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/"/>
-    <id>http://example.com/2023/04/02/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/</id>
-    <published>2023-04-02T07:26:15.000Z</published>
-    <updated>2023-04-02T08:33:16.624Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="到底是隔离还是不隔离"><a href="#到底是隔离还是不隔离" class="headerlink" title="到底是隔离还是不隔离"></a>到底是隔离还是不隔离</h2><p>假如现在有如下表：</p><table><thead><tr><th>id</th><th>k</th></tr></thead><tbody><tr><td>1</td><td>1</td></tr><tr><td>2</td><td>2</td></tr></tbody></table><p>现在执行如下操作：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402142051361.png" alt="image-20230402142051361"></p><p><strong>在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1</strong>。下面看具体原因。</p><p>在MySQL中，有两个视图概念：</p><p>第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。</p><p>另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent read view，用于支持RC（Read Committed，读提交）和RR（Repeatable Read，可重复读）隔离级别的实现。</p><p>可重复读隔离主要用到第二个识图。</p><h3 id="“快照”在MVCC里是怎么工作的？"><a href="#“快照”在MVCC里是怎么工作的？" class="headerlink" title="“快照”在MVCC里是怎么工作的？"></a>“快照”在MVCC里是怎么工作的？</h3><p>在可重复读隔离级别下，事务启动时就拍了个快照，这个快照是基于整个库的。但是这个快照并不需要拷贝整个数据库的数据，具体做法如下：</p><p>InnoDB的每一个事务都有一个唯一的事务ID，叫作transaction id。它是在事务开始的时候向InnoDB的事务系统申请的，是按申请顺序严格递增的。</p><p>而每一行的数据都是有多个版本。每次事务进行更新数据时，都会生成一个新的版本的数据，然后这个新数据会绑定这个事务ID，记为row trx_id。也就是说，数据表中的一行记录，其实可能有多个版本(row)，每个版本有自己的row trx_id，通过这个row trx_id可以知道是哪个事务更新的数据。</p><p>一个具体的例子如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402144408772.png" alt="image-20230402144408772"></p><p>这里V4是最新的版本，但是数据库只存了V4，它前面的版本V1和V2以及V3并不是真实存在的，而是每次需要的时候根据当前版本和undo log计算出来的。比如，需要V2的时候，就是通过V4依次执行U3、U2算出来。</p><p>按照可重复读的定义，一个事务启动的时候，能够看到所有已经提交的事务。但是事务执行期间，其他事务的更新对他不可见。</p><h4 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h4><p>InnoDB为每一个事务构造了一个数组，用来保存事务启动的瞬间，当前启动了但是还没提交的事务。</p><p>通过这个数组，我们可以将系统中的所有事务划分为3个部分，小于数组中最小ID的是已经提交了的事务，高于数组最大值是还没开始的事务，数组中的是已经开始的但是还没提交的事务。如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402152032322.png" alt="image-20230402152032322"></p><p>针对当前事务，如果一个数据的row trx_id是在绿色区域，那么一定是可见的，如果在红色区域，则不可见。而处于黄色区域的数据，则分为两种情况，如果该row trx_id位于数组中，则说明该事务还没提交，那么就是不可见的，如果不在该数组中，说明已经提交了，则是可见的数据。这里可见得数据直接读取即可，不可见得数据是需要根据undo log进行回滚得数据。</p><p>要注意这里的一个可能的误区，这个数组并不一定是连续的，比如它可以是[50, 53, 60, 62]这种，而不连续的部分说明事务已经提交了。</p><p>通过这种设计，如果一个数据的row trx_id小于数组中得最小值，则直接按当前值读取，如果大于，则根据情况，看是否可见，如果不可见则需要根据undo log 进行回滚操作。</p><h2 id="开头的问题"><a href="#开头的问题" class="headerlink" title="开头的问题"></a>开头的问题</h2><p>现在看开头的那个问题。假设事务A的id是100，那么事务B的id是101，事务C的id是102。假设id &#x3D; 1那一行的row trx_id的值是90。</p><p>那么事务A中，事务创建的数组就只有 100，而事务B创建的数组有100，101。事务C创建的数组有100，101，102。</p><p>那么从结果上看，值为(1，1)的数据版本号为90， (1，2)数据的版本号为102（事务C修改的）， (1，3)的数据版本号为101（事务B修改的）。</p><p>所以事务A在执行查询操作时，发现数据（1，3）的版本号为102，高于数组最大值，是不可见的状态，所以他要退回，一直退到（1，1）这个状态，版本号为90，小于数组中的值，是可见的，所以事务A查到的k &#x3D; 1。</p><p>同理，事务B在执行查找时，发现当前数据（1，3）的版本号为101，是它自己的版本，所以直接展示k &#x3D; 3。注意，这里展示k &#x3D; 3是因为直接展示了最终结果，在事务B修改操作时，把k的版本号改为了事务B的id。</p><h2 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h2><p>这里针对上面事务B中的update语句将数据改为（1，3）做出解释：在事务B中，如果修改数据之前，执行一次查询操作，它读到的k的值的确是1，但此时的set k&#x3D;k+1是在（1,2）的基础上进行的操作，否则它将使得事务C的修改无效，导致数据不一致。</p><h2 id="事务的可重复读是怎么实现的"><a href="#事务的可重复读是怎么实现的" class="headerlink" title="事务的可重复读是怎么实现的"></a>事务的可重复读是怎么实现的</h2><p>简单来说，就是读操作，需要判断当前数据版本是否可见，不可见就回滚到可见版本。而写操作，则直接在当前版本进行修改。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;到底是隔离还是不隔离&quot;&gt;&lt;a href=&quot;#到底是隔离还是不隔离&quot; class=&quot;headerlink&quot; title=&quot;到底是隔离还是不隔离&quot;&gt;&lt;/a&gt;到底是隔离还是不隔离&lt;/h2&gt;&lt;p&gt;假如现在有如下表：&lt;/p&gt;
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th</summary>
-      
-    
-    
-    
-    <category term="MySQL" scheme="http://example.com/categories/MySQL/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-    <category term="事务" scheme="http://example.com/tags/%E4%BA%8B%E5%8A%A1/"/>
     
   </entry>
   
