@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-16T08:31:50.128Z</updated>
+  <updated>2023-04-17T08:54:15.770Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,96 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>空闲空间管理</title>
+    <link href="http://example.com/2023/04/17/%E7%A9%BA%E9%97%B2%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86/"/>
+    <id>http://example.com/2023/04/17/%E7%A9%BA%E9%97%B2%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86/</id>
+    <published>2023-04-17T07:48:51.000Z</published>
+    <updated>2023-04-17T08:54:15.770Z</updated>
+    
+    <content type="html"><![CDATA[<p>这一部分，书中做了一些假设：</p><p>1、如果请求内存，就需要指定请求内存的大小，而释放该内存则不用指定大小。</p><p>2、只考虑外部碎片，不考虑因分配空间稍微大于请求内存而造成的内部碎片。</p><p>3、内存一旦被分配给用户，那么它就不可能被重定位。即这块内存分配给用户后，除非用户调用free函数，否则无法被其他人使用。</p><p>4、分配程序管理的内存区域是连续的，而且还可以增大这块区域。</p><h1 id="底层机制"><a href="#底层机制" class="headerlink" title="底层机制"></a>底层机制</h1><h2 id="1、分割与合并"><a href="#1、分割与合并" class="headerlink" title="1、分割与合并"></a>1、分割与合并</h2><p>假如内存中空闲状态如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417162102174.png" alt="image-20230417162102174"></p><p>那么它对应的空闲链表如图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417162144075.png" alt="image-20230417162144075"></p><p>这也就意味着，任何长度大于10字节的分配请求都会失败。</p><p>如果请求分配的内存小于10字节，那么它会找到一块满足的空间区域，然后进行分割，第一块分给用户，剩下的加入空闲列表。</p><p>而用户在调用free时，它并不是把用户使用的那块区域直接加入，而是会看用户释放的空间左右两端是否是空闲的，如果是，则进行合并。</p><p>比如参考第一张图，如果用户释放中间用掉的10字节，它会变为如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417163036922.png" alt="image-20230417163036922"></p><p>而不是</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417163055234.png" alt="image-20230417163055234"></p><h2 id="2、追踪已分配空间的大小"><a href="#2、追踪已分配空间的大小" class="headerlink" title="2、追踪已分配空间的大小"></a>2、追踪已分配空间的大小</h2><p>由于在释放对应区域空间时，并不需要指出大小，这是因为在大多数分配程序都会在头块中保存一些额外的信息，头块位于内存中，就在返回的内存区域前面。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417164000218.png" alt="image-20230417164000218" style="zoom:67%;" /><p>这里释放的时候会释放头块加具体的内存空间，那么意味着在申请内存时，申请的大小也是头块加用户指明的大小。</p><h1 id="内存分配的基本策略"><a href="#内存分配的基本策略" class="headerlink" title="内存分配的基本策略"></a>内存分配的基本策略</h1><p>1、最优匹配：找到和用户申请大小最接近的一块区域，分配给用户。但是他需要遍历所有的空闲列表，性能差一点。</p><p>2、最差匹配：找最大的空闲区域，分割并分配给用户。会导致过量碎片，而且性能不好。</p><p>3、首次匹配：找到第一个足够大的块，分配给用户。不需要全部遍历，但可能会导致开头的部分有很多的小块，因此，如何管理空闲列表顺序就变的比较重要。</p><p>一种解决办法：一种方式是基于地址排序，保持空闲块按内存地址有序，会让合并变得容易，减少内存碎片。</p><p>4、下次匹配：每一次都从上一次分配完成的地址开始往后遍历。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;这一部分，书中做了一些假设：&lt;/p&gt;
+&lt;p&gt;1、如果请求内存，就需要指定请求内存的大小，而释放该内存则不用指定大小。&lt;/p&gt;
+&lt;p&gt;2、只考虑外部碎片，不考虑因分配空间稍微大于请求内存而造成的内部碎片。&lt;/p&gt;
+&lt;p&gt;3、内存一旦被分配给用户，那么它就不可能被重定位。即这块</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>分段</title>
+    <link href="http://example.com/2023/04/17/%E5%88%86%E6%AE%B5/"/>
+    <id>http://example.com/2023/04/17/%E5%88%86%E6%AE%B5/</id>
+    <published>2023-04-17T05:35:17.000Z</published>
+    <updated>2023-04-17T07:48:36.505Z</updated>
+    
+    <content type="html"><![CDATA[<p> 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230417134359838.png" alt="image-20230417134359838" style="zoom: 67%;" /><p>但是由于进程的地址空间被加载到了内存中，那么就意味着这些虚拟的地址空间都会被分配对应的物理地址，虽然这些地址没有被该进程写入内容，但是他们已经不能再分配给其他进程使用。</p><p>为了解决这个问题，引入了分段的概念。有了分段的概念后，就不是给每个地址空间一个寄存器，而是让地址空间内的每个段都有自己的基址寄存器和界限寄存器。<strong>一个段是地址空间中连续的定长区域。</strong></p><p>这样设计，就可以把进程的单个段加载到内存中，而不是将整个地址空间都加载到内存中，这样就能确保被加载到物理内存空间中的内容都是正在使用的，或者说最小程度的浪费一些空间。</p><p>在经典的地址空间中，有三个逻辑不同的段：代码，栈和堆。分段之后，我们可以把这三个部分分别加载到物理内存对应的位置，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417141138659.png" alt="image-20230417141138659" style="zoom: 67%;" /><p>而不需要像之前那样，必须把整个地址空间全部加载到内存当中。</p><h1 id="分段存在的问题"><a href="#分段存在的问题" class="headerlink" title="分段存在的问题"></a>分段存在的问题</h1><p>分段的出现会导致内存中零散的分布很多的段，如果现在有不连续的24k空间，现在有一个20k大小的段，则会导致该段进入内存失败。</p><p>即分段会造成一定的外部碎片。</p><h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>这篇笔记是在学习操作系统导论时写的，该书采用的是层层递进的方式，由最初的设计，存在什么问题，一步一步解决问题，更改设计，得到一个现代的操作设计方案。所以本文中有些内容可能并非目前操作系统正确的设计。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：&lt;/p&gt;
+&lt;img src=&quot;C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-2023</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>地址转换</title>
+    <link href="http://example.com/2023/04/16/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
+    <id>http://example.com/2023/04/16/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
+    <published>2023-04-16T09:35:58.000Z</published>
+    <updated>2023-04-16T13:47:16.710Z</updated>
+    
+    <content type="html"><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p><p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p><p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p><h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p><p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p><p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p><p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p><h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p><p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p><p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p><p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。&lt;/p&gt;
+&lt;p&gt;但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。&lt;/p&gt;
+&lt;p&gt;这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。&lt;</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL的next-key lock</title>
@@ -163,9 +253,9 @@
     <link href="http://example.com/2023/04/14/%E5%A4%9A%E5%A4%84%E7%90%86%E5%99%A8%E8%B0%83%E5%BA%A6/"/>
     <id>http://example.com/2023/04/14/%E5%A4%9A%E5%A4%84%E7%90%86%E5%99%A8%E8%B0%83%E5%BA%A6/</id>
     <published>2023-04-14T09:20:38.000Z</published>
-    <updated>2023-04-14T12:55:14.960Z</updated>
+    <updated>2023-04-17T06:29:55.732Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="多处理器架构"><a href="#多处理器架构" class="headerlink" title="多处理器架构"></a>多处理器架构</h1><p>多处理器与单处理器最大的区别在于对硬件缓存的使用，以及处理器之间共享数据的方式。</p><p>在单CPU系统中，存在多级硬件缓存，一般会让程序执行更快。</p><p>假设一个程序需要从内存中加载指令并读取一个值，在它第一次读取时，需要从内存中读取，之后处理器判定在短期内很可能会再次使用这个数据，会将其放入缓存中，下一次再请求时，直接从缓存中取即可。</p><p>在多CPU系统中，缓存则会变得复杂。</p><p>假如有两个CPU，一个内存。现在有一个运行在CPU1上的程序，要去地址A读值，但是CPU1里面没有该数据的缓存，所以需要去内存中读取，读取完成后，程序要修改地址A上的值，假设改为D，它会先写入缓存中，然后再去写入内存。但是写入内存时发生了中断，中断完后此程序交由CPU2执行，但是CPU2中没有数据的缓存，就需要从内存中读，这时候就会读到旧得数据，而不是修改后得D。</p><p>硬件提供了这个问题得解决方案：通过监控内存得访问，硬件可以保证获得正确数据，并确保共享内存的唯一性。</p><h1 id="单队列调度"><a href="#单队列调度" class="headerlink" title="单队列调度"></a>单队列调度</h1><p>这种调度方式就是采用一个队列来存储任务，然后有多个cpu从中获取任务，然后执行。但是这里需要用加锁的方式来保证调度的正确性，而加锁又会带来性能上的损耗。而且可能存在一种情况，一个任务频繁的在不同的cpu上运行，导致cpu的缓存几乎不起作用。我们应该尽可能保证一个任务一直在一个cpu上处理，来尽可能多的提高缓存命中率。</p><p>一个cpu缓存命中率特别低的情况：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205315810.png" alt="image-20230414205315810"></p><h1 id="多队列调度"><a href="#多队列调度" class="headerlink" title="多队列调度"></a>多队列调度</h1><p>这种设计下，队列与CPU是多对多的关系，我们可以让一个队列对应一个CPU。</p><p>这样锁的竞争就会小很多，如果每一个CPU只从固定的一个队列获取任务，甚至可以消除锁竞争。而且它的缓存亲和性比较好，一个队列里面的任务会固定在一个CPU上运行。</p><p>如果按照一个CPU只处理自己对应队列的任务，会存在一种情况，cpu1里的任务已经执行完了，而cpu2里的任务还没有，那么cpu2一直在忙碌 ，cpu1却在空闲，导致负载不均衡。</p><p>如下图：A独占cpu0，而B 和 D交替执行在cpu1上。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205421683.png" alt="image-20230414205421683"></p><p>若A执行完成，则会变成如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205507938.png" alt="image-20230414205507938"></p><p>解决办法：迁移。通过工作的跨cpu迁移，可以实现负载均衡。</p><p><strong>即cpu1可以处理cpu2对应队列中的任务。</strong></p><p>假如cpu1队列中一开始只有任务A，而cpu2中有任务B和D，那么在迁移的设计下，执行过程如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205237310.png" alt="image-20230414205237310"></p>]]></content>
+    <content type="html"><![CDATA[<h1 id="多处理器架构"><a href="#多处理器架构" class="headerlink" title="多处理器架构"></a>多处理器架构</h1><p>多处理器与单处理器最大的区别在于对硬件缓存的使用，以及处理器之间共享数据的方式。</p><p>在单CPU系统中，存在多级硬件缓存，一般会让程序执行更快。</p><p>假设一个程序需要从内存中加载指令并读取一个值，在它第一次读取时，需要从内存中读取，之后处理器判定在短期内很可能会再次使用这个数据，会将其放入缓存中，下一次再请求时，直接从缓存中取即可。</p><p>在多CPU系统中，缓存则会变得复杂。</p><p>假如有两个CPU，一个内存。现在有一个运行在CPU1上的程序，要去地址A读值，但是CPU1里面没有该数据的缓存，所以需要去内存中读取，读取完成后，程序要修改地址A上的值，假设改为D，它会先写入缓存中，然后再去写入内存。但是写入内存时发生了中断，中断完后此程序交由CPU2执行，但是CPU2中没有数据的缓存，就需要从内存中读，这时候就会读到旧得数据，而不是修改后得D。</p><p>硬件提供了这个问题得解决方案：通过监控内存得访问，硬件可以保证获得正确数据，并确保共享内存的唯一性。</p><h1 id="单队列调度"><a href="#单队列调度" class="headerlink" title="单队列调度"></a>单队列调度</h1><p>这种调度方式就是采用一个队列来存储任务，然后有多个cpu从中获取任务，然后执行。但是这里需要用加锁的方式来保证调度的正确性，而加锁又会带来性能上的损耗。而且可能存在一种情况，一个任务频繁的在不同的cpu上运行，导致cpu的缓存几乎不起作用。我们应该尽可能保证一个任务一直在一个cpu上处理，来尽可能多的提高缓存命中率。</p><p>一个cpu缓存命中率特别低的情况：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205315810.png" alt="image-20230414205315810"></p><h1 id="多队列调度"><a href="#多队列调度" class="headerlink" title="多队列调度"></a>多队列调度</h1><p>这种设计下，队列与CPU是多对多的关系，我们可以让一个队列对应一个CPU。</p><p>这样锁的竞争就会小很多，如果每一个CPU只从固定的一个队列获取任务，甚至可以消除锁竞争。而且它的缓存亲和性比较好，一个队列里面的任务会固定在一个CPU上运行。</p><p>如果按照一个CPU只处理自己对应队列的任务，会存在一种情况，cpu1里的任务已经执行完了，而cpu2里的任务还没有，那么cpu2一直在忙碌 ，cpu1却在空闲，导致负载不均衡。</p><p>如下图：A独占cpu0，而B 和 D交替执行在cpu1上。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205421683.png" alt="image-20230414205421683"></p><p>若A执行完成，则会变成如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205507938.png" alt="image-20230414205507938"></p><p>解决办法：迁移。通过工作的跨cpu迁移，可以实现负载均衡。</p><p><strong>即cpu1可以处理cpu2对应队列中的任务。</strong></p><p>假如cpu1队列中一开始只有任务A，而cpu2中有任务B和D，那么在迁移的设计下，执行过程如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205237310.png" alt="image-20230414205237310"></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
     
       
@@ -192,9 +282,9 @@
     <link href="http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/"/>
     <id>http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</id>
     <published>2023-04-14T08:10:53.000Z</published>
-    <updated>2023-04-14T09:19:29.112Z</updated>
+    <updated>2023-04-17T06:30:08.585Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>]]></content>
+    <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
     
       
@@ -528,96 +618,6 @@
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
     
     <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL表空间回收</title>
-    <link href="http://example.com/2023/04/06/MySQL%E8%A1%A8%E7%A9%BA%E9%97%B4%E5%9B%9E%E6%94%B6/"/>
-    <id>http://example.com/2023/04/06/MySQL%E8%A1%A8%E7%A9%BA%E9%97%B4%E5%9B%9E%E6%94%B6/</id>
-    <published>2023-04-06T06:31:14.000Z</published>
-    <updated>2023-04-14T14:03:54.725Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="数据删除流程"><a href="#数据删除流程" class="headerlink" title="数据删除流程"></a>数据删除流程</h1><p>假如现在有如下数据：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230406143630354.png" alt="image-20230406143630354"></p><p>假如此时我们要删除R4的数据，InnoDB引擎只会把R4这个记录标记为删除。如果之后需要再300和600之间插入数据，可能会复用这个位置。所以这时删除一条数据时空间不会变小。</p><p>如果我们删除一整个页的数据，那么这整个数据页都可以复用。</p><p>如果删除了一整张表，那么所有的数据页都会被标记为可用。</p><p>以上这三个删除都是针对delete命令。</p><p>也就是说，delete命令只会把对应的数据标记为可以复用，下次需要写对应位置的数据时，直接覆盖掉原来的数据，并没有真正的释放空间。如果这些位置没有被复用，就会造成空间的浪费。</p><p>不仅删除会导致这些空洞，插入数据也会。因为如果插入的数据不是按照索引有序的，就有可能导致页分裂。比如数据页A已经存满了，此时又有一条数据需要插入数据页A，此时会导致B+树页分裂，会多出一个数据页，但是数据页A和新数据页都不会存满数据。</p><h1 id="重建表"><a href="#重建表" class="headerlink" title="重建表"></a>重建表</h1><p>如果想要消除表里面的空洞，就需要重建表。即把数据按照有序的方式从表A插入到表B当中，然后利用表B替换掉表A。在这个过程中，表A不能有更新操作。</p><h2 id="Online-DDL"><a href="#Online-DDL" class="headerlink" title="Online DDL"></a>Online DDL</h2><p>在MySQL 5.6之前，重建表的逻辑和上面说的类似，但是5.6之后对此做了优化，大致过程如下：</p><p>先生成一个临时文件，然后遍历表A的数据，生成一颗B+树（这里生成的B+树就是顺序生成的），然后用一个日志（row log）记录在扫描A时一些其他操作对表A的修改。然后先将生成的B+树存入临时文件，再把日志操作用于临时文件，之后用临时文件替换表A。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;数据删除流程&quot;&gt;&lt;a href=&quot;#数据删除流程&quot; class=&quot;headerlink&quot; title=&quot;数据删除流程&quot;&gt;&lt;/a&gt;数据删除流程&lt;/h1&gt;&lt;p&gt;假如现在有如下数据：&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://image-1314238346.c</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="执行流程" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E6%89%A7%E8%A1%8C%E6%B5%81%E7%A8%8B/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>垃圾收集算法</title>
-    <link href="http://example.com/2023/04/05/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95/"/>
-    <id>http://example.com/2023/04/05/%E5%9E%83%E5%9C%BE%E6%94%B6%E9%9B%86%E7%AE%97%E6%B3%95/</id>
-    <published>2023-04-05T07:46:20.000Z</published>
-    <updated>2023-04-13T09:17:58.084Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="分代收集理论"><a href="#分代收集理论" class="headerlink" title="分代收集理论"></a>分代收集理论</h1><p>分代收集理论建立在两个假说之上：</p><p>1）弱分代假说（Weak Generational Hypothesis）：绝大多数对象都是朝生夕灭的。</p><p>2）强分代假说（Strong Generational Hypothesis）：熬过越多次垃圾收集过程的对象就越难以消亡。</p><p>正是由于这两个假说，所以多款垃圾收集器都有一个设计原则：Java堆应该划分不同的区域，然后根据对象的年龄（对象熬过垃圾手机过程的次数）分配到不同的区域存储。</p><p>把那些朝生夕灭的对象放在一起存储，那么虚拟机只需要关注如果保留少量存活的对象即可，而不是大量的去进行标记。</p><p>把那些不容易被清除的对象放在一起，那么虚拟机就可以不那么频繁的去清理这部分的对象。</p><p>由于区域的划分，所以存在了<strong>Minor GC（指目标只是新生代的垃圾回收，也叫Young GC）</strong>，<strong>Major GC（指的是目标老年代的垃圾回收，也叫Old GC。目前只有CMS收集器有。）</strong>，<strong>Full GC（收集整个Java堆和方法区的垃圾收集）</strong>这样回收类型的划分。而且也根据不同区域对象存亡的特征，发展除了<strong>标记-复制算法</strong>，<strong>标记-清除算法</strong>，<strong>标记-整理算法</strong>。Mixed GC（混合收集）指目标是整个新生代和部分老年代的垃圾回收，目前只有G1垃圾回收有。</p><p>一个最基本的分代是分为新生代和老年代，在这种分代下，如果要进行一次针对新生代的垃圾收集，存在一种情况就是新生代的对象引用了老年代的对象，那么就不得不遍历整个老年代。所以引出了第三个假说：</p><p>3）跨代引用假说（Intergenerational Reference Hypothesis）：跨代引用相对于同代引用来说仅占极少数。</p><p>根据这条假说，我们可以在新生代建立一个叫做记忆集的数据结构，该结构把老年代划分为若干块，标识出老年代的哪一块内存存在跨代引用。此后发生Major GC时，只需要遍历存在跨代引用那些小块里面的对象。</p><h1 id="标记-清除算法"><a href="#标记-清除算法" class="headerlink" title="标记-清除算法"></a>标记-清除算法</h1><p>正如名字，如它的名字一样，算法分为标记和清除两个阶段。首先标记出所有需要回收的对象，标记完成后统一回收掉所有被标记的对象。也可以反过来，标记存活的，然后收集所有没有标记的。</p><p>存在的问题：</p><p>第一个是执行效率不稳定，如果Java堆中包含大量对象，而且其中大部分是需要被回收的，这时必须进行<strong>大量标记和清除的动作</strong>，导致标记和清除两个过程的执行效率都随对象数量增长而降低；</p><p>第二个是内存空间的<strong>碎片化问题</strong>，标记、清除之后会产生大量<strong>不连续的内存碎片</strong>，空间碎片太多可能会导致当以后在程序运行过程中需要分配较大对象时无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作。</p><h1 id="标记-复制算法"><a href="#标记-复制算法" class="headerlink" title="标记-复制算法"></a>标记-复制算法</h1><p>为了解决标记-清除算法面对大量对象效率低的问题，产生了一种半区复制算法，它将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另外一块上面，然后再把已使用过的内存空间一次清理掉。</p><p>该算法存在的问题：</p><p>1、如果大多数对象都是活着的，那么意味着会有大量的对象需要复制，会浪费很多内存开销。</p><p>2、原来一整块内存现在只能用其中的一半了。</p><h2 id="Appel式回收"><a href="#Appel式回收" class="headerlink" title="Appel式回收"></a>Appel式回收</h2><p>由于标记-复制算法大多数用在针对新生代的垃圾回收，大多数对象活不过一轮收集，所以并不需要按照1：1的比例进行空间划分，对其划分进行优化后，产生了一种Appel式的回收。</p><p>具体做法是把<strong>新生代</strong>分为一块较大的<strong>Eden空间</strong>和<strong>两块较小的Survivor空间</strong>，每次分配内存只使用Eden和其中一块Survivor。发生垃圾搜集时，将Eden和Survivor中仍然存活的对象一次性复制到另外一块Survivor空间上，然后直接清理掉Eden和已用过的那块Survivor空间。</p><p>HotSpot虚拟机默认Eden和Survivor的大小比例是8∶1，也就是说最多有1块Survivor没有，也就是10%。</p><p>Appel式回收时，如果那一块Survivor区不够用于存储还活着的对象，它会向老年区“借用”一部分区域。说白了，这些多余的对象会在分配担保机制下直接进入老年代。</p><h1 id="标记-整理算法"><a href="#标记-整理算法" class="headerlink" title="标记-整理算法"></a>标记-整理算法</h1><p>该算法主要针对老年代的回收，因为标记-复制算法要不需要浪费一半空间，要不就需要额外的空间进行担保，以防止所有对象都是存活的情况。</p><p>标记-整理算法的标记过程与标记-清理一样，但是标记完不是直接清除标记对象，而是把活着的对象向内存空间一端移动，然后直接清理掉边界以外的数据。具体如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405195521861.png" alt="image-20230405195521861"></p><h2 id="优点与缺点"><a href="#优点与缺点" class="headerlink" title="优点与缺点"></a>优点与缺点</h2><p>标记完后，如果移动存活的对象，移动对象并且更新这些对象的引用是一项繁重的操作，会带来性能影响。而且在移动的过程中还需要暂停用于程序，人们把暂停称为“stop the world”。</p><p>但是如果不移动对象，那么就会导致空间是散列开的，导致很严重的碎片化问题，就只能依赖于更复杂的内存分配器以及内存访问器来解决，譬如通过“分区空闲分配链表”来解决内存分配问题（计算机硬盘存储大文件就不要求物理连续的磁盘空间，能够在碎片化的硬盘上存储和访问就是通过硬盘分区表实现的）。</p><p>基于以上两点，是否移动对象都存在弊端，移动则内存回收时会更复杂，不移动则内存分配时会更复杂。</p><p>从垃圾收集的停顿时间来看，不移动对象停顿时间会更短，甚至可以不需要停顿，但是从整个程序的吞吐量来看，移动对象会更划算。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;分代收集理论&quot;&gt;&lt;a href=&quot;#分代收集理论&quot; class=&quot;headerlink&quot; title=&quot;分代收集理论&quot;&gt;&lt;/a&gt;分代收集理论&lt;/h1&gt;&lt;p&gt;分代收集理论建立在两个假说之上：&lt;/p&gt;
-&lt;p&gt;1）弱分代假说（Weak Generational Hypo</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
-    
-    <category term="虚拟机" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    
-    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
-    <category term="深入理解Java虚拟机" scheme="http://example.com/tags/%E6%B7%B1%E5%85%A5%E7%90%86%E8%A7%A3Java%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
-    
-    <category term="垃圾回收" scheme="http://example.com/tags/%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL为什么会卡一下</title>
-    <link href="http://example.com/2023/04/05/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/"/>
-    <id>http://example.com/2023/04/05/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/</id>
-    <published>2023-04-05T06:37:12.000Z</published>
-    <updated>2023-04-14T14:01:43.557Z</updated>
-    
-    <content type="html"><![CDATA[<p>InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo log）。</p><p>这些被修改过的数据页，或者说内存中的数据页与磁盘中的数据页不一样的，就叫做脏页。而MySQL卡的那一下，就是把脏页写回内存时发生的。</p><h1 id="写回脏页的时机"><a href="#写回脏页的时机" class="headerlink" title="写回脏页的时机"></a>写回脏页的时机</h1><p>1、redo log满了</p><p>redo log是一个循环队列，当它写满时，系统会停止当前的操作，把redo log中记录的一部分操作所对应的脏页写回内存，然后在redo log中腾出足够的地方。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405145823007.png" alt="image-20230405145823007" style="zoom:50%;" /><p>2、内存满了</p><p>在这种情况下，内存里无法加载更多的内存页，需要淘汰掉一部分内存页，而淘汰掉的内存页如果有脏页，就会把他们写入磁盘。</p><p>3、MySQL空闲时</p><p>4、MySQL正常关闭的情况。</p><h1 id="情况1和2对性能的影响"><a href="#情况1和2对性能的影响" class="headerlink" title="情况1和2对性能的影响"></a>情况1和2对性能的影响</h1><p>情况1是需要避免的，因为发生这种情况后，整个系统就无法处理新的请求。</p><p>情况2是一种常态，<strong>InnoDB用缓冲池（buffer pool）管理内存，缓冲池中的内存页有三种状态：</strong></p><ul><li>第一种是，还没有使用的；</li><li>第二种是，使用了并且是干净页；</li><li>第三种是，使用了并且是脏页。</li></ul><p>而当要读入的数据页没有在内存的时候，就必须到缓冲池中申请一个数据页。这时候只能把最久不使用的数据页从内存中淘汰掉：如果要淘汰的是一个干净页，就直接释放出来复用；但如果是脏页呢，就必须将脏页先刷到磁盘，变成干净页后才能复用。</p><p>如果一个查询要淘汰的数据页太多，那么就会很明显的影响性能。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo l</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="缓存" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E7%BC%93%E5%AD%98/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
   </entry>
   
