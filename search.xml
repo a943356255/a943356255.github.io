@@ -4,6 +4,120 @@
   
     
     <entry>
+      <title>MySQL怎么保证数据不丢失</title>
+      <link href="/2023/04/18/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
+      <url>/2023/04/18/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/</url>
+      
+        <content type="html"><![CDATA[<h1 id="binlog的写入机制"><a href="#binlog的写入机制" class="headerlink" title="binlog的写入机制"></a>binlog的写入机制</h1><p>总的流程：先把日志写到binlog cache，事务提交的时候，再把binlog cache写到binlog文件中。</p><p>但是需要注意，一个事务的binlog无论多大，都需要一次性写入，这就涉及到binlog cache的保存。</p><p>每一个线程都会有一个binlog cache，可以设置其大小。如果超过大小限制，就要暂存在磁盘当中。但是所有的线程共享一个binlog file，也就是说，每个线程的binlog cache，都会存入到同一个文件。</p><p>一个具体的例子如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418143649904.png" alt="image-20230418143649904" style="zoom:67%;" /><p>上图中的write操作，其实只是把binlog cache的内容写入文件系统的缓存，并没有直接同步到磁盘，而fsync才是真正的将文件系统缓存的内容写入到磁盘上。</p><p>write 和fsync的时机，是由参数sync_binlog控制的：</p><ol><li>sync_binlog&#x3D;0的时候，表示每次提交事务都只write，不fsync；</li><li>sync_binlog&#x3D;1的时候，表示每次提交事务都会执行fsync；</li><li>sync_binlog&#x3D;N(N&gt;1)的时候，表示每次提交事务都write，但累积N个事务后才fsync。</li></ol><h1 id="redo-log的写入机制"><a href="#redo-log的写入机制" class="headerlink" title="redo log的写入机制"></a>redo log的写入机制</h1><p>redo log 每次写入时，生成的redo log会先写入redo log buffer，而redo log buffer里面的内容并不需要每次写完后都同步到磁盘。</p><p>因为事务还没提交时，数据库异常重启，这部分日志会丢失，但是因为事务没提交，所以不会对数据一致性造成影响。因为事务只有在提交时，事务内所作的修改才真正起作用。</p><p><strong>但是事务还没提交时，redo log buffer里面的内容也会有刷入磁盘的情况。</strong></p><h2 id="redo-log可能存在的三种状态"><a href="#redo-log可能存在的三种状态" class="headerlink" title="redo log可能存在的三种状态"></a>redo log可能存在的三种状态</h2><p>1、存在于redo log buffer中，也就是还在MySQL进程中。</p><p>2、写入了文件系统的缓存当中。</p><p>3、写入了磁盘当中。</p><h2 id="redo-log的写入策略"><a href="#redo-log的写入策略" class="headerlink" title="redo log的写入策略"></a>redo log的写入策略</h2><p>为了控制redo log的写入策略，InnoDB提供了innodb_flush_log_at_trx_commit参数，控制写入策略：</p><ol><li>设置为0的时候，表示每次事务提交时都只是把redo log留在redo log buffer中;</li><li>设置为1的时候，表示每次事务提交时都将redo log直接持久化到磁盘；</li><li>设置为2的时候，表示每次事务提交时都只是把redo log写到page cache。</li></ol><p>InnoDB有一个后台线程，每隔1秒，就会把redo log buffer中的日志，调用write写到文件系统的page cache，然后调用fsync持久化到磁盘。</p><p>这也就解释了为什么会有没提交事务的redo log也被写入了磁盘当中。因为事务执行时，日志就会先写入redo log buffer中，后台线程会在事务没提交时，将数据刷入磁盘当中。</p><p>另外两种会导致事务没提交时，redo log 被写入磁盘：</p><p><strong>一种是，redo log buffer占用的空间即将达到 innodb_log_buffer_size一半的时候，后台线程会主动写盘。</strong>但这里只是写入文件系统的缓存中，不是写入磁盘。</p><p><strong>另一种是，并行的事务提交的时候，顺带将这个事务的redo log buffer持久化到磁盘。</strong>比如说事务A执行了一半，它已经写入了一部分日志到redo log buffer中。如果此时另一个事务提交了，而且innodb_flush_log_at_trx_commit参数设置的是1，那么它就会直接将redo log buffer中的内容直接写入磁盘，这样事务A的一部分日志就被写入了磁盘当中。</p><h1 id="双一配置"><a href="#双一配置" class="headerlink" title="双一配置"></a>双一配置</h1><p>两阶段提交的流程是：时序上redo log先prepare， 再写binlog，最后再把redo log commit。</p><p>将innodb_flush_log_at_trx_commit设置为1时，redo log在处于prepare阶段时，就会刷新到磁盘当中。</p><p>通常我们说MySQL的“双1”配置，指的就是sync_binlog和innodb_flush_log_at_trx_commit都设置成 1。也就是说，一个事务完整提交前，需要等待两次刷盘，一次是redo log（prepare 阶段），一次是binlog。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> MySQL </category>
+          
+          <category> 日志 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> MySQL45讲 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>分页</title>
+      <link href="/2023/04/18/%E5%88%86%E9%A1%B5/"/>
+      <url>/2023/04/18/%E5%88%86%E9%A1%B5/</url>
+      
+        <content type="html"><![CDATA[]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> 操作系统 </category>
+          
+          <category> 内存虚拟化 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 虚拟化 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>对于socket的一些理解</title>
+      <link href="/2023/04/18/%E5%AF%B9%E4%BA%8Esocket%E7%9A%84%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/"/>
+      <url>/2023/04/18/%E5%AF%B9%E4%BA%8Esocket%E7%9A%84%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/</url>
+      
+        <content type="html"><![CDATA[<p> 在大学刚接触到网络编程以及web编程的时候，听说过socket以及端口号，但是当时只是知道写法如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// server</span></span><br><span class="line"><span class="type">int</span> <span class="variable">port</span> <span class="operator">=</span> xx;</span><br><span class="line">ServerSocket serverSocket <span class="keyword">new</span> <span class="title class_">ServerSocket</span>(port);;</span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> serverSocket.accept();</span><br><span class="line"></span><br><span class="line"><span class="comment">// client</span></span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(ip, port);</span><br></pre></td></tr></table></figure><p>但是并不明白为什么要这样做，在学习了计算机网络后，有了一些个人理解。</p><p>在计算机网络中，我们编写的代码，是属于应用层的内容，当需要传输数据时，需要先将数据传送给运输层，然后运输层送往网络层，依次往下传送。</p><p>其实我们可以将应用层与其他的几层拆分开，然后把运输层及其以下的几层当作是一个其他人已经封装好了的计算机网络。我们传输数据，只需要把数据交给这个计算机网络，它就能帮我们把数据传输到我们的目的地。而socket，就是我们的编写的程序与计算机网络之间的接口，也可以理解为一个桥梁，连接我们应用程序与计算机网络。</p><p>而我们在web编程，比如使用springboot框架，也需要在配置文件中指定端口号，它其实也是用于底层封装的socket指定对应端口号。</p><p>一个较为形象的比喻，我们的应用程序可以理解为手机，也就是应用层。而运输层及其以下的那几层可以理解为我们的房子内的电线。我们想要充电，就需要一个充电器，连接我们的手机以及那些电线。而这个充电器，可以理解为socket。</p><p>也就是说，每个socket都需要绑定端口号，用于标识它对应于哪个进程，我们的进程需要指定这个端口号，然后将数据通过socket传送到运输层，并进行第一次数据封装，用于目的主机找到对应的进程。到这里，就可以认为我们进程要传送的数据已经交给计算机网络，剩余的内容就由计算机网络处理。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 个人心得 </category>
+          
+          <category> 计算机网络 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 网络编程 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>计网中的多路分解与多路复用</title>
+      <link href="/2023/04/17/%E5%A4%9A%E8%B7%AF%E5%88%86%E8%A7%A3%E4%B8%8E%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/"/>
+      <url>/2023/04/17/%E5%A4%9A%E8%B7%AF%E5%88%86%E8%A7%A3%E4%B8%8E%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</url>
+      
+        <content type="html"><![CDATA[<p><strong>多路复用</strong>与<strong>多路分解</strong>是将网络层提供的主机到主机交付服务延伸到为运行在主机上的<strong>应用程序</strong>提供进程到进程的交付服务。</p><p>在目的主机，运输层负责从网络层接受报文段，然后将报文段中的数据交付给对应的进程。而每个进程都会有一个或者多个套接字，这些套接字可以理解为网络层和运输层传输数据的门户（一个更形象的比喻，可以把套接字理解为插座的插口。传输数据需要先连接套接字，而充电也要先找到插口）。其实数据并不是直接由网络层传输给数据层，而是网络层传送给套接字，而套接字又传送给运输层。如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417220052440.png" alt="image-20230417220052440" style="zoom:67%;" /><h1 id="多路分解"><a href="#多路分解" class="headerlink" title="多路分解"></a>多路分解</h1><p>将运输层报文段中的数据交付到正确的套接字的工作称为多路分解。</p><p>因为接受端不会只有一个套接字，所以需要找到正确的套接字。而每个套接字都会有唯一的标识符。</p><p>运输层为了找到正确的套接字，运输层的每个报文段都会有几个特殊字段，这几个字段，用于找到正确的套接字。</p><h1 id="多路复用"><a href="#多路复用" class="headerlink" title="多路复用"></a>多路复用</h1><p>在源主机中，从不同套接字收集数据块，然后将数据块封装生成报文段，并将报文段传送到网络层，这些工作统称为多路复用。</p><p>而在目的主机中，运输层从网络层接受到的报文段分解后交给对应的进程，这个过程是通过将报文段定向到对应套接字来完成的。</p><h1 id="多路复用要求"><a href="#多路复用要求" class="headerlink" title="多路复用要求"></a>多路复用要求</h1><p>1、套接字有唯一标识符</p><p>2、每个报文段有特殊字段来指示该报文段所要交付到的套接字。</p><p>报文段中会包含源端口号和目的端口号，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418095136342.png" alt="image-20230418095136342" style="zoom:67%;" /><p>运输层分解：</p><p>主机上的每一个套接字都会有对应的端口号，当报文段到达主机后，运输层会查看报文段中的端口号，并将其定向到相应的套接字。然后报文段中的数据就通过套接字进入套接字对应的进程。</p><h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>只有运输层与进程之间有套接字，也就是说进程发送给运输层数据，需要指定端口号和对应套接字，然后运输层会将报文封装，添加源主机端口号和目的主机端口号，用于目的主机对数据进行分解，找到对应进程。</p><p>而运输层与网络层之间，没有套接字的概念。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下方法》</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> 计算机网络 </category>
+          
+          <category> 运输层 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 运输层 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>空闲空间管理</title>
       <link href="/2023/04/17/%E7%A9%BA%E9%97%B2%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86/"/>
       <url>/2023/04/17/%E7%A9%BA%E9%97%B2%E7%A9%BA%E9%97%B4%E7%AE%A1%E7%90%86/</url>
@@ -66,7 +180,7 @@
       <link href="/2023/04/16/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
       <url>/2023/04/16/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</url>
       
-        <content type="html"><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p><p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p><p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p><h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p><p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p><p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p><p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p><h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p><p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p><p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p><p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p>]]></content>
+        <content type="html"><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p><p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p><p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p><h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p><p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p><p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p><p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p><h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p><p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p><p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p><p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
       
       
       <categories>
@@ -124,7 +238,7 @@
       <link href="/2023/04/16/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/"/>
       <url>/2023/04/16/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/</url>
       
-        <content type="html"><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。</p><p>在发送端，运输层将从发送应用程序进程接收到的报文转换成运输层分组，该分组称为<strong>运输层报文段</strong>（segment）。</p><p>转换的方法：</p><p>1、将应用报文划分为较小的块，并为每块加上一个运输层首部以生成运输层报文段。</p><p>2、然后，在发送端系统中，运输层将这些报文段传递给网络层，网路层将其封装成网络层分组（即数据报）并向目的地发送。</p><h1 id="运输层和网络层关系"><a href="#运输层和网络层关系" class="headerlink" title="运输层和网络层关系"></a>运输层和网络层关系</h1><p>运输层位于网络层之上。网络层提供主机到主机的逻辑通信，而运输层提供的是进程到进程的逻辑通信。</p><p>用书上的一个例子，场景是：假如现在有两个家庭A和B，每个家庭有4个孩子。而每个月两家孩子都会互相的写信。家庭A有一个孩子负责收集所有孩子的信件，然后送给邮局。家庭B同样有一个孩子来做这件事情。家庭A的孩子设为C，家庭B的孩子设为D。</p><p>在这个例子中，从这些孩子的角度来看，孩子C和孩子D就为他们提供了逻辑通信。因为其他孩子只需要把信交给孩子C和D，剩余事情都无需关心。邮局则提供了两个家庭间的逻辑通信，因为孩子C和D只需要把信交给邮局，其他的也无需关心。</p><p>所以可以做以下类比：</p><p>1、应用层报文 &#x3D; 信封上的字符</p><p>2、进程 &#x3D; 这群孩子 （他们是通信主体）</p><p>3、主机（端系统） &#x3D;  家庭  </p><p>4、运输层协议  &#x3D;  孩子C和D</p><p>5、网络层协议  &#x3D;  邮政服务</p>]]></content>
+        <content type="html"><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。</p><p>在发送端，运输层将从发送应用程序进程接收到的报文转换成运输层分组，该分组称为<strong>运输层报文段</strong>（segment）。</p><p>转换的方法：</p><p>1、将应用报文划分为较小的块，并为每块加上一个运输层首部以生成运输层报文段。</p><p>2、然后，在发送端系统中，运输层将这些报文段传递给网络层，网路层将其封装成网络层分组（即数据报）并向目的地发送。</p><h1 id="运输层和网络层关系"><a href="#运输层和网络层关系" class="headerlink" title="运输层和网络层关系"></a>运输层和网络层关系</h1><p>运输层位于网络层之上。网络层提供主机到主机的逻辑通信，而运输层提供的是进程到进程的逻辑通信。</p><p>用书上的一个例子，场景是：假如现在有两个家庭A和B，每个家庭有4个孩子。而每个月两家孩子都会互相的写信。家庭A有一个孩子负责收集所有孩子的信件，然后送给邮局。家庭B同样有一个孩子来做这件事情。家庭A的孩子设为C，家庭B的孩子设为D。</p><p>在这个例子中，从这些孩子的角度来看，孩子C和孩子D就为他们提供了逻辑通信。因为其他孩子只需要把信交给孩子C和D，剩余事情都无需关心。邮局则提供了两个家庭间的逻辑通信，因为孩子C和D只需要把信交给邮局，其他的也无需关心。</p><p>所以可以做以下类比：</p><p>1、应用层报文 &#x3D; 信封上的字符</p><p>2、进程 &#x3D; 这群孩子 （他们是通信主体）</p><p>3、主机（端系统） &#x3D;  家庭  </p><p>4、运输层协议  &#x3D;  孩子C和D</p><p>5、网络层协议  &#x3D;  邮政服务</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>]]></content>
       
       
       <categories>
@@ -153,7 +267,7 @@
       <link href="/2023/04/16/CDN/"/>
       <url>/2023/04/16/CDN/</url>
       
-        <content type="html"><![CDATA[<h1 id="内容分发网络CDN"><a href="#内容分发网络CDN" class="headerlink" title="内容分发网络CDN"></a>内容分发网络CDN</h1><p>现阶段，很多视频公司没日需要给用户推送大量的视频，这些视频如果都从公司的主服务器推送出去，则会给主服务器造成压力，而且由于区域原因，还会带来很高的时延。</p><p>CDN就是为了解决上面的问题。CDN服务器可以分布在多个地区，它存储那些视频以及图片的副本，用于用户请求时将视频等内容响应给用户。可以减小主服务器带宽压力，而且根据用户地理位置，分配不同的CDN，可以减少时延。</p><p>CDN采用集群部署，如果用户请求的CDN集群没有用户的目标视频，则该CDN集群会从中心仓库或者另一个集群搜索该视频，然后一边给用户传输，一边缓存在本集群中。</p><h1 id="CDN操作"><a href="#CDN操作" class="headerlink" title="CDN操作"></a>CDN操作</h1><p>当用于从浏览器请求某视频时，CDN需要先截获用户请求，才能确定适合用户的CDN集群，以及将用户请求重定向到该集群中。</p><h2 id="如何截获和重定向"><a href="#如何截获和重定向" class="headerlink" title="如何截获和重定向"></a>如何截获和重定向</h2><p>截获请求和重定向需要依赖于DNS。假如公司A用了公司B提供的CDN服务，那么一个大概的流程如下：</p><p>1、用户访问公司A的网站，点击了一个视频，那么他会向对应的域名发起请求（例如请求<a href="https://www.bilibili.com/video/xxx%EF%BC%89%EF%BC%8C%E8%8E%B7%E5%8F%96%E8%AF%A5%E8%A7%86%E9%A2%91%E3%80%82">https://www.bilibili.com/video/xxx），获取该视频。</a></p><p>2、用户的本地DNS服务器会将请求转发到权威DNS服务器，权威DNS服务器发现了域名中的video，那么它并不会向用户返回一个IP地址，而是返回一个B公司的主机名。</p><p>3、然后，该请求就进入了B公司专用的DNS设施。然后用户本地DNS会发起第二个请求，此时就是直接向公司B发起的DNS请求，这个请求会得到一个指向B公司的ip地址，然后用户可以从这里获取到视频的信息。</p><p>从这里，用户发起向公司A的请求就被转变为向公司B的CDN服务器的请求。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416102329355.png" alt="image-20230416102329355" style="zoom:67%;" /><h2 id="集群选择策略"><a href="#集群选择策略" class="headerlink" title="集群选择策略"></a>集群选择策略</h2><p>在上面的重定向过程中，公司B的CDN服务器是可以知道用户本地DNS地址，那么他就可以根据该ip来为用户分配最为临近的CDN集群。</p>]]></content>
+        <content type="html"><![CDATA[<h1 id="内容分发网络CDN"><a href="#内容分发网络CDN" class="headerlink" title="内容分发网络CDN"></a>内容分发网络CDN</h1><p>现阶段，很多视频公司没日需要给用户推送大量的视频，这些视频如果都从公司的主服务器推送出去，则会给主服务器造成压力，而且由于区域原因，还会带来很高的时延。</p><p>CDN就是为了解决上面的问题。CDN服务器可以分布在多个地区，它存储那些视频以及图片的副本，用于用户请求时将视频等内容响应给用户。可以减小主服务器带宽压力，而且根据用户地理位置，分配不同的CDN，可以减少时延。</p><p>CDN采用集群部署，如果用户请求的CDN集群没有用户的目标视频，则该CDN集群会从中心仓库或者另一个集群搜索该视频，然后一边给用户传输，一边缓存在本集群中。</p><h1 id="CDN操作"><a href="#CDN操作" class="headerlink" title="CDN操作"></a>CDN操作</h1><p>当用于从浏览器请求某视频时，CDN需要先截获用户请求，才能确定适合用户的CDN集群，以及将用户请求重定向到该集群中。</p><h2 id="如何截获和重定向"><a href="#如何截获和重定向" class="headerlink" title="如何截获和重定向"></a>如何截获和重定向</h2><p>截获请求和重定向需要依赖于DNS。假如公司A用了公司B提供的CDN服务，那么一个大概的流程如下：</p><p>1、用户访问公司A的网站，点击了一个视频，那么他会向对应的域名发起请求（例如请求<a href="https://www.bilibili.com/video/xxx%EF%BC%89%EF%BC%8C%E8%8E%B7%E5%8F%96%E8%AF%A5%E8%A7%86%E9%A2%91%E3%80%82">https://www.bilibili.com/video/xxx），获取该视频。</a></p><p>2、用户的本地DNS服务器会将请求转发到权威DNS服务器，权威DNS服务器发现了域名中的video，那么它并不会向用户返回一个IP地址，而是返回一个B公司的主机名。</p><p>3、然后，该请求就进入了B公司专用的DNS设施。然后用户本地DNS会发起第二个请求，此时就是直接向公司B发起的DNS请求，这个请求会得到一个指向B公司的ip地址，然后用户可以从这里获取到视频的信息。</p><p>从这里，用户发起向公司A的请求就被转变为向公司B的CDN服务器的请求。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416102329355.png" alt="image-20230416102329355" style="zoom:67%;" /><h2 id="集群选择策略"><a href="#集群选择策略" class="headerlink" title="集群选择策略"></a>集群选择策略</h2><p>在上面的重定向过程中，公司B的CDN服务器是可以知道用户本地DNS地址，那么他就可以根据该ip来为用户分配最为临近的CDN集群。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>]]></content>
       
       
       <categories>
