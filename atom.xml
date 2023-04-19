@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-18T07:57:57.479Z</updated>
+  <updated>2023-04-19T08:59:23.485Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,65 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>分页：快速地址转换</title>
+    <link href="http://example.com/2023/04/19/%E5%88%86%E9%A1%B5%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
+    <id>http://example.com/2023/04/19/%E5%88%86%E9%A1%B5%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
+    <published>2023-04-19T08:12:14.000Z</published>
+    <updated>2023-04-19T08:59:23.485Z</updated>
+    
+    <content type="html"><![CDATA[<p>为了解决分页带来的额外内存访问，又引入了地址转换旁路缓冲存储器，又称TLB。它是一个硬件缓存，它记录了频繁发生的虚拟地址到物理地址的转换。</p><p>引入该缓存后，每次需要访问内存时，硬件会先检查TLB中是否有期望的映射，如果有就直接转换。</p><h1 id="TLB的基本算法"><a href="#TLB的基本算法" class="headerlink" title="TLB的基本算法"></a>TLB的基本算法</h1><p>硬件会先从虚拟地址中提取页号，然后检查TLB中是否有该页号（在引入TLB之前，这里需要直接访问一次内存，去读取页表），如果有，则可以根据TLB的值，经过计算得到正确的物理地址。</p><p>如果没有找到，那么硬件需要去内存访问页表，然后将映射更新到TLB当中，前提是该虚拟地址有效，而且我们有权限访问。</p><h1 id="上下文切换时对TLB的处理"><a href="#上下文切换时对TLB的处理" class="headerlink" title="上下文切换时对TLB的处理"></a>上下文切换时对TLB的处理</h1><p>引入TLB之后，我们在发生上下文切换时，要对TLB进行特殊的处理。因为TLB记录的是某一个进程的地址空间到物理地址的转换，如果切换进程，那么当前的TLB对于另一个进程是不可用的。</p><p>一种解决方案：</p><p>在发生上下文切换时，直接清空TLB，那么就不会有进程读到错误的TLB。但是也存在问题，每个进程刚运行时，都会发生TLB未命中。</p><p>第二种解决方案：</p><p>增加一个地址空间标识符，也可以看作是进程标识符，用于标识存储的内容是那个进程的映射。这样一来，TLB可以同时缓存多个进程的地址映射。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;为了解决分页带来的额外内存访问，又引入了地址转换旁路缓冲存储器，又称TLB。它是一个硬件缓存，它记录了频繁发生的虚拟地址到物理地址的转换。&lt;/p&gt;
+&lt;p&gt;引入该缓存后，每次需要访问内存时，硬件会先检查TLB中是否有期望的映射，如果有就直接转换。&lt;/p&gt;
+&lt;h1 id=&quot;TL</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>MySQL怎么保证主备一致</title>
+    <link href="http://example.com/2023/04/19/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/"/>
+    <id>http://example.com/2023/04/19/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/</id>
+    <published>2023-04-19T06:59:51.000Z</published>
+    <updated>2023-04-19T07:20:53.857Z</updated>
+    
+    <content type="html"><![CDATA[<p>MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。</p><h1 id="binlog的三种格式"><a href="#binlog的三种格式" class="headerlink" title="binlog的三种格式"></a>binlog的三种格式</h1><p>binlog有三种格式，分别是statement，row和mixed。其中第三种是前两种的混合方式。</p><h2 id="这三种日志的区别"><a href="#这三种日志的区别" class="headerlink" title="这三种日志的区别"></a>这三种日志的区别</h2><p>假如说执行如下sql语句：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">delete from t where a &gt;= 4 and t_modified &lt;= &#x27;2018-11-10&#x27; limit 1;</span><br></pre></td></tr></table></figure><p>如果说binlog的格式为statement，那么binlog中会记录一个事务，事务中会执行这个sql。也就是说，该设置下，相当于把该条sql语句直接拿到从库中去执行。</p><p>如果说格式为row，那么binglog中会记录很多的内容，但是总的来说，它能够根据这些内容，去从库中直接定位到主库删除的那一条记录。就比如说，主库删除主键是1的那一行，如果记录为row格式，那么从库一定可以定位到从库中主键是1的那一行。</p><p>为什么说要定位到从库主键是1的这一行呢？</p><p>因为如果格式为statement，那么直接在从库中执行上述语句，可能会导致一些主备不一致的情况。</p><p>上述语句，如果走索引a，那么会找到第一条a &gt;&#x3D; 4的记录后，就直接删除。而走索引t_modified，则会找到第一条满足t_modified &lt;&#x3D; ‘2018-11-10’的后，就直接删除。这样的话，如果主备的索引不一致，那么就会导致删除不同的行，导致主备不一致。</p><p>而mixed就是结合了两者的优点。因为row格式需要记录 太多的内容，会占用大量的空间。比如我删除10万行数据，row格式就需要10万条记录。而statement格式只需要记录一条sql，但有可能会导致主备不一致，所以采用结合的方式。由系统判断该sql是否会产生主备不一致的可能，如果会就用row记录，否则用statement。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。&lt;/p&gt;
+&lt;h1 id=&quot;binlog的三种格式&quot;&gt;&lt;a href=&quot;#binlog的三种格式&quot; class=&quot;headerlink&quot; title=&quot;binlog的三种</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    <category term="日志" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E6%97%A5%E5%BF%97/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL怎么保证数据不丢失</title>
@@ -49,8 +108,17 @@
     <link href="http://example.com/2023/04/18/%E5%88%86%E9%A1%B5/"/>
     <id>http://example.com/2023/04/18/%E5%88%86%E9%A1%B5/</id>
     <published>2023-04-18T06:03:04.000Z</published>
-    <updated>2023-04-18T06:14:41.067Z</updated>
+    <updated>2023-04-18T12:06:42.928Z</updated>
     
+    <content type="html"><![CDATA[<p>因为分段采用的是将空间划分为大小不同的部分，这样的话会导致整个空间比较零碎，会给内存维护带来一定的困难。</p><p>为了解决这个问题，我们可以把内存空间分割成大小一样的片段，这种思想称为分页。</p><p>分页不是将一个进程的地址空间分割成几个不同长度的逻辑段（即代码、堆、段），而是分割成固定大小的单元，每个单元称为一页。</p><p>我们把物理内存看成是定长的一个分割过的槽，叫作页帧（page frame）。每个这样的页帧包含一个虚拟内存页。如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418170854468.png" alt="image-20230418170854468" style="zoom:67%;" /><p>当分页出现以后，一个进程地址空间被引入内存就变为下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418171040236.png" alt="image-20230418171040236" style="zoom:67%;" /><p>为了记录地址空间的每个虚拟页放在物理内存中的位置，操作系统通常为每个进程保存一个数据结构，称为页表（page table）。</p><p>页表的主要作用是为地址空间的每个虚拟页面保存地址转换（address translation），从而让我们知道每个页在物理内存中的位置。</p><h1 id="页表中有什么"><a href="#页表中有什么" class="headerlink" title="页表中有什么"></a>页表中有什么</h1><p>页表中有一个有效位的标识符。该标识符用于标记对应的地址空间是否使用，如果尝试访问标记为未使用的地址空间，那么程序可能会被终止。</p><p>通过有效位，我们可以只对标识为已经使用了的地址空间进行分配物理内存，这样就节省了大量内存。</p><p>还有一个存在位，用于标识该页是在内存中还是被换出到了磁盘。</p><p>参考位用于标记该页是否被访问。</p><h1 id="分页带来的问题"><a href="#分页带来的问题" class="headerlink" title="分页带来的问题"></a>分页带来的问题</h1><p>引入分页后，我们每次想要找到具体的物理地址时，系统需要先从进程的页表中取到对应的页表项，然后才能进行具体的地址空间到物理地址的转换。</p><p>在分段的设计下，我们可以直接从进程的基址寄存器中找到对应的物理位置。</p><p>而引入分页后，我们需要先从内存中取出页表，然后在页表中去找对应的地址空间到物理地址的转换。相当于多了一次取页表的操作。</p><p>而且页表需要占用物理内存。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;因为分段采用的是将空间划分为大小不同的部分，这样的话会导致整个空间比较零碎，会给内存维护带来一定的困难。&lt;/p&gt;
+&lt;p&gt;为了解决这个问题，我们可以把内存空间分割成大小一样的片段，这种思想称为分页。&lt;/p&gt;
+&lt;p&gt;分页不是将一个进程的地址空间分割成几个不同长度的逻辑段（即代码</summary>
+      
     
     
     
@@ -537,66 +605,6 @@
     
     
     <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>抽象：进程</title>
-    <link href="http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/"/>
-    <id>http://example.com/2023/04/12/%E6%8A%BD%E8%B1%A1%EF%BC%9A%E8%BF%9B%E7%A8%8B/</id>
-    <published>2023-04-12T11:03:29.000Z</published>
-    <updated>2023-04-14T09:19:09.224Z</updated>
-    
-    <content type="html"><![CDATA[<p>进程就是运行中的程序。</p><p>一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。</p><p>操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉就好像每个进程都在运行一样。</p><h1 id="时分共享和空分共享"><a href="#时分共享和空分共享" class="headerlink" title="时分共享和空分共享"></a>时分共享和空分共享</h1><p>时分共享是指让每个进程运行一段时间后让出处理器，让其他进程再运行一段时间，来达到虚拟化CPU的目的。</p><p>空分共享是指CPU资源在空间上被划分给希望使用它的进程。但这里需要注意，一旦分给一个进程，某些情况下如果它不释放空间，就不会再把这块空间分给其他进程。</p><h1 id="进程创建"><a href="#进程创建" class="headerlink" title="进程创建"></a>进程创建</h1><p>程序如何转变为进程？</p><p>操作系统运行程序必须先把代码和静态数据加载到内存中，加载到进程的地址空间中。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412193147452.png" alt="image-20230412193147452" style="zoom: 67%;" /><p>早期操作系统在程序运行前加载完成，而现在的是懒加载，即在程序执行期间需要的代码或者数据，才会加载到内存。</p><p>通过将代码和静态数据加载到内存中，然后创建和初始化栈以及执行与I&#x2F;O设置相关的工作，就只剩下最后一个任务，启动程序。</p><h1 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h1><p>进程有以下三种状态：</p><p>1、运行。说明进程正在处理器上运行，占用着资源。意味着正在执行指令。</p><p>2、就绪。程序已经准备好运行，但出于某种原因，操作系统不在此时运行。</p><p>3、阻塞。该进程在等待其他某种操作或者某个条件达成后，才可以进入就绪状态。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412194438253.png" alt="image-20230412194438253" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;进程就是运行中的程序。&lt;/p&gt;
-&lt;p&gt;一台电脑往往只有少数CPU，但是用户想要运行许多个应用，这里的关键问题：如何提供有许多CPU的假象。&lt;/p&gt;
-&lt;p&gt;操作系统通过虚拟化CPU来提供这假象，让一个进程只运行一个时间片，然后切换到其他进程。每个进程都运行一会儿，给用户的感觉</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL索引失效的情况</title>
-    <link href="http://example.com/2023/04/12/MySQL%E7%B4%A2%E5%BC%95%E5%A4%B1%E6%95%88%E7%9A%84%E6%83%85%E5%86%B5/"/>
-    <id>http://example.com/2023/04/12/MySQL%E7%B4%A2%E5%BC%95%E5%A4%B1%E6%95%88%E7%9A%84%E6%83%85%E5%86%B5/</id>
-    <published>2023-04-12T07:08:17.000Z</published>
-    <updated>2023-04-14T14:00:12.621Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="条件字段函数操作"><a href="#条件字段函数操作" class="headerlink" title="条件字段函数操作"></a>条件字段函数操作</h1><p>假如我们现在有如下需求，我们要统计一张表2021年和2022年8月份的记录，那么SQL语句可以这么写：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select column_1, column_2 from table_1 where month(record_time) = 7;</span><br></pre></td></tr></table></figure><p>虽然数据库表在record_time上加了索引（结构图如下），但是这个sql还是会执行的特别慢。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230412151341061.png" alt="image-20230412151341061" style="zoom:67%;" /><p>因为在用month函数对record_time做计算后，得到的数字是记录的月份，而索引的值却并不是一个单独的数字，所以会导致它走全表扫描。</p><p>也就是说，<strong>对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。</strong></p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">// 无法使用id这个索引</span><br><span class="line">select * from table_1 where id + 1 = 1000 </span><br><span class="line"></span><br><span class="line">// 可以使用</span><br><span class="line">select * from table_1 where id = 1000 - 1</span><br></pre></td></tr></table></figure><h1 id="隐式类型转换"><a href="#隐式类型转换" class="headerlink" title="隐式类型转换"></a>隐式类型转换</h1><p>现在有如下例子：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from tradelog where id = 110717;</span><br></pre></td></tr></table></figure><p>其中，id是一个varchar类型的值，虽然它上面有索引，但还是走了全表扫描。这里就是因为id是varchar，而输入的值是数字，导致类型转换。</p><p>而发生转换要走全表索引的原因是转换相当于一个函数调用，上面语句相当于：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from tradelog where CAST(id AS signed int) = 110717;</span><br></pre></td></tr></table></figure><p>而对索引字段使用函数会导致无法使用索引。</p><h1 id="隐式字符编码转换"><a href="#隐式字符编码转换" class="headerlink" title="隐式字符编码转换"></a>隐式字符编码转换</h1><p>假如有如下语句</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select d.* from tradelog l, trade_detail d where d.tradeid = l.tradeid and l.id = 2</span><br></pre></td></tr></table></figure><p>这是一个简单的连表操作，其中tradelog为驱动表，trade_detail为被驱动表，tradeid为关联字段。</p><p>但是使用explain却发现在tradelog上使用了索引，但是在trade_detail上却走了全表扫描。</p><p>这个语句的执行流程是，从驱动表中找到一行数据，然后去被驱动表查找对值一样的数据组成结果集，过程如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412153535466.png" alt="image-20230412153535466" style="zoom: 67%;" /><p>而这里走全表扫描的原因是发生了类型的转换。这里两个表的字段一个类型是utf8，另一个是utf8mb4，导致实际执行的sql相当于：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from trade_detail  where CONVERT(traideid USING utf8mb4)=$L2.tradeid.value; </span><br></pre></td></tr></table></figure><p>CONVERT()函数，在这里的意思是把输入的字符串转成utf8mb4字符集。</p><p>而这里导致全表扫描的原因也是因为对索引字段加了函数操作。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;条件字段函数操作&quot;&gt;&lt;a href=&quot;#条件字段函数操作&quot; class=&quot;headerlink&quot; title=&quot;条件字段函数操作&quot;&gt;&lt;/a&gt;条件字段函数操作&lt;/h1&gt;&lt;p&gt;假如我们现在有如下需求，我们要统计一张表2021年和2022年8月份的记录，那么SQL语句可</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="索引" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E7%B4%A2%E5%BC%95/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
     
   </entry>
   
