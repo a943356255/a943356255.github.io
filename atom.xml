@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-19T14:35:36.346Z</updated>
+  <updated>2023-04-20T14:40:46.917Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,122 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>超越物理内存的机制</title>
+    <link href="http://example.com/2023/04/20/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E6%9C%BA%E5%88%B6/"/>
+    <id>http://example.com/2023/04/20/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E6%9C%BA%E5%88%B6/</id>
+    <published>2023-04-20T14:04:38.000Z</published>
+    <updated>2023-04-20T14:40:46.917Z</updated>
+    
+    <content type="html"><![CDATA[<p> 在本章之前，我们所做的假设都是将进程的所有页都可以放入内存当中，但实际情况是，物理内存无法存储这么多的页。而且，为了更大的地址空间，我们也需要更大的物理内存来存储更大的页表。</p><p>这里的一个解决办法就是，利用磁盘空间，也就是说将页表取出一部分，放入磁盘当中。而操作系统需要知道这些被换出的页存在于磁盘的哪个位置，以便后续将他们加载到内存当中。</p><h1 id="交换空间"><a href="#交换空间" class="headerlink" title="交换空间"></a>交换空间</h1><p>在磁盘上开辟一块空间，用于物理页的移入和移出，这些空间就称为交换空间。而交换空间的大小，决定了系统在某一时刻能够使用的最大内存页数。而且操作系统需要记得给定页的硬件地址。</p><h1 id="存在位"><a href="#存在位" class="headerlink" title="存在位"></a>存在位</h1><p>按照之前的设定，一个虚拟地址转换为物理地址，会先检查TLB（快速地址转换），如果命中，则直接从中获取到映射，速度很快。</p><p>如果未命中，则需要先去内存中去找页目录，然后从页目录中找到对应页表页（页表被分为了很多个页），然后从页表中找到对应的映射，之后再把它加入TLB中。</p><p>如果添加了交换空间，这里边就需要考虑页是否在内存中的情况，则需要多一个标记位，即存在位，用于标记该页是否在内存当中。</p><h1 id="页错误"><a href="#页错误" class="headerlink" title="页错误"></a>页错误</h1><p>如果访问的页不在内存当中，就会发生页错误。</p><p>发生页错误，可能是因为该页被换出磁盘，那么系统就需要从对应的磁盘当中去加载内存页，这也就要求操作系统需要知道被换出的页的存储位置。操作系统可以使用PTE（页表项）的某些位来存储硬盘地址。</p><p>当将该页加载到内存后，操作系统会更新页表，将该页标记为存在内存当中，并且更新页表项中对应位置，它之前是记录了在硬盘的地址，现在把他改为在内存中的地址。</p><h1 id="何时交换页"><a href="#何时交换页" class="headerlink" title="何时交换页"></a>何时交换页</h1><p>操作系统都会设置一个高水位线，也就是说并不会等到内存满了才执行换出，而是会预留一部分内存。当内存的使用情况超过高水位线时，就会从内存中清除页。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 在本章之前，我们所做的假设都是将进程的所有页都可以放入内存当中，但实际情况是，物理内存无法存储这么多的页。而且，为了更大的地址空间，我们也需要更大的物理内存来存储更大的页表。&lt;/p&gt;
+&lt;p&gt;这里的一个解决办法就是，利用磁盘空间，也就是说将页表取出一部分，放入磁盘当中。而操</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+    
+    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>Synchronized的使用</title>
+    <link href="http://example.com/2023/04/20/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/"/>
+    <id>http://example.com/2023/04/20/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/</id>
+    <published>2023-04-20T07:27:09.000Z</published>
+    <updated>2023-04-20T13:15:25.945Z</updated>
+    
+    <content type="html"><![CDATA[<p> 考虑如下代码</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SyncTest</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            System.out.println(Thread.currentThread().getName() + <span class="string">&quot;:&quot;</span> + count++);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest, <span class="string">&quot;thread1&quot;</span>);</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest1, <span class="string">&quot;thread2&quot;</span>);</span><br><span class="line"></span><br><span class="line">        thread.start();</span><br><span class="line">        thread2.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>我们在run方法上加了synchronized，也就意味着锁住的是该对象，也就是synchronized（this），当我们实例化两个对象时，他们是互相不影响的，所以打印结果如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230420161141896.png" alt="image-20230420161141896" style="zoom: 80%;" /><p>另一段代码：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">      <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">      target.balance += amt;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这样写，在转账的场景中并不能解决问题。</p><p>因为synchronized锁的是当前对象，它并不能锁住传进来的target，也就是说，如果此时实例化的对象是A，然后调用A.transfer(B, 100),它只能锁住A的balance，并不能锁住B的balance还会存在另一个线程修改B的balance的问题。</p><p>一开始看到这里有一个疑问，为什么不直接在接口中锁主呢，像如下写法：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/test&quot;)</span></span><br><span class="line"><span class="keyword">public</span> JSONObject <span class="title function_">testInterface</span><span class="params">(<span class="meta">@RequestBody</span> Map&lt;String, Object&gt; map)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> crudServiceImpl.getCrudValue(map);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种写法会导致另外一个问题，也就是说我在A给B转账时，会进行加锁，导致C给D转账的时候，也无法进行。也就是说这种写法会导致锁的粒度太大，在实际场景中是无法使用的。</p><p>第一个优化版本：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span>&#123;</span><br><span class="line">    <span class="comment">// 锁定转出账户</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>)&#123;</span><br><span class="line">      <span class="comment">// 锁定转入账户</span></span><br><span class="line">      <span class="keyword">synchronized</span>(target)&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">          <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">          target.balance += amt;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这样写可以保证this 和target都被锁住，达到我们预期地效果。但是也存在问题，如果A给B转账地同时，B也要给A转账，那么就会出现死锁。两者同时锁this，也就是对象A和对象B都被锁住，然后往下执行时，发现请求资源已经被锁，导致死锁。</p><p>第二个优化版本，防止死锁：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Allocator</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;Object&gt; als = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 一次性申请所有资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="type">boolean</span> <span class="title function_">apply</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (als.contains(from) || als.contains(to)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            als.add(from);</span><br><span class="line">            als.add(to);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 归还资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">free</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        als.remove(from);</span><br><span class="line">        als.remove(to);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    <span class="comment">// actr应该为单例</span></span><br><span class="line">    <span class="keyword">private</span> Allocator actr;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 转账</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">        <span class="comment">// 一次性申请转出账户和转入账户，直到成功</span></span><br><span class="line">        <span class="keyword">while</span> (!actr.apply(<span class="built_in">this</span>, target));</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 锁定转出账户</span></span><br><span class="line">            <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">                <span class="comment">// 锁定转入账户</span></span><br><span class="line">                <span class="keyword">synchronized</span>(target) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">                        <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">                        target.balance += amt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            actr.free(<span class="built_in">this</span>, target);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这个版本中，Allocator是一个单例，也就意味着只有一个，然后在加锁之前，先判断是否可以同时获取两个对象的锁，如果可以，再进行加锁。</p><h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><p>上述代码都忽略了在两个线程中new 出来的对象不是同一个的问题。也就是说，transfer里传入的对象，在另一个线程中也是这两个。仅作为演示破会死锁。</p><p>而事实情况是，如果这段代码放在两个不同的线程中运行，线程A实例化account C和D，线程B实例化account C和D，在线程A执行transfer（C，D），在线程B执行transfer（D，C）还是有可能会发生死锁。</p><p>而上述代码的逻辑是建立在线程A 实例化的C和D 与线程B实例化的C和D是同一个对象。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 考虑如下代码&lt;/p&gt;
+&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;</summary>
+      
+    
+    
+    
+    <category term="个人心得" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/"/>
+    
+    <category term="并发" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/%E5%B9%B6%E5%8F%91/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>可靠数据传输原理</title>
+    <link href="http://example.com/2023/04/20/%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8E%9F%E7%90%86/"/>
+    <id>http://example.com/2023/04/20/%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8E%9F%E7%90%86/</id>
+    <published>2023-04-20T02:51:07.000Z</published>
+    <updated>2023-04-20T03:10:53.678Z</updated>
+    
+    <content type="html"><![CDATA[<p>实现可靠传输是靠<strong>可靠数据传输协议</strong>来完成的，而该协议却建立在不可靠的下层协议上。就好比TCP提供可靠传输，而TCP却是建立在IP协议这个不可靠协议的基础上。</p><p>以下的讨论都是单向数据传输，而且暂且只考虑损坏比特或者整个报文段丢失的情况，而不考虑乱序到达的情况。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;实现可靠传输是靠&lt;strong&gt;可靠数据传输协议&lt;/strong&gt;来完成的，而该协议却建立在不可靠的下层协议上。就好比TCP提供可靠传输，而TCP却是建立在IP协议这个不可靠协议的基础上。&lt;/p&gt;
+&lt;p&gt;以下的讨论都是单向数据传输，而且暂且只考虑损坏比特或者整个报文段丢失的</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>UDP</title>
+    <link href="http://example.com/2023/04/20/UDP/"/>
+    <id>http://example.com/2023/04/20/UDP/</id>
+    <published>2023-04-20T01:53:33.000Z</published>
+    <updated>2023-04-20T02:50:43.706Z</updated>
+    
+    <content type="html"><![CDATA[<p>UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。</p><p>UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢复，只能选择丢弃，或者交给应用程序，并发出警告。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。&lt;/p&gt;
+&lt;p&gt;UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+  </entry>
   
   <entry>
     <title>分页：较小的表</title>
@@ -464,134 +580,6 @@
       
     <summary type="html">&lt;h1 id=&quot;多处理器架构&quot;&gt;&lt;a href=&quot;#多处理器架构&quot; class=&quot;headerlink&quot; title=&quot;多处理器架构&quot;&gt;&lt;/a&gt;多处理器架构&lt;/h1&gt;&lt;p&gt;多处理器与单处理器最大的区别在于对硬件缓存的使用，以及处理器之间共享数据的方式。&lt;/p&gt;
 &lt;p&gt;在单CPU系</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>调度：多级反馈队列</title>
-    <link href="http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/"/>
-    <id>http://example.com/2023/04/14/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</id>
-    <published>2023-04-14T08:10:53.000Z</published>
-    <updated>2023-04-17T06:30:08.585Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p><h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p><p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p><p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p><h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p><p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p><h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;基本规则&quot;&gt;&lt;a href=&quot;#基本规则&quot; class=&quot;headerlink&quot; title=&quot;基本规则&quot;&gt;&lt;/a&gt;基本规则&lt;/h1&gt;&lt;p&gt;MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="CPU虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/CPU%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL的幻读</title>
-    <link href="http://example.com/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/"/>
-    <id>http://example.com/2023/04/14/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/</id>
-    <published>2023-04-14T05:55:01.000Z</published>
-    <updated>2023-04-14T13:58:14.459Z</updated>
-    
-    <content type="html"><![CDATA[<p>这篇文章将介绍MySQL幻读相关的内容。</p><p>假设数据库中有以下表：</p><table><thead><tr><th>id</th><th>c</th><th>d</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>5</td><td>5</td><td>5</td></tr><tr><td>10</td><td>10</td><td>10</td></tr><tr><td>15</td><td>15</td><td>15</td></tr><tr><td>20</td><td>20</td><td>20</td></tr><tr><td>25</td><td>25</td><td>25</td></tr></tbody></table><p>其中id是主键，c上建立有普通索引。</p><p>以下讨论场景除非必要说明，否则都是在可重复读的隔离级别下。</p><h1 id="什么是幻读"><a href="#什么是幻读" class="headerlink" title="什么是幻读"></a>什么是幻读</h1><p>现在考虑以下场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414141001291.png" alt="image-20230414141001291" style="zoom:50%;" /><p>其中，select * from table for update表示当前读，并且加上写锁。</p><p>幻读就是指在同一个事务中执行相同的sql，后一次查询看到了前一次没看到的数据。就比如Q3比Q2多了一条数据。</p><p>Q2看到Q1并不被称为幻读，幻读仅仅指新插入的数据。</p><p>在可重复读的隔离级别下，普通查询是看不到其他插入的数据，只有当前读（要能读到所有已经提交的记录的最新值）才有可能出现幻读。</p><h1 id="幻读存在的问题"><a href="#幻读存在的问题" class="headerlink" title="幻读存在的问题"></a>幻读存在的问题</h1><h2 id="1、语义的破坏"><a href="#1、语义的破坏" class="headerlink" title="1、语义的破坏"></a>1、语义的破坏</h2><p>session A已经声明了写锁，即要锁住d &#x3D; 5的行，不允许其他事务进行读写，而后续却插入了一条d &#x3D; 5的数据。</p><p>考虑另一个更明显的场景：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414143724913.png" alt="image-20230414143724913" style="zoom: 50%;" /><p>sessionB将id &#x3D; 0的这一行的d改成了5，然后又把c改成了5，也就是说变化为从（0，0，5）-&gt;（0，5，5）。这样破坏了sessionA要锁住所有d&#x3D;5的行的加锁声明。</p><p>sessionC也是同样的道理，修改了d &#x3D; 5，id &#x3D; 1的行。</p><h2 id="2、数据一致性问题"><a href="#2、数据一致性问题" class="headerlink" title="2、数据一致性问题"></a>2、数据一致性问题</h2><p>现在在sessionA追加一条语句：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414144337377.png" alt="image-20230414144337377" style="zoom:50%;" /><p>此时，sessionA要锁住d &#x3D; 5的这一行，然后把d 改为100，即sessionA在T1要做的操作为将（5，5，5）-&gt; (5，5，100)。</p><p>在T2时刻，id &#x3D; 0这一行变成了（0，5，5）</p><p>在T4时刻，数据库多了一条（1，5，5）的记录。</p><p>但是我们看binlog的内容：</p><p>在T2时刻，sessionB提交，写入两条语句，两条update。</p><p>T4时刻，sessionC提交，写入两条语句，一条insert，一条update。</p><p>把上面的语句放在一起，顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">/* sessionB */</span><br><span class="line">update t set d = 5 where id = 0; /*(0,0,5)*/</span><br><span class="line">update t set c = 5 where id = 0; /*(0,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionC */</span><br><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c = 5 where id = 1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionA */</span><br><span class="line">update t set d = 100 where d = 5;/*所有d=5的行，d改成100*/</span><br></pre></td></tr></table></figure><p>通过这个语句的顺序，如果我们要拿它来恢复数据，最终恢复出来的数据会变为： (0,5,100)、(1,5,100) 和 (5,5,100)。</p><p>而正确的数据应该是（0，5，5），（1，5，5）和（5，5，100）。因为在可重复读隔离级别下，事务A没提交，事务B和C看不到A的修改，而事务A在提交之前看不到B和C的修改。</p><p>这里的数据不一致是因为我们假设了select * from t where d&#x3D;5 for update这条语句只给id &#x3D; 5这一样加锁导致的。</p><p>现在我们假设把扫描过程中的所有行都加锁，场景如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414150914211.png" alt="image-20230414150914211" style="zoom:50%;" /><p>这个时候，id &#x3D; 0的这一行在修改时，由于被加了锁，所以无法执行。也就是说现在的执行顺序如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c=5 where id=1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">update t set d=100 where d=5;/*所有d=5的行，d改成100*/</span><br><span class="line"></span><br><span class="line">update t set d=5 where id=0; /*(0,0,5)*/</span><br><span class="line">update t set c=5 where id=0; /*(0,5,5)*/</span><br></pre></td></tr></table></figure><p>此时，id &#x3D; 0的这一行数据正确，但是新插入的id &#x3D; 1的问题还是没有解决。</p><p><strong>也就是说，即使把所有的记录都加上锁，还是阻止不了新插入的记录</strong>，这也是为什么要单独解决幻读。</p><h1 id="如何解决"><a href="#如何解决" class="headerlink" title="如何解决"></a>如何解决</h1><p>即使我们在一开始就锁住所有行，但是由于插入语句是在行的间隙进行的，所以InnoDB的解决办法是引入了间隙锁(Gap Lock)。比如开头的表，有6行数据，7个间隙。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414151304834.png" alt="image-20230414151304834" style="zoom:67%;" /><p>这样，当你执行 select * from t where d&#x3D;5 for update的时候，就不止是给数据库中已有的6个记录加上了行锁，还同时加了7个间隙锁。这样就确保了无法再插入新的记录。</p><p>间隙锁和间隙锁之间不冲突，两个事务可以在同一个间隙加间隙锁，与间隙锁冲突的是往间隙插入数据的操作。</p><p><strong>间隙锁和行锁合称next-key lock</strong>，每个next-key lock是前开后闭区间，</p><p>间隙锁只有在可重复读的隔离级别下才有。而且引入间隙锁会降低并发度，并且有可能造成死锁。</p><p>另外一种解决幻读的方式是采用读提交的隔离级别加binlog_format&#x3D;row。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;这篇文章将介绍MySQL幻读相关的内容。&lt;/p&gt;
-&lt;p&gt;假设数据库中有以下表：&lt;/p&gt;
-&lt;table&gt;
-&lt;thead&gt;
-&lt;tr&gt;
-&lt;th&gt;id&lt;/th&gt;
-&lt;th&gt;c&lt;/th&gt;
-&lt;th&gt;d&lt;/th&gt;
-&lt;/tr&gt;
-&lt;/thead&gt;
-&lt;tbody&gt;&lt;tr&gt;
-&lt;td&gt;0&lt;/td&gt;
-</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="其他" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E5%85%B6%E4%BB%96/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>DNS域名解析</title>
-    <link href="http://example.com/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/"/>
-    <id>http://example.com/2023/04/14/DNS%E5%9F%9F%E5%90%8D%E8%A7%A3%E6%9E%90/</id>
-    <published>2023-04-14T02:22:20.000Z</published>
-    <updated>2023-04-16T03:05:33.659Z</updated>
-    
-    <content type="html"><![CDATA[<p>DNS是一个由分层的DNS服务器实现的分布式数据库，它主要记录了域名与IP地址的对应关系。</p><p>我们平时访问网站，都是输入域名，而不是IP地址，而域名被解析为对应IP地址这一步，就是由DNS实现的。</p><p>它还提供了一些其他的服务，比如说将一个域名映射到多个IP地址上，用于减轻单个服务器的压力。</p><h1 id="DNS架构"><a href="#DNS架构" class="headerlink" title="DNS架构"></a>DNS架构</h1><p>它是一个分布式的数据库，且分多层次。</p><p>不采用单点是因为如果单点故障，那么整个因特网就不能用，而且单点无法承载那么大的请求量，存储那么多的数据。如果采用单点，还会因为地理位置原因导致很大的时延。</p><h2 id="分层"><a href="#分层" class="headerlink" title="分层"></a>分层</h2><p>DNS分为根域名服务器，顶级域名服务器，权威域名服务器和本地域名服务器。</p><p>一个用户在浏览器中输入一个域名，解析的过程大致如下（迭代查询）：</p><p>1、向本地域名服务器发送请求。</p><p>2、本地域名服务器向根域名服务器发送请求，根域名服务器返回顶级域名服务器的地址。</p><p>3、本地再向顶级域名服务器发起请求，顶级域名服务器返回权威域名服务器的地址，到这一步就可以获取到IP。</p><p>4、本地域名服务器将获取到的ip返回给用户浏览器。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/test.png" alt="test" style="zoom: 50%;" /><p>递归查询：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414110639339.png" alt="image-20230414110639339" style="zoom: 67%;" /><h2 id="DNS缓存"><a href="#DNS缓存" class="headerlink" title="DNS缓存"></a>DNS缓存</h2><p>某一个DNS服务器接受一个DNS回答时，它可以将映射存储在本地的存储器中，下一次如果有同样的映射，可以直接返回而不用去往下一层请求。</p><p>但是该缓存并不是永久存在的，过一段时间会被清除。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;DNS是一个由分层的DNS服务器实现的分布式数据库，它主要记录了域名与IP地址的对应关系。&lt;/p&gt;
-&lt;p&gt;我们平时访问网站，都是输入域名，而不是IP地址，而域名被解析为对应IP地址这一步，就是由DNS实现的。&lt;/p&gt;
-&lt;p&gt;它还提供了一些其他的服务，比如说将一个域名映射到多</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="应用层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%BA%94%E7%94%A8%E5%B1%82/"/>
-    
-    
-    <category term="应用层" scheme="http://example.com/tags/%E5%BA%94%E7%94%A8%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>进程调度：介绍</title>
-    <link href="http://example.com/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/"/>
-    <id>http://example.com/2023/04/13/%E8%BF%9B%E7%A8%8B%E8%B0%83%E5%BA%A6%EF%BC%9A%E4%BB%8B%E7%BB%8D/</id>
-    <published>2023-04-13T08:00:56.000Z</published>
-    <updated>2023-04-14T09:19:58.110Z</updated>
-    
-    <content type="html"><![CDATA[<p>本文主要介绍一些基础的调度策略。</p><h1 id="调度指标"><a href="#调度指标" class="headerlink" title="调度指标"></a>调度指标</h1><p>以下算法的性能指标只考虑周转时间。</p><p>周转时间 &#x3D; 完成时间 - 到达时间</p><h1 id="先进先出（FIFO）"><a href="#先进先出（FIFO）" class="headerlink" title="先进先出（FIFO）"></a>先进先出（FIFO）</h1><p>这个算法的思路很简单，先来的先执行，并且易于实现。就好比有三个任务A，B，C，他们到来的顺序是B，A，C，那么就按照他们到来的顺序进行执行。</p><p>存在的问题：如果先来的任务执行了很长时间，会导致后边的任务等待很久才可以执行，这样会导致系统的周转时间变的很长。</p><h1 id="最短任务优先（SJF）"><a href="#最短任务优先（SJF）" class="headerlink" title="最短任务优先（SJF）"></a>最短任务优先（SJF）</h1><p>该算法会先运行短任务，然后运行次短任务，依次下去。如果任务同时到达，该算法较FIFO算法可以很好的解决平均周转时间长的问题。</p><p>但是如果任务不同时到达，那么执行时间长的任务比短时任务先到达，还是会导致短任务需要等待。</p><h1 id="最短完成时间优先（STCF）"><a href="#最短完成时间优先（STCF）" class="headerlink" title="最短完成时间优先（STCF）"></a>最短完成时间优先（STCF）</h1><p>上面两种算法都是非抢占式的。</p><p>而最短完成时间优先可以理解为一种抢占式的最短任务优先算法。</p><p>该算法下，没当有任务进入系统，会判断当前正在执行任务的剩余时间和新任务的时间，哪个短就执行哪个。</p><h1 id="新的性能指标"><a href="#新的性能指标" class="headerlink" title="新的性能指标"></a>新的性能指标</h1><p>从现在开始，性能不仅考虑周转时间，还要考虑响应时间。</p><p>响应时间 &#x3D; 首次运行 - 到达时间。</p><h1 id="轮转"><a href="#轮转" class="headerlink" title="轮转"></a>轮转</h1><p>在加入新的性能指标后，上述算法就会出现问题，因为会导致长任务的响应时间特别长。</p><p>轮转的思想是，每一个任务执行一个时间片，然后切换到队列中的下一个任务，而不是一个任务一直执行，直到完毕。</p><p>该算法需要考虑时间片长短的问题，太短会导致频繁切换而导致性能下降，而太长，则会导致周转时间和响应时间太长，所以需要权衡考虑。</p><h1 id="结合I-x2F-O"><a href="#结合I-x2F-O" class="headerlink" title="结合I&#x2F;O"></a>结合I&#x2F;O</h1><p>现在假设任务都需要进行I&#x2F;O操作，那么轮转这种设计方法就会体现出它的优势。</p><p>如果不进行轮转，先到来的任务占用处理器资源，然后又进行了I&#x2F;O操作，那么会导致一个任务占用处理器资源却不使用，而是进行I&#x2F;O操作，导致其他任务也无法执行，这是对处理器的浪费。</p><p>而轮转却能很好的解决该问题，因为任务在执行I&#x2F;O操作时，可以让出处理器，让其他任务使用。</p><h1 id="无法预知"><a href="#无法预知" class="headerlink" title="无法预知"></a>无法预知</h1><p>上面的讨论都是建立在操作系统知道任务需要处理多长时间，而事实情况是，执行时间是无法估计的，所以像SJF或者STCF这种算法，几乎无法实现。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;本文主要介绍一些基础的调度策略。&lt;/p&gt;
-&lt;h1 id=&quot;调度指标&quot;&gt;&lt;a href=&quot;#调度指标&quot; class=&quot;headerlink&quot; title=&quot;调度指标&quot;&gt;&lt;/a&gt;调度指标&lt;/h1&gt;&lt;p&gt;以下算法的性能指标只考虑周转时间。&lt;/p&gt;
-&lt;p&gt;周转时间 &amp;#x3D; 完</summary>
       
     
     
