@@ -127,6 +127,32 @@
       </tags>
   </entry>
   <entry>
+    <title>Java先行发生原则</title>
+    <url>/2023/03/24/Java/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</url>
+    <content><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p>
+<p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p>
+<p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p>
+<p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p>
+<p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p>
+<p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p>
+<p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p>
+<p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p>
+<p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p>
+<p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>Java</category>
+        <category>内存模型</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
+        <tag>内存模型</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>Java内存区域划分（JVM内存模型）</title>
     <url>/2023/03/31/Java/Java%E5%86%85%E5%AD%98%E5%8C%BA%E5%9F%9F%E5%88%92%E5%88%86%EF%BC%88JVM%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%EF%BC%89/</url>
     <content><![CDATA[<h1 id="运行时数据区域"><a href="#运行时数据区域" class="headerlink" title="运行时数据区域"></a>运行时数据区域</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230331143717622.png" alt="image-20230331143717622"></p>
@@ -162,18 +188,24 @@
       </tags>
   </entry>
   <entry>
-    <title>Java先行发生原则</title>
-    <url>/2023/03/24/Java/Java%E5%85%88%E8%A1%8C%E5%8F%91%E7%94%9F%E5%8E%9F%E5%88%99/</url>
-    <content><![CDATA[<p>先行发生是Java内存模型中定义的两项操作之间的偏序关系，比如说操作A先行发生于操作B，其实就是说在发生操作B之前，操作A产生的影响能被操作B观察到，“影响”包括修改了内存中共享变量的值、发送了消息、调用了方法等。</p>
-<p>Java语言无须任何同步手段保障就能成立的先行发生规则有且只有以下几种：</p>
-<p>1、程序次序规则（Program Order Rule）：在一个线程内，按照控制流顺序，书写在前面的操作先行发生于书写在后面的操作。注意，这里说的是控制流顺序而不是程序代码顺序，因为要考虑分支、循环等结构。</p>
-<p>2、管程锁定规则（Monitor Lock Rule）：一个unlock操作先行发生于后面对同一个锁的lock操作。这里必须强调的是“同一个锁”，而“后面”是指时间上的先后。</p>
-<p>3、volatile变量规则（Volatile Variable Rule）：对一个volatile变量的写操作先行发生于后面对这个变量的读操作，这里的“后面”同样是指时间上的先后。</p>
-<p>4、线程启动规则（Thread Start Rule）：Thread对象的start()方法先行发生于此线程的每一个动作。</p>
-<p>5、线程终止规则（Thread Termination Rule）：线程中的所有操作都先行发生于对此线程的终止检测，我们可以通过Thread::join()方法是否结束、Thread::isAlive()的返回值等手段检测线程是否已经终止执行。</p>
-<p>6、线程中断规则（Thread Interruption Rule）：对线程interrupt()方法的调用先行发生于被中断线程的代码检测到中断事件的发生，可以通过Thread::interrupted()方法检测到是否有中断发生。</p>
-<p>7、对象终结规则（Finalizer Rule）：一个对象的初始化完成（构造函数执行结束）先行发生于它的finalize()方法的开始。</p>
-<p>8、传递性（Transitivity）：如果操作A先行发生于操作B，操作B先行发生于操作C，那就可以得出操作A先行发生于操作C的结论。</p>
+    <title>Java内存模型之主内存与工作内存</title>
+    <url>/2023/03/23/Java/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/</url>
+    <content><![CDATA[<p>每秒事务处理数量（TPS）是衡量一个服务性能高低好坏的重要指标之一。它代表着一秒内服务端平均能响应的请求综述，而且TPS值与程序的并发能力又有密切的关系。</p>
+<p>为了解决计算机存储设备与处理器运算速度的差距，除了增加缓存外，还有一种优化方法，就是处理器可能会对输入的代码进行乱序执行，处理器在计算后会把乱序的结果进行重组，保证该结果与顺序执行时的一致，但是并不保证程序中各个语句计算的先后顺序与输入代码中的顺序一致。因此，出现一个计算任务依赖另一个计算任务的中间结果，那么其顺序性并不能靠代码的先后顺序来保证。</p>
+<h1 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h1><p>可以理解为在特定的操作协议下，对特定的内存或高速缓存进行读写访问的过程抽象。</p>
+<h1 id="主内存与工作内存"><a href="#主内存与工作内存" class="headerlink" title="主内存与工作内存"></a>主内存与工作内存</h1><p>Java内存模型的主要目的是定义程序中各种变量的访问规则，即关注虚拟机中把变量值存储到内存和从内存中取出变量值这样的底层细节。此处的变量包括了实例字段、静态字段和构成数组对象的元素，但是不包括局部变量与方法参数。因为后两个是线程私有的，并不会被共享，也不存在竞争。</p>
+<p>Java内存模型没有限制执行引擎使用处理器的特定寄存器或缓存来和主内存进行交互，也没有限制即时编译器是否需要进行调整代码的执行顺序这类优化措施。</p>
+<p>Java内存模型规定了所有的变量都存储在主内存中。每条线程还有自己的<strong>工作内存</strong>，线程的工作内存中保存了被该线程使用的变量的主内存副本，线程对变量的所有操作（读取，赋值等）都必须在工作内存中进行，而不能直接读写主内存的内容。不同线程也无法直接访问对方工作内存中的变量，<strong>线程间的变量值的传递均需要通过主内存来完成</strong>。</p>
+<h1 id="内存见的交互操作"><a href="#内存见的交互操作" class="headerlink" title="内存见的交互操作"></a>内存见的交互操作</h1><p>如何将一个变量从主内存拷贝到工作内存以及如何从工作内存同同步回主内存，Java内存模型定义了8中操作来完成。虚拟机实现时必须保证这些操作是原子的、不可再分的。</p>
+<p>lock（锁定）：作用于主内存的变量。把一个变量标识为一条线程独占的。</p>
+<p>unlock（解锁）：作用于主内存。把一个处于锁定的变量释放，释放后可以被其他线程锁定。</p>
+<p>read（读取）：作用于主内存。把一个变量的值从主内存传输到<strong>线程的工作内存</strong>，用于后续load动作使用。</p>
+<p>load（载入）：作用于工作内存。把read操作从主内存中得到的变量值放入工作内存变量的副本中。</p>
+<p>use（使用）：作用于工作内存。把工作内存中的一个变量的值传递给执行引擎。当虚拟机遇到一个<strong>需要使用变量的值的字节码指令</strong>时，将会执行这个操作。</p>
+<p>assign（赋值）：作用于工作内存。把一个从执行引擎接收的值，赋给工作内存的变量，每当虚拟机遇到一个给变量赋值的字节码指令时，会执行这个操作。</p>
+<p>store（存储）：作用于工作内存。把工作内存中一个变量的值传送到主内存中，方便后续write操作使用。</p>
+<p>write（写入）：主内存变量。把store操作从工作内存中得到的变量的值放入主内存变量。</p>
+<p>如果要把一个变量从主内存拷贝到工作内存，那就要顺序执行read和load操作，如果要把变量从工作内存同步回主内存，就要顺序执行store和write操作。Java内存模型只要求上述两个操作必须顺序执行，但不要求是连续执行的。也就是说执行中间可以插入其他的执行。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
 ]]></content>
       <categories>
@@ -200,38 +232,6 @@
 <p>而final关键字的可见性是指：被final修饰的字段在构造器中一旦被初始化完成，并且构造器没有把“this”的引用传递出去（this引用逃逸是一件很危险的事情，其他线程有可能通过这个引用访问到“初始化了一半”的对象），那么在其他线程中就能看见final字段的值。</p>
 <h1 id="有序性"><a href="#有序性" class="headerlink" title="有序性"></a>有序性</h1><p>Java程序中天然的有序性可以总结为一句话：如果在本线程内观察，所有的操作都是有序的；如果在一个线程中观察另一个线程，所有的操作都是无序的。前半句是指“线程内好像表现为串行的语义”（Within-Thread As-If-SerialSemantics），后半句是指“指令重排序”现象和“工作内存与主内存同步延迟”现象。</p>
 <p>java提供了volatile和synchronized两个关键字来保证线程之间操作的有序性。volatile关键字本身就包含了禁止指令重排序的语义，而synchronized则是由“一个变量在同一个时刻只允许一条线程对其进行lock操作”这条规则获得的，这个规则决定了持有同一个锁的两个同步块只能串行地进入。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>Java</category>
-        <category>内存模型</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>深入理解Java虚拟机</tag>
-        <tag>内存模型</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>Java内存模型之主内存与工作内存</title>
-    <url>/2023/03/23/Java/Java%E5%86%85%E5%AD%98%E6%A8%A1%E5%9E%8B%E4%B9%8B%E4%B8%BB%E5%86%85%E5%AD%98%E4%B8%8E%E5%B7%A5%E4%BD%9C%E5%86%85%E5%AD%98/</url>
-    <content><![CDATA[<p>每秒事务处理数量（TPS）是衡量一个服务性能高低好坏的重要指标之一。它代表着一秒内服务端平均能响应的请求综述，而且TPS值与程序的并发能力又有密切的关系。</p>
-<p>为了解决计算机存储设备与处理器运算速度的差距，除了增加缓存外，还有一种优化方法，就是处理器可能会对输入的代码进行乱序执行，处理器在计算后会把乱序的结果进行重组，保证该结果与顺序执行时的一致，但是并不保证程序中各个语句计算的先后顺序与输入代码中的顺序一致。因此，出现一个计算任务依赖另一个计算任务的中间结果，那么其顺序性并不能靠代码的先后顺序来保证。</p>
-<h1 id="内存模型"><a href="#内存模型" class="headerlink" title="内存模型"></a>内存模型</h1><p>可以理解为在特定的操作协议下，对特定的内存或高速缓存进行读写访问的过程抽象。</p>
-<h1 id="主内存与工作内存"><a href="#主内存与工作内存" class="headerlink" title="主内存与工作内存"></a>主内存与工作内存</h1><p>Java内存模型的主要目的是定义程序中各种变量的访问规则，即关注虚拟机中把变量值存储到内存和从内存中取出变量值这样的底层细节。此处的变量包括了实例字段、静态字段和构成数组对象的元素，但是不包括局部变量与方法参数。因为后两个是线程私有的，并不会被共享，也不存在竞争。</p>
-<p>Java内存模型没有限制执行引擎使用处理器的特定寄存器或缓存来和主内存进行交互，也没有限制即时编译器是否需要进行调整代码的执行顺序这类优化措施。</p>
-<p>Java内存模型规定了所有的变量都存储在主内存中。每条线程还有自己的<strong>工作内存</strong>，线程的工作内存中保存了被该线程使用的变量的主内存副本，线程对变量的所有操作（读取，赋值等）都必须在工作内存中进行，而不能直接读写主内存的内容。不同线程也无法直接访问对方工作内存中的变量，<strong>线程间的变量值的传递均需要通过主内存来完成</strong>。</p>
-<h1 id="内存见的交互操作"><a href="#内存见的交互操作" class="headerlink" title="内存见的交互操作"></a>内存见的交互操作</h1><p>如何将一个变量从主内存拷贝到工作内存以及如何从工作内存同同步回主内存，Java内存模型定义了8中操作来完成。虚拟机实现时必须保证这些操作是原子的、不可再分的。</p>
-<p>lock（锁定）：作用于主内存的变量。把一个变量标识为一条线程独占的。</p>
-<p>unlock（解锁）：作用于主内存。把一个处于锁定的变量释放，释放后可以被其他线程锁定。</p>
-<p>read（读取）：作用于主内存。把一个变量的值从主内存传输到<strong>线程的工作内存</strong>，用于后续load动作使用。</p>
-<p>load（载入）：作用于工作内存。把read操作从主内存中得到的变量值放入工作内存变量的副本中。</p>
-<p>use（使用）：作用于工作内存。把工作内存中的一个变量的值传递给执行引擎。当虚拟机遇到一个<strong>需要使用变量的值的字节码指令</strong>时，将会执行这个操作。</p>
-<p>assign（赋值）：作用于工作内存。把一个从执行引擎接收的值，赋给工作内存的变量，每当虚拟机遇到一个给变量赋值的字节码指令时，会执行这个操作。</p>
-<p>store（存储）：作用于工作内存。把工作内存中一个变量的值传送到主内存中，方便后续write操作使用。</p>
-<p>write（写入）：主内存变量。把store操作从工作内存中得到的变量的值放入主内存变量。</p>
-<p>如果要把一个变量从主内存拷贝到工作内存，那就要顺序执行read和load操作，如果要把变量从工作内存同步回主内存，就要顺序执行store和write操作。Java内存模型只要求上述两个操作必须顺序执行，但不要求是连续执行的。也就是说执行中间可以插入其他的执行。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
 ]]></content>
       <categories>
@@ -399,45 +399,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Synchronized的使用</title>
-    <url>/2023/04/20/Java/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/</url>
-    <content><![CDATA[<p> 考虑如下代码</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SyncTest</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            System.out.println(Thread.currentThread().getName() + <span class="string">&quot;:&quot;</span> + count++);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest, <span class="string">&quot;thread1&quot;</span>);</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest1, <span class="string">&quot;thread2&quot;</span>);</span><br><span class="line"></span><br><span class="line">        thread.start();</span><br><span class="line">        thread2.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>我们在run方法上加了synchronized，也就意味着锁住的是该对象，也就是synchronized（this），当我们实例化两个对象时，他们是互相不影响的，所以打印结果如下：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230420161141896.png" alt="image-20230420161141896" style="zoom: 80%;" />
-
-<p>另一段代码：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">      <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">      target.balance += amt;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这样写，在转账的场景中并不能解决问题。</p>
-<p>因为synchronized锁的是当前对象，它并不能锁住传进来的target，也就是说，如果此时实例化的对象是A，然后调用A.transfer(B, 100),它只能锁住A的balance，并不能锁住B的balance还会存在另一个线程修改B的balance的问题。</p>
-<p>一开始看到这里有一个疑问，为什么不直接在接口中锁主呢，像如下写法：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/test&quot;)</span></span><br><span class="line"><span class="keyword">public</span> JSONObject <span class="title function_">testInterface</span><span class="params">(<span class="meta">@RequestBody</span> Map&lt;String, Object&gt; map)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> crudServiceImpl.getCrudValue(map);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这种写法会导致另外一个问题，也就是说我在A给B转账时，会进行加锁，导致C给D转账的时候，也无法进行。也就是说这种写法会导致锁的粒度太大，在实际场景中是无法使用的。</p>
-<p>第一个优化版本：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span>&#123;</span><br><span class="line">    <span class="comment">// 锁定转出账户</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>)&#123;</span><br><span class="line">      <span class="comment">// 锁定转入账户</span></span><br><span class="line">      <span class="keyword">synchronized</span>(target)&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">          <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">          target.balance += amt;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这样写可以保证this 和target都被锁住，达到我们预期地效果。但是也存在问题，如果A给B转账地同时，B也要给A转账，那么就会出现死锁。两者同时锁this，也就是对象A和对象B都被锁住，然后往下执行时，发现请求资源已经被锁，导致死锁。</p>
-<p>第二个优化版本，防止死锁：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Allocator</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;Object&gt; als = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 一次性申请所有资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="type">boolean</span> <span class="title function_">apply</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (als.contains(from) || als.contains(to)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            als.add(from);</span><br><span class="line">            als.add(to);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 归还资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">free</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        als.remove(from);</span><br><span class="line">        als.remove(to);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    <span class="comment">// actr应该为单例</span></span><br><span class="line">    <span class="keyword">private</span> Allocator actr;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 转账</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">        <span class="comment">// 一次性申请转出账户和转入账户，直到成功</span></span><br><span class="line">        <span class="keyword">while</span> (!actr.apply(<span class="built_in">this</span>, target));</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 锁定转出账户</span></span><br><span class="line">            <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">                <span class="comment">// 锁定转入账户</span></span><br><span class="line">                <span class="keyword">synchronized</span>(target) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">                        <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">                        target.balance += amt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            actr.free(<span class="built_in">this</span>, target);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这个版本中，Allocator是一个单例，也就意味着只有一个，然后在加锁之前，先判断是否可以同时获取两个对象的锁，如果可以，再进行加锁。</p>
-<h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><p>上述代码都忽略了在两个线程中new 出来的对象不是同一个的问题。也就是说，transfer里传入的对象，在另一个线程中也是这两个。仅作为演示破会死锁。</p>
-<p>而事实情况是，如果这段代码放在两个不同的线程中运行，线程A实例化account C和D，线程B实例化account C和D，在线程A执行transfer（C，D），在线程B执行transfer（D，C）还是有可能会发生死锁。</p>
-<p>而上述代码的逻辑是建立在线程A 实例化的C和D 与线程B实例化的C和D是同一个对象。</p>
-]]></content>
-      <categories>
-        <category>个人心得</category>
-        <category>Java</category>
-        <category>并发</category>
-      </categories>
-      <tags>
-        <tag>并发</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Java锁优化</title>
     <url>/2023/03/30/Java/Java%E9%94%81%E4%BC%98%E5%8C%96/</url>
     <content><![CDATA[<p>HostSpot虚拟机在 JDK 6 中实现了大量的锁优化技术，比如说适应性自旋，锁消除，锁膨胀，轻量级锁，偏向锁等。</p>
@@ -476,6 +437,45 @@
         <tag>Jvm</tag>
         <tag>深入理解Java虚拟机</tag>
         <tag>锁</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Synchronized的使用</title>
+    <url>/2023/04/20/Java/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/</url>
+    <content><![CDATA[<p> 考虑如下代码</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SyncTest</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            System.out.println(Thread.currentThread().getName() + <span class="string">&quot;:&quot;</span> + count++);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest, <span class="string">&quot;thread1&quot;</span>);</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest1, <span class="string">&quot;thread2&quot;</span>);</span><br><span class="line"></span><br><span class="line">        thread.start();</span><br><span class="line">        thread2.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>我们在run方法上加了synchronized，也就意味着锁住的是该对象，也就是synchronized（this），当我们实例化两个对象时，他们是互相不影响的，所以打印结果如下：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230420161141896.png" alt="image-20230420161141896" style="zoom: 80%;" />
+
+<p>另一段代码：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">      <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">      target.balance += amt;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样写，在转账的场景中并不能解决问题。</p>
+<p>因为synchronized锁的是当前对象，它并不能锁住传进来的target，也就是说，如果此时实例化的对象是A，然后调用A.transfer(B, 100),它只能锁住A的balance，并不能锁住B的balance还会存在另一个线程修改B的balance的问题。</p>
+<p>一开始看到这里有一个疑问，为什么不直接在接口中锁主呢，像如下写法：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/test&quot;)</span></span><br><span class="line"><span class="keyword">public</span> JSONObject <span class="title function_">testInterface</span><span class="params">(<span class="meta">@RequestBody</span> Map&lt;String, Object&gt; map)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> crudServiceImpl.getCrudValue(map);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种写法会导致另外一个问题，也就是说我在A给B转账时，会进行加锁，导致C给D转账的时候，也无法进行。也就是说这种写法会导致锁的粒度太大，在实际场景中是无法使用的。</p>
+<p>第一个优化版本：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span>&#123;</span><br><span class="line">    <span class="comment">// 锁定转出账户</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>)&#123;</span><br><span class="line">      <span class="comment">// 锁定转入账户</span></span><br><span class="line">      <span class="keyword">synchronized</span>(target)&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">          <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">          target.balance += amt;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这样写可以保证this 和target都被锁住，达到我们预期地效果。但是也存在问题，如果A给B转账地同时，B也要给A转账，那么就会出现死锁。两者同时锁this，也就是对象A和对象B都被锁住，然后往下执行时，发现请求资源已经被锁，导致死锁。</p>
+<p>第二个优化版本，防止死锁：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Allocator</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;Object&gt; als = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 一次性申请所有资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="type">boolean</span> <span class="title function_">apply</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (als.contains(from) || als.contains(to)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            als.add(from);</span><br><span class="line">            als.add(to);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 归还资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">free</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        als.remove(from);</span><br><span class="line">        als.remove(to);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    <span class="comment">// actr应该为单例</span></span><br><span class="line">    <span class="keyword">private</span> Allocator actr;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 转账</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">        <span class="comment">// 一次性申请转出账户和转入账户，直到成功</span></span><br><span class="line">        <span class="keyword">while</span> (!actr.apply(<span class="built_in">this</span>, target));</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 锁定转出账户</span></span><br><span class="line">            <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">                <span class="comment">// 锁定转入账户</span></span><br><span class="line">                <span class="keyword">synchronized</span>(target) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">                        <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">                        target.balance += amt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            actr.free(<span class="built_in">this</span>, target);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这个版本中，Allocator是一个单例，也就意味着只有一个，然后在加锁之前，先判断是否可以同时获取两个对象的锁，如果可以，再进行加锁。</p>
+<h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><p>上述代码都忽略了在两个线程中new 出来的对象不是同一个的问题。也就是说，transfer里传入的对象，在另一个线程中也是这两个。仅作为演示破会死锁。</p>
+<p>而事实情况是，如果这段代码放在两个不同的线程中运行，线程A实例化account C和D，线程B实例化account C和D，在线程A执行transfer（C，D），在线程B执行transfer（D，C）还是有可能会发生死锁。</p>
+<p>而上述代码的逻辑是建立在线程A 实例化的C和D 与线程B实例化的C和D是同一个对象。</p>
+]]></content>
+      <categories>
+        <category>个人心得</category>
+        <category>Java</category>
+        <category>并发</category>
+      </categories>
+      <tags>
+        <tag>并发</tag>
       </tags>
   </entry>
   <entry>
@@ -617,36 +617,6 @@
       </tags>
   </entry>
   <entry>
-    <title>虚拟机类加载机制之类加载器</title>
-    <url>/2023/03/19/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
-    <content><![CDATA[<p>通过一个类的全限定名来获取描述该类的二进制字节流，实现这个动作的代码叫做<strong>类加载器</strong>。</p>
-<h1 id="类与类加载器"><a href="#类与类加载器" class="headerlink" title="类与类加载器"></a>类与类加载器</h1><p>对于任意一个类，都必须由加载它的类加载器和这个类本身一起共同确立其在Java虚拟机中的唯一性，每一个类加载器，都拥有一个独立的类名称空间。换句话说：比较两个类是否“相等”，只有在这两个类是由同一个类加载器加载的前提下才有意义，否则，即使这两个类来源于同一个Class文件，被同一个Java虚拟机加载，只要加载它们的类加载器不同，那这两个类就必定不相等。</p>
-<p>这里的相等指：代表类的Class对象的equals()方法、isAssignableFrom()方法、isInstance()方法的返回结果，也包括了使用instanceof关键字做对象所属关系判定等各种情况。</p>
-<h1 id="双亲委派模型"><a href="#双亲委派模型" class="headerlink" title="双亲委派模型"></a>双亲委派模型</h1><p>启动类加载器（Bootstrap Class Loader）：这个类加载器负责加载存放在<JAVA_HOME>\lib目录，或者被-Xbootclasspath参数所指定的路径中存放的，而且是Java虚拟机能够识别的（按照文件名识别，如rt.jar、tools.jar，名字不符合的类库即使放在lib目录中也不会被加载）类库加载到虚拟机的内存中。</p>
-<p>扩展类加载器（Extension Class Loader）：它负责加载<JAVA_HOME>\lib\ext目录中，或者被java.ext.dirs系统变量所指定的路径中所有的类库。</p>
-<p>应用程序类加载器（Application Class Loader）：由于应用程序类加载器是ClassLoader类中的getSystem-ClassLoader()方法的返回值，所以有些场合中也称它为“系统类加载器”。它负责加载用户类路径（ClassPath）上所有的类库，开发者同样可以直接在代码中使用这个类加载器。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230319133215497.png" alt="image-20230319133215497"></p>
-<p>上图中展示的各种类加载器之间的层次关系被称为类加载器的“<strong>双亲委派模型（Parents DelegationModel）</strong>”。</p>
-<p>双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应有自己的父类加载器。不过这里类加载器之间的父子关系一般不是以继承（Inheritance）的关系来实现的，而是通常使用组合（Composition）关系来复用父加载器的代码。</p>
-<p><strong>双亲委派模型的工作过程是</strong>：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都应该传送到最顶层的<strong>启动类加载器</strong>中，只有当父加载器反馈自己无法完成这个加载请求（它的搜索范围中没有找到所需的类）时，子加载器才会尝试自己去完成加载。</p>
-<p>使用双亲委派的一个好处：Java中的类随着它的类加载器一起具备了一种带有优先级的层次关系。</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> Class&lt;?&gt; loadClass(String name, <span class="type">boolean</span> resolve) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">	<span class="comment">// 首先，检查请求的类是否已经被加载过了</span></span><br><span class="line">	<span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> findLoadedClass(name);</span><br><span class="line">	<span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (parent != <span class="literal">null</span>) &#123;</span><br><span class="line">				c = parent.loadClass(name, <span class="literal">false</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				c = findBootstrapClassOrNull(name);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">		<span class="comment">// 如果父类加载器抛出ClassNotFoundException</span></span><br><span class="line">		<span class="comment">// 说明父类加载器无法完成加载请求</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="comment">// 在父类加载器无法加载时</span></span><br><span class="line">			<span class="comment">// 再调用本身的findClass方法来进行类加载</span></span><br><span class="line">			c = findClass(name);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">		resolveClass(c);</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>这段代码的逻辑：先检查请求加载的类型是否已经被加载过，若没有则调用父加载器的loadClass()方法，若父加载器为空则默认使用启动类加载器作为父加载器。假如父类加载器加载失败，抛出ClassNotFoundException异常的话，才调用自己的findClass()方法尝试进行加载。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>Java</category>
-        <category>虚拟机</category>
-      </categories>
-      <tags>
-        <tag>Jvm</tag>
-        <tag>深入理解Java虚拟机</tag>
-        <tag>类加载器</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>如何判断Java对象“已死”</title>
     <url>/2023/04/03/Java/%E5%A6%82%E4%BD%95%E5%88%A4%E6%96%ADJava%E5%AF%B9%E8%B1%A1%E2%80%9C%E5%B7%B2%E6%AD%BB%E2%80%9D/</url>
     <content><![CDATA[<p>JVM在进行垃圾回收前，需要判断这个对象是否还在使用，哪些是不可能再被任何途径使用的，而主要的判断方法有以下两种</p>
@@ -687,6 +657,36 @@
         <tag>Jvm</tag>
         <tag>深入理解Java虚拟机</tag>
         <tag>垃圾回收</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>虚拟机类加载机制之类加载器</title>
+    <url>/2023/03/19/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%B1%BB%E5%8A%A0%E8%BD%BD%E6%9C%BA%E5%88%B6%E4%B9%8B%E7%B1%BB%E5%8A%A0%E8%BD%BD%E5%99%A8/</url>
+    <content><![CDATA[<p>通过一个类的全限定名来获取描述该类的二进制字节流，实现这个动作的代码叫做<strong>类加载器</strong>。</p>
+<h1 id="类与类加载器"><a href="#类与类加载器" class="headerlink" title="类与类加载器"></a>类与类加载器</h1><p>对于任意一个类，都必须由加载它的类加载器和这个类本身一起共同确立其在Java虚拟机中的唯一性，每一个类加载器，都拥有一个独立的类名称空间。换句话说：比较两个类是否“相等”，只有在这两个类是由同一个类加载器加载的前提下才有意义，否则，即使这两个类来源于同一个Class文件，被同一个Java虚拟机加载，只要加载它们的类加载器不同，那这两个类就必定不相等。</p>
+<p>这里的相等指：代表类的Class对象的equals()方法、isAssignableFrom()方法、isInstance()方法的返回结果，也包括了使用instanceof关键字做对象所属关系判定等各种情况。</p>
+<h1 id="双亲委派模型"><a href="#双亲委派模型" class="headerlink" title="双亲委派模型"></a>双亲委派模型</h1><p>启动类加载器（Bootstrap Class Loader）：这个类加载器负责加载存放在<JAVA_HOME>\lib目录，或者被-Xbootclasspath参数所指定的路径中存放的，而且是Java虚拟机能够识别的（按照文件名识别，如rt.jar、tools.jar，名字不符合的类库即使放在lib目录中也不会被加载）类库加载到虚拟机的内存中。</p>
+<p>扩展类加载器（Extension Class Loader）：它负责加载<JAVA_HOME>\lib\ext目录中，或者被java.ext.dirs系统变量所指定的路径中所有的类库。</p>
+<p>应用程序类加载器（Application Class Loader）：由于应用程序类加载器是ClassLoader类中的getSystem-ClassLoader()方法的返回值，所以有些场合中也称它为“系统类加载器”。它负责加载用户类路径（ClassPath）上所有的类库，开发者同样可以直接在代码中使用这个类加载器。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230319133215497.png" alt="image-20230319133215497"></p>
+<p>上图中展示的各种类加载器之间的层次关系被称为类加载器的“<strong>双亲委派模型（Parents DelegationModel）</strong>”。</p>
+<p>双亲委派模型要求除了顶层的启动类加载器外，其余的类加载器都应有自己的父类加载器。不过这里类加载器之间的父子关系一般不是以继承（Inheritance）的关系来实现的，而是通常使用组合（Composition）关系来复用父加载器的代码。</p>
+<p><strong>双亲委派模型的工作过程是</strong>：如果一个类加载器收到了类加载的请求，它首先不会自己去尝试加载这个类，而是把这个请求委派给父类加载器去完成，每一个层次的类加载器都是如此，因此所有的加载请求最终都应该传送到最顶层的<strong>启动类加载器</strong>中，只有当父加载器反馈自己无法完成这个加载请求（它的搜索范围中没有找到所需的类）时，子加载器才会尝试自己去完成加载。</p>
+<p>使用双亲委派的一个好处：Java中的类随着它的类加载器一起具备了一种带有优先级的层次关系。</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="keyword">protected</span> <span class="keyword">synchronized</span> Class&lt;?&gt; loadClass(String name, <span class="type">boolean</span> resolve) <span class="keyword">throws</span> ClassNotFoundException &#123;</span><br><span class="line">	<span class="comment">// 首先，检查请求的类是否已经被加载过了</span></span><br><span class="line">	<span class="type">Class</span> <span class="variable">c</span> <span class="operator">=</span> findLoadedClass(name);</span><br><span class="line">	<span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">		<span class="keyword">try</span> &#123;</span><br><span class="line">			<span class="keyword">if</span> (parent != <span class="literal">null</span>) &#123;</span><br><span class="line">				c = parent.loadClass(name, <span class="literal">false</span>);</span><br><span class="line">			&#125; <span class="keyword">else</span> &#123;</span><br><span class="line">				c = findBootstrapClassOrNull(name);</span><br><span class="line">			&#125;</span><br><span class="line">		&#125; <span class="keyword">catch</span> (ClassNotFoundException e) &#123;</span><br><span class="line">		<span class="comment">// 如果父类加载器抛出ClassNotFoundException</span></span><br><span class="line">		<span class="comment">// 说明父类加载器无法完成加载请求</span></span><br><span class="line">		&#125;</span><br><span class="line">		<span class="keyword">if</span> (c == <span class="literal">null</span>) &#123;</span><br><span class="line">			<span class="comment">// 在父类加载器无法加载时</span></span><br><span class="line">			<span class="comment">// 再调用本身的findClass方法来进行类加载</span></span><br><span class="line">			c = findClass(name);</span><br><span class="line">		&#125;</span><br><span class="line">	&#125;</span><br><span class="line">	<span class="keyword">if</span> (resolve) &#123;</span><br><span class="line">		resolveClass(c);</span><br><span class="line">	&#125;</span><br><span class="line">    <span class="keyword">return</span> c;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这段代码的逻辑：先检查请求加载的类型是否已经被加载过，若没有则调用父加载器的loadClass()方法，若父加载器为空则默认使用启动类加载器作为父加载器。假如父类加载器加载失败，抛出ClassNotFoundException异常的话，才调用自己的findClass()方法尝试进行加载。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入理解Java虚拟机》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>Java</category>
+        <category>虚拟机</category>
+      </categories>
+      <tags>
+        <tag>Jvm</tag>
+        <tag>深入理解Java虚拟机</tag>
+        <tag>类加载器</tag>
       </tags>
   </entry>
   <entry>
@@ -788,884 +788,28 @@
       </tags>
   </entry>
   <entry>
-    <title>MySQL为什么会卡一下</title>
-    <url>/2023/04/05/MySQL/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/</url>
-    <content><![CDATA[<p>InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo log）。</p>
-<p>这些被修改过的数据页，或者说内存中的数据页与磁盘中的数据页不一样的，就叫做脏页。而MySQL卡的那一下，就是把脏页写回内存时发生的。</p>
-<h1 id="写回脏页的时机"><a href="#写回脏页的时机" class="headerlink" title="写回脏页的时机"></a>写回脏页的时机</h1><p>1、redo log满了</p>
-<p>redo log是一个循环队列，当它写满时，系统会停止当前的操作，把redo log中记录的一部分操作所对应的脏页写回内存，然后在redo log中腾出足够的地方。</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405145823007.png" alt="image-20230405145823007" style="zoom:50%;" />
-
-<p>2、内存满了</p>
-<p>在这种情况下，内存里无法加载更多的内存页，需要淘汰掉一部分内存页，而淘汰掉的内存页如果有脏页，就会把他们写入磁盘。</p>
-<p>3、MySQL空闲时</p>
-<p>4、MySQL正常关闭的情况。</p>
-<h1 id="情况1和2对性能的影响"><a href="#情况1和2对性能的影响" class="headerlink" title="情况1和2对性能的影响"></a>情况1和2对性能的影响</h1><p>情况1是需要避免的，因为发生这种情况后，整个系统就无法处理新的请求。</p>
-<p>情况2是一种常态，<strong>InnoDB用缓冲池（buffer pool）管理内存，缓冲池中的内存页有三种状态：</strong></p>
-<ul>
-<li>第一种是，还没有使用的；</li>
-<li>第二种是，使用了并且是干净页；</li>
-<li>第三种是，使用了并且是脏页。</li>
-</ul>
-<p>而当要读入的数据页没有在内存的时候，就必须到缓冲池中申请一个数据页。这时候只能把最久不使用的数据页从内存中淘汰掉：如果要淘汰的是一个干净页，就直接释放出来复用；但如果是脏页呢，就必须将脏页先刷到磁盘，变成干净页后才能复用。</p>
-<p>如果一个查询要淘汰的数据页太多，那么就会很明显的影响性能。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+    <title>CPU结构对Redis性能的影响</title>
+    <url>/2023/04/05/Redis/CPU%E7%BB%93%E6%9E%84%E5%AF%B9Redis%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
+    <content><![CDATA[<h1 id="主流CPU架构"><a href="#主流CPU架构" class="headerlink" title="主流CPU架构"></a>主流CPU架构</h1><p>一个 CPU 处理器中一般有多个运行核心，我们把一个运行核心称为一个物理核。每个物理核都有私有的一级缓存（L1 cache）以及二级缓存（L2 cache），即其他物理核无法访问。</p>
+<p>不同的物理核还会共享一个共同的三级缓存（L3 cache）</p>
+<p>现在主流的 CPU 处理器中，每个物理核通常都会运行两个超线程，也叫作逻辑核。同一个物理核的逻辑核会共享使用 L1、L2 缓存。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110450816.png" alt="image-20230405110450816"></p>
+<p>一个CPU会有多个物理核，而一个服务器上可能会有多个CPU，如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110614748.png" alt="image-20230405110614748"></p>
+<p>在上图的这种CPU架构中，Redis可以在不同的CPU上运行，意味着它可以现在Socket1上运行，然后被调度到Socket2上执行。</p>
+<p>这里就会出现问题，如果应用程序先在一个 Socket 上运行，并且把数据保存到了内存，然后被调度到另一个 Socket 上运行，此时，应用程序再进行内存访问时，就需要访问之前 Socket 上连接的内存，这种访问属于<strong>远端内存访问</strong>。<strong>和访问 Socket 直接连接的内存相比，远端内存访问会增加应用程序的延迟。</strong></p>
+<p>每一个CPU会管理一部分内存，所以存在从Socket1切换到Socket2上存在远端访问。</p>
+<h1 id="CPU多核对Redis的影响"><a href="#CPU多核对Redis的影响" class="headerlink" title="CPU多核对Redis的影响"></a>CPU多核对Redis的影响</h1><p>在一个 CPU 核上运行时，应用程序需要记录自身使用的软硬件资源信息（例如栈指针、CPU 核的寄存器值等），我们把这些信息称为<strong>运行时信息</strong>。同时，应用程序访问最频繁的指令和数据还会被缓存到 L1、L2 缓存上，以便提升执行速度。</p>
+<p>Redis在不同cpu之前进行切换时，另一个cpu上并没有redis之前运行时频繁访问的指令和数据，所以这些数据都需要重新从L3缓存甚至是内存中加载，Redis需要等到这些加载完才处理请求，所以会导致较高的延迟。</p>
+<p>如果在 CPU 多核场景下，Redis 实例被频繁调度到不同 CPU 核上运行的话，那么，对 Redis 实例的请求处理时间影响就更大了。<strong>每调度一次，一些请求就会受到运行时信息、指令和数据重新加载过程的影响，这就会导致某些请求的延迟明显高于其他请求</strong>。</p>
+<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>可以把Redis实例绑定到一个CPU的一个<strong>物理核</strong>上面。</p>
+<p>这里是因为同一个CPU里面会有多个物理核，而物理核的L1和L2缓存是私有的，如果在同一个CPU的不同物理核切换，也会导致一些命令需要重新加载。</p>
 ]]></content>
       <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>缓存</category>
+        <category>Redis</category>
       </categories>
       <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL事务隔离</title>
-    <url>/2023/03/30/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</url>
-    <content><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p>
-<h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p>
-<h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p>
-<p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p>
-<p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p>
-<p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p>
-<p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p>
-<p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p>
-<p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p>
-<p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p>
-<p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p>
-<h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p>
-<p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p>
-<p>读未提交没有试图的概念，它永远返回最新值。</p>
-<p>串行化是通过加锁避免并行访问。</p>
-<h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p>
-<p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p>
-<p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p>
-<h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p>
-<p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p>
-<p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL事务隔离（2）</title>
-    <url>/2023/04/02/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/</url>
-    <content><![CDATA[<h2 id="到底是隔离还是不隔离"><a href="#到底是隔离还是不隔离" class="headerlink" title="到底是隔离还是不隔离"></a>到底是隔离还是不隔离</h2><p>假如现在有如下表：</p>
-<table>
-<thead>
-<tr>
-<th>id</th>
-<th>k</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td>1</td>
-</tr>
-<tr>
-<td>2</td>
-<td>2</td>
-</tr>
-</tbody></table>
-<p>现在执行如下操作：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402142051361.png" alt="image-20230402142051361"></p>
-<p><strong>在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1</strong>。下面看具体原因。</p>
-<p>在MySQL中，有两个视图概念：</p>
-<p>第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。</p>
-<p>另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent read view，用于支持RC（Read Committed，读提交）和RR（Repeatable Read，可重复读）隔离级别的实现。</p>
-<p>可重复读隔离主要用到第二个识图。</p>
-<h3 id="“快照”在MVCC里是怎么工作的？"><a href="#“快照”在MVCC里是怎么工作的？" class="headerlink" title="“快照”在MVCC里是怎么工作的？"></a>“快照”在MVCC里是怎么工作的？</h3><p>在可重复读隔离级别下，事务启动时就拍了个快照，这个快照是基于整个库的。但是这个快照并不需要拷贝整个数据库的数据，具体做法如下：</p>
-<p>InnoDB的每一个事务都有一个唯一的事务ID，叫作transaction id。它是在事务开始的时候向InnoDB的事务系统申请的，是按申请顺序严格递增的。</p>
-<p>而每一行的数据都是有多个版本。每次事务进行更新数据时，都会生成一个新的版本的数据，然后这个新数据会绑定这个事务ID，记为row trx_id。也就是说，数据表中的一行记录，其实可能有多个版本(row)，每个版本有自己的row trx_id，通过这个row trx_id可以知道是哪个事务更新的数据。</p>
-<p>一个具体的例子如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402144408772.png" alt="image-20230402144408772"></p>
-<p>这里V4是最新的版本，但是数据库只存了V4，它前面的版本V1和V2以及V3并不是真实存在的，而是每次需要的时候根据当前版本和undo log计算出来的。比如，需要V2的时候，就是通过V4依次执行U3、U2算出来。</p>
-<p>按照可重复读的定义，一个事务启动的时候，能够看到所有已经提交的事务。但是事务执行期间，其他事务的更新对他不可见。</p>
-<h4 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h4><p>InnoDB为每一个事务构造了一个数组，用来保存事务启动的瞬间，当前启动了但是还没提交的事务。</p>
-<p>通过这个数组，我们可以将系统中的所有事务划分为3个部分，小于数组中最小ID的是已经提交了的事务，高于数组最大值是还没开始的事务，数组中的是已经开始的但是还没提交的事务。如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402152032322.png" alt="image-20230402152032322"></p>
-<p>针对当前事务，如果一个数据的row trx_id是在绿色区域，那么一定是可见的，如果在红色区域，则不可见。而处于黄色区域的数据，则分为两种情况，如果该row trx_id位于数组中，则说明该事务还没提交，那么就是不可见的，如果不在该数组中，说明已经提交了，则是可见的数据。这里可见得数据直接读取即可，不可见得数据是需要根据undo log进行回滚得数据。</p>
-<p>要注意这里的一个可能的误区，这个数组并不一定是连续的，比如它可以是[50, 53, 60, 62]这种，而不连续的部分说明事务已经提交了。</p>
-<p>通过这种设计，如果一个数据的row trx_id小于数组中得最小值，则直接按当前值读取，如果大于，则根据情况，看是否可见，如果不可见则需要根据undo log 进行回滚操作。</p>
-<h2 id="开头的问题"><a href="#开头的问题" class="headerlink" title="开头的问题"></a>开头的问题</h2><p>现在看开头的那个问题。假设事务A的id是100，那么事务B的id是101，事务C的id是102。假设id &#x3D; 1那一行的row trx_id的值是90。</p>
-<p>那么事务A中，事务创建的数组就只有 100，而事务B创建的数组有100，101。事务C创建的数组有100，101，102。</p>
-<p>那么从结果上看，值为(1，1)的数据版本号为90， (1，2)数据的版本号为102（事务C修改的）， (1，3)的数据版本号为101（事务B修改的）。</p>
-<p>所以事务A在执行查询操作时，发现数据（1，3）的版本号为102，高于数组最大值，是不可见的状态，所以他要退回，一直退到（1，1）这个状态，版本号为90，小于数组中的值，是可见的，所以事务A查到的k &#x3D; 1。</p>
-<p>同理，事务B在执行查找时，发现当前数据（1，3）的版本号为101，是它自己的版本，所以直接展示k &#x3D; 3。注意，这里展示k &#x3D; 3是因为直接展示了最终结果，在事务B修改操作时，把k的版本号改为了事务B的id。</p>
-<h2 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h2><p>这里针对上面事务B中的update语句将数据改为（1，3）做出解释：在事务B中，如果修改数据之前，执行一次查询操作，它读到的k的值的确是1，但此时的set k&#x3D;k+1是在（1,2）的基础上进行的操作，否则它将使得事务C的修改无效，导致数据不一致。</p>
-<h2 id="事务的可重复读是怎么实现的"><a href="#事务的可重复读是怎么实现的" class="headerlink" title="事务的可重复读是怎么实现的"></a>事务的可重复读是怎么实现的</h2><p>简单来说，就是读操作，需要判断当前数据版本是否可见，不可见就回滚到可见版本。而写操作，则直接在当前版本进行修改。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>事务</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>事务</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL怎么保证主备一致</title>
-    <url>/2023/04/19/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/</url>
-    <content><![CDATA[<p>MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。</p>
-<h1 id="binlog的三种格式"><a href="#binlog的三种格式" class="headerlink" title="binlog的三种格式"></a>binlog的三种格式</h1><p>binlog有三种格式，分别是statement，row和mixed。其中第三种是前两种的混合方式。</p>
-<h2 id="这三种日志的区别"><a href="#这三种日志的区别" class="headerlink" title="这三种日志的区别"></a>这三种日志的区别</h2><p>假如说执行如下sql语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">delete from t where a &gt;= 4 and t_modified &lt;= &#x27;2018-11-10&#x27; limit 1;</span><br></pre></td></tr></table></figure>
-
-<p>如果说binlog的格式为statement，那么binlog中会记录一个事务，事务中会执行这个sql。也就是说，该设置下，相当于把该条sql语句直接拿到从库中去执行。</p>
-<p>如果说格式为row，那么binglog中会记录很多的内容，但是总的来说，它能够根据这些内容，去从库中直接定位到主库删除的那一条记录。就比如说，主库删除主键是1的那一行，如果记录为row格式，那么从库一定可以定位到从库中主键是1的那一行。</p>
-<p>为什么说要定位到从库主键是1的这一行呢？</p>
-<p>因为如果格式为statement，那么直接在从库中执行上述语句，可能会导致一些主备不一致的情况。</p>
-<p>上述语句，如果走索引a，那么会找到第一条a &gt;&#x3D; 4的记录后，就直接删除。而走索引t_modified，则会找到第一条满足t_modified &lt;&#x3D; ‘2018-11-10’的后，就直接删除。这样的话，如果主备的索引不一致，那么就会导致删除不同的行，导致主备不一致。</p>
-<p>而mixed就是结合了两者的优点。因为row格式需要记录 太多的内容，会占用大量的空间。比如我删除10万行数据，row格式就需要10万条记录。而statement格式只需要记录一条sql，但有可能会导致主备不一致，所以采用结合的方式。由系统判断该sql是否会产生主备不一致的可能，如果会就用row记录，否则用statement。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>日志</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL全局锁和表锁</title>
-    <url>/2023/04/01/MySQL/MySQL%E5%85%A8%E5%B1%80%E9%94%81%E5%92%8C%E8%A1%A8%E9%94%81/</url>
-    <content><![CDATA[<p><strong>根据加锁的范围，MySQL里面的锁大致可以分成全局锁、表级锁和行锁三类</strong></p>
-<h1 id="全局锁"><a href="#全局锁" class="headerlink" title="全局锁"></a>全局锁</h1><p>全局锁就是对整个数据库实例进行加锁。它的一个经典使用场景就是做全库的逻辑备份，也就是把整个库的数据都查出来存成文本。</p>
-<p>加了全局锁之后，整个数据库系统就变为了只读状态，意味着很多业务不可以进行。但是如果不加，那么考虑以下情况：</p>
-<p>现在有一个用户余额表以及用户库存表，假设用户购买商品时发起了逻辑备份，如果先备份余额表，后备份商品表，那么在扣除余额前余额表备份完成，添加商品到用户库存后才备份的库存表，这时如果用备份进行恢复，那么就会导致用户账户没有扣钱，但是却多了库存。如果反过来，则会导致用户账户被扣，而且没有商品。</p>
-<p>而我们会发现，在真正导出数据时，是可以对数据库做修改。这是因为导出数据前，数据库开启了一个<strong>可重复读</strong>隔离级别的事务，保证了在事务执行期间读到的数据和事务开始时是一致的。</p>
-<h1 id="表级锁"><a href="#表级锁" class="headerlink" title="表级锁"></a>表级锁</h1><p>MySQL的表级锁有两种，一种是表锁，一种是元数据锁（MDL），</p>
-<h2 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h2><p>可以使用<strong>lock tables … read&#x2F;write</strong>给数据库加表锁，可以使用unlock tables主动释放锁，也可以在客户端断开时自动释放。</p>
-<p> 但是需要注意，加了表锁以后，其他线程无法访问这个表，而且加锁的线程接下来的操作也会受到限制。</p>
-<p>比如线程A对执行了以下操作：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">lock tables t1 read, t2 write</span><br></pre></td></tr></table></figure>
-
-<p>那么其他所有线程写t1，读写t2的语句都会被阻塞，同时在线程A释放锁之前，它只能对表t1进行读操作，t2进行读写操作，而且不允许操作其他表。</p>
-<h2 id="元数据锁（MDL）"><a href="#元数据锁（MDL）" class="headerlink" title="元数据锁（MDL）"></a>元数据锁（MDL）</h2><p>MDL锁并不用显式使用，在访问一个表时会被自动追加。它的作用是保证读写的正确性。</p>
-<p>假如一个线程在遍历一张表获取数据，此时有另外一个线程删除了表中的一列，这样肯定是不行的。所以在MySQL5.5版本引入了MDL锁。当对一个表做增删改查操作时，加MDL共享锁（读锁），当需要对表结构做调整时，加MDL（排他锁）写锁。</p>
-<p>MDL<strong>读锁</strong>之间不互斥，所以加读锁可以允许有多个线程同时对一张表进行增删改查。</p>
-<p><strong>读锁与写锁</strong>之间以及<strong>写锁</strong>之间是互斥的，这就意味着如果有线程在进行正删改查时是不可以进行表结构调整，而调整时也不能进行增删改查。</p>
-<p>正是由于上面的原因，考虑以下场景：</p>
-<p>在一个事务中，线程A执行了查询语句，加了MDL读锁，线程B也执行查询操作，也加了MDL读锁，之后线程C试图修改表结构，需要MDL写锁，这时由于事务没有结束，线程A加的MDL读锁未释放，就会导致线程C被阻塞。但是后续申请MDL读锁的操作也会被线程C阻塞，这就导致了整个表的数据不可访问，严重时会导致数据库崩溃。</p>
-<h1 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a>行锁</h1><p>MySQL的行锁是由各个存储引擎实现的，有些引擎是不支持行锁的。</p>
-<h2 id="两阶段锁"><a href="#两阶段锁" class="headerlink" title="两阶段锁"></a>两阶段锁</h2><p>考虑以下场景：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401155349241.png" alt="image-20230401155349241"></p>
-<p>事务B会被阻塞，直到事务A提交。这就意味着，事务A持有了id &#x3D; 1和id &#x3D; 2的行锁，但是在修改完它并不会立即释放该锁，而是等到事务结束后才释放。这个就是两阶段锁协议。</p>
-<p>根据这个协议，我们应该在事务中需要锁多个行时，要把最可能造成冲突的、最可能影响并发度的锁尽量往后放。</p>
-<h2 id="死锁和死锁检测"><a href="#死锁和死锁检测" class="headerlink" title="死锁和死锁检测"></a>死锁和死锁检测</h2><p>死锁，简单来说，就是线程A对资源C加了锁，线程B也对资源D加了锁，而线程A释放锁需要资源D，线程B释放锁需要资源C，就会导致死锁。</p>
-<p>在MySQL中，考虑以下情况：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401160812101.png" alt="image-20230401160812101"></p>
-<p>事务A对id &#x3D; 1的行加了锁， 事务B对id &#x3D; 2的行加了锁，然后事务A在修改 id &#x3D; 2时会被阻塞，事务B修改id &#x3D; 1时会被阻塞。但此时，他们两个会互相等待对方释放资源，导致死锁。</p>
-<p>在MySQL中，可以设置超时时间，或者发起死锁检测，发现死锁后，主动回滚死锁链条中的某一个事务。将innodb_deadlock_detect参数设置未on表示开启死锁检测。</p>
-<p>但是死锁的检测是一个时间复杂度为O(N)的操作，即每一个被堵住的线程，都要去判断是不是因为自己的加入导致了死锁，判断的方法就是遍历之前的线程去做判断。</p>
-<h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>InnoDB行锁是<strong>通过给索引上的索引项加锁来实现的</strong>。这个索引项指的是在B+树索引结构中，指向一个具体行记录的索引项。索引项是一个键值和一个指向数据页和行号的指针。</p>
-<p>InnoDB的索引是建立在数据页上面，而每一个数据页里面有很多条记录，每条记录都有一个对应的索引项。行锁就是锁住了这个索引项，也就是对应的每一条记录。</p>
-<p>这也就意味着，如果查询或者修改的条件字段没有索引，那么就不会加行锁，而是直接加表锁。</p>
-<p>比如说下面语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update table1 set name = 1 where age = 20</span><br></pre></td></tr></table></figure>
-
-<p>如果age字段没有索引，那么就会对table1整张表加锁。如果age有索引，那么就会加行锁。</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>锁</category>
-      </categories>
-      <tags>
-        <tag>锁</tag>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL怎么保证数据不丢失</title>
-    <url>/2023/04/18/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/</url>
-    <content><![CDATA[<h1 id="binlog的写入机制"><a href="#binlog的写入机制" class="headerlink" title="binlog的写入机制"></a>binlog的写入机制</h1><p>总的流程：先把日志写到binlog cache，事务提交的时候，再把binlog cache写到binlog文件中。</p>
-<p>但是需要注意，一个事务的binlog无论多大，都需要一次性写入，这就涉及到binlog cache的保存。</p>
-<p>每一个线程都会有一个binlog cache，可以设置其大小。如果超过大小限制，就要暂存在磁盘当中。但是所有的线程共享一个binlog file，也就是说，每个线程的binlog cache，都会存入到同一个文件。</p>
-<p>一个具体的例子如下：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418143649904.png" alt="image-20230418143649904" style="zoom:67%;" />
-
-<p>上图中的write操作，其实只是把binlog cache的内容写入文件系统的缓存，并没有直接同步到磁盘，而fsync才是真正的将文件系统缓存的内容写入到磁盘上。</p>
-<p>write 和fsync的时机，是由参数sync_binlog控制的：</p>
-<ol>
-<li>sync_binlog&#x3D;0的时候，表示每次提交事务都只write，不fsync；</li>
-<li>sync_binlog&#x3D;1的时候，表示每次提交事务都会执行fsync；</li>
-<li>sync_binlog&#x3D;N(N&gt;1)的时候，表示每次提交事务都write，但累积N个事务后才fsync。</li>
-</ol>
-<h1 id="redo-log的写入机制"><a href="#redo-log的写入机制" class="headerlink" title="redo log的写入机制"></a>redo log的写入机制</h1><p>redo log 每次写入时，生成的redo log会先写入redo log buffer，而redo log buffer里面的内容并不需要每次写完后都同步到磁盘。</p>
-<p>因为事务还没提交时，数据库异常重启，这部分日志会丢失，但是因为事务没提交，所以不会对数据一致性造成影响。因为事务只有在提交时，事务内所作的修改才真正起作用。</p>
-<p><strong>但是事务还没提交时，redo log buffer里面的内容也会有刷入磁盘的情况。</strong></p>
-<h2 id="redo-log可能存在的三种状态"><a href="#redo-log可能存在的三种状态" class="headerlink" title="redo log可能存在的三种状态"></a>redo log可能存在的三种状态</h2><p>1、存在于redo log buffer中，也就是还在MySQL进程中。</p>
-<p>2、写入了文件系统的缓存当中。</p>
-<p>3、写入了磁盘当中。</p>
-<h2 id="redo-log的写入策略"><a href="#redo-log的写入策略" class="headerlink" title="redo log的写入策略"></a>redo log的写入策略</h2><p>为了控制redo log的写入策略，InnoDB提供了innodb_flush_log_at_trx_commit参数，控制写入策略：</p>
-<ol>
-<li>设置为0的时候，表示每次事务提交时都只是把redo log留在redo log buffer中;</li>
-<li>设置为1的时候，表示每次事务提交时都将redo log直接持久化到磁盘；</li>
-<li>设置为2的时候，表示每次事务提交时都只是把redo log写到page cache。</li>
-</ol>
-<p>InnoDB有一个后台线程，每隔1秒，就会把redo log buffer中的日志，调用write写到文件系统的page cache，然后调用fsync持久化到磁盘。</p>
-<p>这也就解释了为什么会有没提交事务的redo log也被写入了磁盘当中。因为事务执行时，日志就会先写入redo log buffer中，后台线程会在事务没提交时，将数据刷入磁盘当中。</p>
-<p>另外两种会导致事务没提交时，redo log 被写入磁盘：</p>
-<p><strong>一种是，redo log buffer占用的空间即将达到 innodb_log_buffer_size一半的时候，后台线程会主动写盘。</strong>但这里只是写入文件系统的缓存中，不是写入磁盘。</p>
-<p><strong>另一种是，并行的事务提交的时候，顺带将这个事务的redo log buffer持久化到磁盘。</strong>比如说事务A执行了一半，它已经写入了一部分日志到redo log buffer中。如果此时另一个事务提交了，而且innodb_flush_log_at_trx_commit参数设置的是1，那么它就会直接将redo log buffer中的内容直接写入磁盘，这样事务A的一部分日志就被写入了磁盘当中。</p>
-<h1 id="双一配置"><a href="#双一配置" class="headerlink" title="双一配置"></a>双一配置</h1><p>两阶段提交的流程是：时序上redo log先prepare， 再写binlog，最后再把redo log commit。</p>
-<p>将innodb_flush_log_at_trx_commit设置为1时，redo log在处于prepare阶段时，就会刷新到磁盘当中。</p>
-<p>通常我们说MySQL的“双1”配置，指的就是sync_binlog和innodb_flush_log_at_trx_commit都设置成 1。也就是说，一个事务完整提交前，需要等待两次刷盘，一次是redo log（prepare 阶段），一次是binlog。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>日志</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL普通索引和唯一索引</title>
-    <url>/2023/04/03/MySQL/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/</url>
-    <content><![CDATA[<p>假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select name from table where id_card = &quot;xxxxyy&quot;</span><br></pre></td></tr></table></figure>
-
-<p>为了提高效率，我们会在id_card上面加索引，那么到底是加唯一索引还是普通索引呢？我们可以从这两种索引对查询语句以及更新语句的性能影响来进行分析。</p>
-<h1 id="查询过程"><a href="#查询过程" class="headerlink" title="查询过程"></a>查询过程</h1><p>假设执行的语句是select id from T where k&#x3D;5。对于两种索引执行过程如下：</p>
-<p>普通索引：他会先找到k &#x3D; 5的这一条数据，然后会继续往下找，直到第一条不满足k &#x3D; 5的数据。</p>
-<p>唯一索引：因为索引保证了唯一性，所以碰到第一条为5的记录后，就可以直接返回。</p>
-<p>这一点的不同带来的性能差距很小。因为InnoDB的数据是以<strong>数据页</strong>为单位来读的，意味着读一条数据，会将那条数据所在的页都加载到内存当中，所以读取k &#x3D; 5的时候，大概率后续几条数据会在同一个数据页中，此时性能差异很小。一个特殊情况是后续几条数据和k &#x3D; 5不在同一个页中，那么此时效率会有点低。</p>
-<h1 id="更新过程"><a href="#更新过程" class="headerlink" title="更新过程"></a>更新过程</h1><h2 id="change-buffer"><a href="#change-buffer" class="headerlink" title="change buffer"></a>change buffer</h2><p>MySQL在更新数据时，如果数据页不在内存中，就会先将更新操作写入change buffer中，等到下次查询该数据时，将change buffer中的操作执行到具体的数据。</p>
-<p>除了查询的时候会进行数据同步外，后台也会有线程定期对change buffer中的操作执行到具体的数据。</p>
-<p>change buffer在内存中也有拷贝，也会被写入到磁盘。</p>
-<h3 id="使用条件"><a href="#使用条件" class="headerlink" title="使用条件"></a>使用条件</h3><p>对于唯一索引来说，在更新数据前他需要先判断该操作是否满足唯一性约束，进行判断就意味着必须要将数据页读到内存。这也就意味着唯一索引在进行修改时，修改数据所在的数据页一定在内存中。</p>
-<p><strong>也就是说，change buffer只有普通索引才可以使用。</strong></p>
-<p>针对于一个更新，分为两种情况：</p>
-<p>如果要更新的数据在内存中，那么两种索引的更新情况类似，只不过唯一索引多了一次判断，影响不大。</p>
-<p>但是如果数据不在内存中，那么唯一索引需要先把数据查询出来放入内存，然后再更新，而普通索引写入change buffer即可。</p>
-<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>由于在进行合并的时候，change buffer记录的变更越多（也就是这个页面上要更新的次数越多），收益就越大。</p>
-<p>因此，对于写多读少的业务来说，页面在写完以后马上被访问到的概率比较小，此时change buffer的使用效果最好。</p>
-<h1 id="change-buffer-和-redo-log"><a href="#change-buffer-和-redo-log" class="headerlink" title="change buffer 和 redo log"></a>change buffer 和 redo log</h1><p>这两种设计原理，都是为了减少随机的磁盘读取。现在考虑执行下面的语句:</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t(id,k) values(id1,k1),(id2,k2);</span><br></pre></td></tr></table></figure>
-
-<p>这里我们假设k1所在的数据页在内存中，而k2所在的数据页不在内存中。那么这条更新语句要做的处理如下：</p>
-<p>1、因为k1数据页在内存中，则直接更新k1数据所在的数据页即可。</p>
-<p>2、因为k2数据页不在内存，就在change buffer中记录类似于我要插入k2这条记录即可。</p>
-<p>3、将上述两个动作记录redo log中。</p>
-<p>这样，插入就执行完成了。两次内存操作，一次磁盘操作。</p>
-<p>在执行完上面的插入操作后，如果继续执行下面语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from t where k in (k1, k2)。</span><br></pre></td></tr></table></figure>
-
-<p>由于k1所在的数据页还在内存当中，直接从内存中读取返回，而k2所在的数据页不在内存中，则从磁盘读取，然后于change buffer整合，返回正确的结果。</p>
-<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以，如果要简单地对比这两个机制在提升更新性能上的收益的话，<strong>redo log 主要节省的是随机写磁盘的IO消耗（转成顺序写），而change buffer主要节省的则是随机读磁盘的IO消耗。</strong></p>
-<p>增删改操作都涉及到从磁盘中读取数据页加载到内存，而使用了change buffer后，直接将增删改操作记录到change buffer中即可，下次做查询操作时进行整合即可，减少读磁盘的次数。</p>
-<p>而redo log是在增删改操作时，先将操作记录redo log，然后将数据在数据库缓存（buffer pool）中修改。由于这部分数据是在内存当中，没有同步到磁盘，而此时数据库异常关闭，可以通过redo log来恢复这段期间的数据，保证数据的一致性。</p>
-<h2 id="一个小疑问"><a href="#一个小疑问" class="headerlink" title="一个小疑问"></a>一个小疑问</h2><p>我最开始比较疑惑为什么插入操作会涉及到考虑数据页是否在内存当中，原因是MySQL在插入数据时，会先找到这条语句所对应的数据页，然后把数据插入到对应的数据页中。所以说，即使是插入操作，也要确保数据页在内存中。如果在插入时使用了 Change Buffer 技术，那么可以将这些插入操作暂时缓存到 Change Buffer 中，等到后续查询这个数据页的时候，再将 Change Buffer 中的数据一次性刷新到对应的数据页中，这样就可以减少磁盘 IO 操作，提高系统的性能。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>索引</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>索引</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL的幻读</title>
-    <url>/2023/04/14/MySQL/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/</url>
-    <content><![CDATA[<p>这篇文章将介绍MySQL幻读相关的内容。</p>
-<p>假设数据库中有以下表：</p>
-<table>
-<thead>
-<tr>
-<th>id</th>
-<th>c</th>
-<th>d</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>0</td>
-<td>0</td>
-<td>0</td>
-</tr>
-<tr>
-<td>5</td>
-<td>5</td>
-<td>5</td>
-</tr>
-<tr>
-<td>10</td>
-<td>10</td>
-<td>10</td>
-</tr>
-<tr>
-<td>15</td>
-<td>15</td>
-<td>15</td>
-</tr>
-<tr>
-<td>20</td>
-<td>20</td>
-<td>20</td>
-</tr>
-<tr>
-<td>25</td>
-<td>25</td>
-<td>25</td>
-</tr>
-</tbody></table>
-<p>其中id是主键，c上建立有普通索引。</p>
-<p>以下讨论场景除非必要说明，否则都是在可重复读的隔离级别下。</p>
-<h1 id="什么是幻读"><a href="#什么是幻读" class="headerlink" title="什么是幻读"></a>什么是幻读</h1><p>现在考虑以下场景：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414141001291.png" alt="image-20230414141001291" style="zoom:50%;" />
-
-<p>其中，select * from table for update表示当前读，并且加上写锁。</p>
-<p>幻读就是指在同一个事务中执行相同的sql，后一次查询看到了前一次没看到的数据。就比如Q3比Q2多了一条数据。</p>
-<p>Q2看到Q1并不被称为幻读，幻读仅仅指新插入的数据。</p>
-<p>在可重复读的隔离级别下，普通查询是看不到其他插入的数据，只有当前读（要能读到所有已经提交的记录的最新值）才有可能出现幻读。</p>
-<h1 id="幻读存在的问题"><a href="#幻读存在的问题" class="headerlink" title="幻读存在的问题"></a>幻读存在的问题</h1><h2 id="1、语义的破坏"><a href="#1、语义的破坏" class="headerlink" title="1、语义的破坏"></a>1、语义的破坏</h2><p>session A已经声明了写锁，即要锁住d &#x3D; 5的行，不允许其他事务进行读写，而后续却插入了一条d &#x3D; 5的数据。</p>
-<p>考虑另一个更明显的场景：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414143724913.png" alt="image-20230414143724913" style="zoom: 50%;" />
-
-<p>sessionB将id &#x3D; 0的这一行的d改成了5，然后又把c改成了5，也就是说变化为从（0，0，5）-&gt;（0，5，5）。这样破坏了sessionA要锁住所有d&#x3D;5的行的加锁声明。</p>
-<p>sessionC也是同样的道理，修改了d &#x3D; 5，id &#x3D; 1的行。</p>
-<h2 id="2、数据一致性问题"><a href="#2、数据一致性问题" class="headerlink" title="2、数据一致性问题"></a>2、数据一致性问题</h2><p>现在在sessionA追加一条语句：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414144337377.png" alt="image-20230414144337377" style="zoom:50%;" />
-
-<p>此时，sessionA要锁住d &#x3D; 5的这一行，然后把d 改为100，即sessionA在T1要做的操作为将（5，5，5）-&gt; (5，5，100)。</p>
-<p>在T2时刻，id &#x3D; 0这一行变成了（0，5，5）</p>
-<p>在T4时刻，数据库多了一条（1，5，5）的记录。</p>
-<p>但是我们看binlog的内容：</p>
-<p>在T2时刻，sessionB提交，写入两条语句，两条update。</p>
-<p>T4时刻，sessionC提交，写入两条语句，一条insert，一条update。</p>
-<p>把上面的语句放在一起，顺序如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* sessionB */</span><br><span class="line">update t set d = 5 where id = 0; /*(0,0,5)*/</span><br><span class="line">update t set c = 5 where id = 0; /*(0,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionC */</span><br><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c = 5 where id = 1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionA */</span><br><span class="line">update t set d = 100 where d = 5;/*所有d=5的行，d改成100*/</span><br></pre></td></tr></table></figure>
-
-<p>通过这个语句的顺序，如果我们要拿它来恢复数据，最终恢复出来的数据会变为： (0,5,100)、(1,5,100) 和 (5,5,100)。</p>
-<p>而正确的数据应该是（0，5，5），（1，5，5）和（5，5，100）。因为在可重复读隔离级别下，事务A没提交，事务B和C看不到A的修改，而事务A在提交之前看不到B和C的修改。</p>
-<p>这里的数据不一致是因为我们假设了select * from t where d&#x3D;5 for update这条语句只给id &#x3D; 5这一样加锁导致的。</p>
-<p>现在我们假设把扫描过程中的所有行都加锁，场景如下：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414150914211.png" alt="image-20230414150914211" style="zoom:50%;" />
-
-<p>这个时候，id &#x3D; 0的这一行在修改时，由于被加了锁，所以无法执行。也就是说现在的执行顺序如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c=5 where id=1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">update t set d=100 where d=5;/*所有d=5的行，d改成100*/</span><br><span class="line"></span><br><span class="line">update t set d=5 where id=0; /*(0,0,5)*/</span><br><span class="line">update t set c=5 where id=0; /*(0,5,5)*/</span><br></pre></td></tr></table></figure>
-
-<p>此时，id &#x3D; 0的这一行数据正确，但是新插入的id &#x3D; 1的问题还是没有解决。</p>
-<p><strong>也就是说，即使把所有的记录都加上锁，还是阻止不了新插入的记录</strong>，这也是为什么要单独解决幻读。</p>
-<h1 id="如何解决"><a href="#如何解决" class="headerlink" title="如何解决"></a>如何解决</h1><p>即使我们在一开始就锁住所有行，但是由于插入语句是在行的间隙进行的，所以InnoDB的解决办法是引入了间隙锁(Gap Lock)。比如开头的表，有6行数据，7个间隙。</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414151304834.png" alt="image-20230414151304834" style="zoom:67%;" />
-
-<p>这样，当你执行 select * from t where d&#x3D;5 for update的时候，就不止是给数据库中已有的6个记录加上了行锁，还同时加了7个间隙锁。这样就确保了无法再插入新的记录。</p>
-<p>间隙锁和间隙锁之间不冲突，两个事务可以在同一个间隙加间隙锁，与间隙锁冲突的是往间隙插入数据的操作。</p>
-<p><strong>间隙锁和行锁合称next-key lock</strong>，每个next-key lock是前开后闭区间，</p>
-<p>间隙锁只有在可重复读的隔离级别下才有。而且引入间隙锁会降低并发度，并且有可能造成死锁。</p>
-<p>另外一种解决幻读的方式是采用读提交的隔离级别加binlog_format&#x3D;row。</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>其他</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL的next-key lock</title>
-    <url>/2023/04/16/MySQL/MySQL%E7%9A%84next-key%20lock/</url>
-    <content><![CDATA[<p>InnoDB引擎为了解决幻读带来的问题，引入了间隙锁。而间隙锁和行锁组合起来叫做next-key lock，他是一个左开右闭的区间，代表锁住对应数据行以及数据行之间的间隙。</p>
-<p>比如现在有两行数据，（5，5，5）和（10，10，10）。在可重复读得隔离级别下执行如下sql ，，</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from table where id = 7</span><br></pre></td></tr></table></figure>
-
-<p>就会锁住(5, 10]之间的间隙，以及第（10，10，10）这一行。因为锁是加在索引上面，而索引是有序的，所以需要保证这两条数据间没有新的数据插入。</p>
-<p>在《MySQL45讲》中给出了加锁的一些规则：</p>
-<ol>
-<li>原则1：加锁的基本单位是next-key lock。希望你还记得，next-key lock是前开后闭区间。</li>
-<li>原则2：查找过程中访问到的对象才会加锁。</li>
-<li>优化1：索引上的等值查询，给唯一索引加锁的时候，next-key lock退化为行锁。</li>
-<li>优化2：索引上的等值查询，向右遍历时且最后一个值不满足等值条件的时候（比如查询id &#x3D; 5，而最后一个值是id &#x3D; 10，那么就会变为间隙锁），next-key lock退化为间隙锁。</li>
-<li>一个bug：唯一索引上的范围查询会访问到不满足条件的第一个值为止。</li>
-</ol>
-<p>假如现在有如下表：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE `t` (</span><br><span class="line">  `id` int(11) NOT NULL,</span><br><span class="line">  `c` int(11) DEFAULT NULL,</span><br><span class="line">  `d` int(11) DEFAULT NULL,</span><br><span class="line">  PRIMARY KEY (`id`),</span><br><span class="line">  KEY `c` (`c`)</span><br><span class="line">) ENGINE=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into t values(0,0,0),(5,5,5),</span><br><span class="line">(10,10,10),(15,15,15),(20,20,20),(25,25,25);</span><br></pre></td></tr></table></figure>
-
-<p>下面我们看一些具体的例子。</p>
-<h1 id="等值查询间隙锁"><a href="#等值查询间隙锁" class="headerlink" title="等值查询间隙锁"></a>等值查询间隙锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152532725.png" alt="image-20230416152532725"></p>
-<p>课程中讲的是：</p>
-<p>1、根据原则1，加锁单位是next-key lock，session A加锁范围就是(5,10]；</p>
-<p>2、同时根据优化2，这是一个等值查询(id&#x3D;7)，而id&#x3D;10不满足查询条件，next-key lock退化成间隙锁，因此最终加锁的范围是(5,10)。</p>
-<p>所以插入（8，8，8）失败，而update10成功。</p>
-<p>这里有一个疑问：为什么没有根据优化1，将（5，10]的next-key lock转变为行锁呢？</p>
-<p>个人理解：虽然是唯一索引的等值操作，但是查询条件是id &#x3D; 7，而表中的值是id &#x3D; 5和 id &#x3D; 10这两条记录，并不相等，所以没有退化成行锁。</p>
-<h1 id="非唯一索引等值锁"><a href="#非唯一索引等值锁" class="headerlink" title="非唯一索引等值锁"></a>非唯一索引等值锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152814309.png" alt="image-20230416152814309"></p>
-<p>这个例子中，由于数据是（0，0，0）（5，5，5）（10，10，10），而查询条件是c &#x3D; 5，所以会先在（0，5]之间加上next-key lock。</p>
-<p>但是c是非唯一索引，所以需要遍历到不满足条件的为止，也就是说会访问到c &#x3D; 10这一行。所以还会给（5，10]加上锁，但是该锁最后一行c &#x3D; 10并不满足c &#x3D; 5的查询条件，所以会退化为间隙锁，也就是（5，10），并不锁c &#x3D; 10这一行。</p>
-<p>而这个查询语走索引c，却只查询了id，恰好是覆盖索引，并不会回表，也就是说只锁了索引c，而没有锁索引id，那么意味着sessionB要操作的数据并没有加锁，所以B成功了，而C失败了。</p>
-<h1 id="主键索引范围锁"><a href="#主键索引范围锁" class="headerlink" title="主键索引范围锁"></a>主键索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416154441303.png" alt="image-20230416154441303" style="zoom: 50%;" />
-
-<p>sessionA会先找到id &#x3D; 5这一行，然后是id &#x3D; 10这一行，所以会加（5，10]的next-key lock。但是id &#x3D; 10满足了查询条件，所以这个锁会退化为行锁，只锁id &#x3D; 10这一行。</p>
-<p>但是查询还有第二个条件id  &lt;  11，则会继续往后走，查找到id &#x3D; 15这一行。所以会加（10，15]的next-key lock。由于查询条件id &lt; 11在id &#x3D; 15这一行不满足，所以无法退化成间隙锁，也即是说15这一行也会被锁住。就会导致如图的情况。</p>
-<h1 id="非唯一索引范围锁"><a href="#非唯一索引范围锁" class="headerlink" title="非唯一索引范围锁"></a>非唯一索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416160330625.png" alt="image-20230416160330625" style="zoom:50%;" />
-
-<p>这个例子中，由于查询所有的值，所以走索引c需要回表。意味着不仅要锁索引c，也要锁id。</p>
-<p>在第一次用c&#x3D;10定位记录的时候，索引c上加了(5,10]这个next-key lock后，由于索引c是非唯一索引，没有优化规则，也就是说不会变为行锁，因此最终sesion A加的锁是，索引c上的(5,10] 和(10,15] 这两个next-key lock。</p>
-<p>所以插入8 和修改c &#x3D; 15也都会被阻塞。</p>
-<h1 id="非唯一索引上存在”等值”的例子"><a href="#非唯一索引上存在”等值”的例子" class="headerlink" title="非唯一索引上存在”等值”的例子"></a>非唯一索引上存在”等值”的例子</h1><p>假如新插入了一行记录（30，10，30）那么索引c就会变为如下：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162231844.png" alt="image-20230416162231844" style="zoom: 67%;" />
-
-<p>那么如下操作：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162440432.png" alt="image-20230416162440432"></p>
-<p>这里会加5，10以及10，15的锁，然后不包括端点。</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>锁</category>
-      </categories>
-      <tags>
-        <tag>锁</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL索引</title>
-    <url>/2023/03/31/MySQL/MySQL%E7%B4%A2%E5%BC%95/</url>
-    <content><![CDATA[<p>索引的出现其实就是为了提高数据查询的效率。</p>
-<h2 id="索引常见的模型"><a href="#索引常见的模型" class="headerlink" title="索引常见的模型"></a>索引常见的模型</h2><h3 id="哈希表"><a href="#哈希表" class="headerlink" title="哈希表"></a>哈希表</h3><p>适合等值查询，不适合范围查询。因为会出现哈希冲突，冲突后采用链地址法解决。就会导致发生冲突后要遍历整个链表。</p>
-<h3 id="有序数组"><a href="#有序数组" class="headerlink" title="有序数组"></a>有序数组</h3><p>适合等值查询以及范围查询。有序数组在单值查询可以使用二分法快速查找，范围找到一个然后往左右遍历即可，但是它插入数据时要维护这个有序数组就比较麻烦，适合用于静态存储引擎。</p>
-<h3 id="搜索树"><a href="#搜索树" class="headerlink" title="搜索树"></a>搜索树</h3><p>二叉搜索树的特点是：左边小，右边大（相对根节点）查找效率和二分一样，O(LogN)。但是为了保证这个效率，就需要保证它是平衡二叉树（考虑插入数据是正序或者倒序情况，会退化成链表），为了确保平衡，插入时间复杂度也是O(LogN)</p>
-<p>多叉树：孩子节点从左到右依次递增。</p>
-<p>二叉树搜索效率最高，但是往往采用多叉树，因为索引还要写入磁盘，意味着我们查询索引可能也要读取磁盘。考虑一种情况，100万数据量，那么二叉树高20，如果这些索引没有在内存当中，那么就需要去读取20个数据块。</p>
-<p>每次从磁盘读取数据都是按照<strong>数据块</strong>来读取的，而不是仅仅查找那一条记录。而MySQL并不是一开始就把所有的索引都加载到内存当中，而是按需加载。MySQL有一个缓冲池，当需要访问索引时，会先在缓冲池中查看有没有，如果没有就从磁盘读取，然后写入缓冲池中。</p>
-<p>N叉树的N一般是1200。考虑到树根的数据块总是在内存中，一个10亿行的表上一个整数字段的索引，查找一个值最多只需要访问3次磁盘。</p>
-<h2 id="InnoDB索引模型"><a href="#InnoDB索引模型" class="headerlink" title="InnoDB索引模型"></a>InnoDB索引模型</h2><p>假如有如下表：</p>
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>k</th>
-<th>name</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>100</td>
-<td>1</td>
-<td>null</td>
-</tr>
-<tr>
-<td>200</td>
-<td>2</td>
-<td>null</td>
-</tr>
-<tr>
-<td>300</td>
-<td>3</td>
-<td>null</td>
-</tr>
-<tr>
-<td>500</td>
-<td>5</td>
-<td>null</td>
-</tr>
-<tr>
-<td>600</td>
-<td>6</td>
-<td>null</td>
-</tr>
-</tbody></table>
-<p>其中ID是主键，k上有索引。那么它的索引结构大致如下：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230331104745662.png" alt="image-20230331104745662"></p>
-<p>在InnoDB中，索引类型分为主键索引和非主键索引。</p>
-<p>主键索引的<strong>叶子节点存的是整行数据</strong>。在InnoDB里，主键索引也被称为<strong>聚簇索引</strong>（clustered index）。</p>
-<p>非主键索引的<strong>叶子节点内容是主键的值</strong>。在InnoDB里，非主键索引也被称为<strong>二级索引</strong>（secondary index）。</p>
-<p>其中，如果是按照主键索引查询，那么只会搜索上图的第一颗树，然后找到对应记录直接返回行数据即可。但是如果是按照k这个索引来查询，那么会现根据k索引查找到对应数据的主键，然后去第一颗树中查找对应的实际数据。</p>
-<h2 id="索引维护"><a href="#索引维护" class="headerlink" title="索引维护"></a>索引维护</h2><p>索引的插入可能会导致数据的其他数据的移位，在极端情况下，如果要插入的索引页满了，那么就会导致页分裂。这个页分裂的过程就是B+树页分裂的过程。</p>
-<p>最重要的一点，B+树的索引是建立在数据所在的数据页上的，而不是直接建立在数据。其实通过索引找到数据页后，还要在数据页中去找具体的数据，才能返回。</p>
-<h2 id="回表"><a href="#回表" class="headerlink" title="回表"></a>回表</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from T where k between 3 and 5</span><br></pre></td></tr></table></figure>
-
-<p>首先在非主键索引树上找到k &#x3D; 3的值，取得ID &#x3D; 300，然后去主键索引树上查找ID &#x3D;  300所对应的具体值。然后在非主键索引树上找下一个值，k &#x3D; 5，找ID，然后拿ID去查主键索引。然后继续去下一个，发现k &#x3D; 6，大于5，查找结束。</p>
-<p>这个从非主键索引查找完去主键索引查找的过程就叫做回表。</p>
-<h2 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select ID from T where k between 3 and 5</span><br></pre></td></tr></table></figure>
-
-<p>执行这个语句时，虽然会走非主键索引，但是索引的值存的是ID，即索引里面包含了所有要查询的数据，这就是覆盖索引。<strong>由于覆盖索引可以减少树的搜索次数，显著提升查询性能，所以使用覆盖索引是一个常用的性能优化手段。</strong></p>
-<h2 id="最左前缀原则"><a href="#最左前缀原则" class="headerlink" title="最左前缀原则"></a>最左前缀原则</h2><p>比如我们建立了一个（姓名，年龄）的索引，那么它可以用来匹配按名字的查找，但是按照年龄就不行。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p>
-<h2 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h2><p>比如我们已经建立了（姓名，年龄），此时要执行以下SQL：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tuser where name like &#x27;张%&#x27; and age=10 and ismale=1;</span><br></pre></td></tr></table></figure>
-
-<p>假如数据库表数据如下：</p>
-<table>
-<thead>
-<tr>
-<th>ID</th>
-<th>name</th>
-<th>age</th>
-<th>ismale</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td>李四</td>
-<td>2</td>
-<td>1</td>
-</tr>
-<tr>
-<td>2</td>
-<td>123</td>
-<td>10</td>
-<td>1</td>
-</tr>
-<tr>
-<td>3</td>
-<td>张三</td>
-<td>10</td>
-<td>1</td>
-</tr>
-<tr>
-<td>4</td>
-<td>张三</td>
-<td>10</td>
-<td>1</td>
-</tr>
-<tr>
-<td>5</td>
-<td>张三</td>
-<td>30</td>
-<td>1</td>
-</tr>
-<tr>
-<td>6</td>
-<td>张六</td>
-<td>40</td>
-<td>0</td>
-</tr>
-</tbody></table>
-<p>在执行这条语句时，如果没有索引下推，则每次按索引找到姓张的后，都需要回表去查看对应的一整行数据，来判断后两个字段是否一致。但是有了索引下推，可以在这里直接判断age是否满足条件，可以减少回表的次数。注意，这里的索引是联合索引，如果没有下推，即便是索引里有age字段，也不会进行判断。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>索引</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>索引</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL索引失效的情况</title>
-    <url>/2023/04/12/MySQL/MySQL%E7%B4%A2%E5%BC%95%E5%A4%B1%E6%95%88%E7%9A%84%E6%83%85%E5%86%B5/</url>
-    <content><![CDATA[<h1 id="条件字段函数操作"><a href="#条件字段函数操作" class="headerlink" title="条件字段函数操作"></a>条件字段函数操作</h1><p>假如我们现在有如下需求，我们要统计一张表2021年和2022年8月份的记录，那么SQL语句可以这么写：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select column_1, column_2 from table_1 where month(record_time) = 7;</span><br></pre></td></tr></table></figure>
-
-<p>虽然数据库表在record_time上加了索引（结构图如下），但是这个sql还是会执行的特别慢。</p>
-<img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230412151341061.png" alt="image-20230412151341061" style="zoom:67%;" />
-
-<p>因为在用month函数对record_time做计算后，得到的数字是记录的月份，而索引的值却并不是一个单独的数字，所以会导致它走全表扫描。</p>
-<p>也就是说，<strong>对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。</strong></p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 无法使用id这个索引</span><br><span class="line">select * from table_1 where id + 1 = 1000 </span><br><span class="line"></span><br><span class="line">// 可以使用</span><br><span class="line">select * from table_1 where id = 1000 - 1</span><br></pre></td></tr></table></figure>
-
-<h1 id="隐式类型转换"><a href="#隐式类型转换" class="headerlink" title="隐式类型转换"></a>隐式类型转换</h1><p>现在有如下例子：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tradelog where id = 110717;</span><br></pre></td></tr></table></figure>
-
-<p>其中，id是一个varchar类型的值，虽然它上面有索引，但还是走了全表扫描。这里就是因为id是varchar，而输入的值是数字，导致类型转换。</p>
-<p>而发生转换要走全表索引的原因是转换相当于一个函数调用，上面语句相当于：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tradelog where CAST(id AS signed int) = 110717;</span><br></pre></td></tr></table></figure>
-
-<p>而对索引字段使用函数会导致无法使用索引。</p>
-<h1 id="隐式字符编码转换"><a href="#隐式字符编码转换" class="headerlink" title="隐式字符编码转换"></a>隐式字符编码转换</h1><p>假如有如下语句</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select d.* from tradelog l, trade_detail d where d.tradeid = l.tradeid and l.id = 2</span><br></pre></td></tr></table></figure>
-
-<p>这是一个简单的连表操作，其中tradelog为驱动表，trade_detail为被驱动表，tradeid为关联字段。</p>
-<p>但是使用explain却发现在tradelog上使用了索引，但是在trade_detail上却走了全表扫描。</p>
-<p>这个语句的执行流程是，从驱动表中找到一行数据，然后去被驱动表查找对值一样的数据组成结果集，过程如下：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412153535466.png" alt="image-20230412153535466" style="zoom: 67%;" />
-
-<p>而这里走全表扫描的原因是发生了类型的转换。这里两个表的字段一个类型是utf8，另一个是utf8mb4，导致实际执行的sql相当于：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from trade_detail  where CONVERT(traideid USING utf8mb4)=$L2.tradeid.value; </span><br></pre></td></tr></table></figure>
-
-<p>CONVERT()函数，在这里的意思是把输入的字符串转成utf8mb4字符集。</p>
-<p>而这里导致全表扫描的原因也是因为对索引字段加了函数操作。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>索引</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>索引</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL表空间回收</title>
-    <url>/2023/04/06/MySQL/MySQL%E8%A1%A8%E7%A9%BA%E9%97%B4%E5%9B%9E%E6%94%B6/</url>
-    <content><![CDATA[<h1 id="数据删除流程"><a href="#数据删除流程" class="headerlink" title="数据删除流程"></a>数据删除流程</h1><p>假如现在有如下数据：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230406143630354.png" alt="image-20230406143630354"></p>
-<p>假如此时我们要删除R4的数据，InnoDB引擎只会把R4这个记录标记为删除。如果之后需要再300和600之间插入数据，可能会复用这个位置。所以这时删除一条数据时空间不会变小。</p>
-<p>如果我们删除一整个页的数据，那么这整个数据页都可以复用。</p>
-<p>如果删除了一整张表，那么所有的数据页都会被标记为可用。</p>
-<p>以上这三个删除都是针对delete命令。</p>
-<p>也就是说，delete命令只会把对应的数据标记为可以复用，下次需要写对应位置的数据时，直接覆盖掉原来的数据，并没有真正的释放空间。如果这些位置没有被复用，就会造成空间的浪费。</p>
-<p>不仅删除会导致这些空洞，插入数据也会。因为如果插入的数据不是按照索引有序的，就有可能导致页分裂。比如数据页A已经存满了，此时又有一条数据需要插入数据页A，此时会导致B+树页分裂，会多出一个数据页，但是数据页A和新数据页都不会存满数据。</p>
-<h1 id="重建表"><a href="#重建表" class="headerlink" title="重建表"></a>重建表</h1><p>如果想要消除表里面的空洞，就需要重建表。即把数据按照有序的方式从表A插入到表B当中，然后利用表B替换掉表A。在这个过程中，表A不能有更新操作。</p>
-<h2 id="Online-DDL"><a href="#Online-DDL" class="headerlink" title="Online DDL"></a>Online DDL</h2><p>在MySQL 5.6之前，重建表的逻辑和上面说的类似，但是5.6之后对此做了优化，大致过程如下：</p>
-<p>先生成一个临时文件，然后遍历表A的数据，生成一颗B+树（这里生成的B+树就是顺序生成的），然后用一个日志（row log）记录在扫描A时一些其他操作对表A的修改。然后先将生成的B+树存入临时文件，再把日志操作用于临时文件，之后用临时文件替换表A。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>执行流程</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>MySQL读写分离存在的问题</title>
-    <url>/2023/04/23/MySQL/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/</url>
-    <content><![CDATA[<p>在MySQL的一主多从的架构中，往往有以下两种设计方案：</p>
-<p>1、由客户端决定连接哪个数据库</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105127688.png" alt="image-20230423105127688" style="zoom:67%;" />
-
-<p>2、由代理决定请求分发到哪一个数据库</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105207833.png" alt="image-20230423105207833" style="zoom:67%;" />
-
-<p>但不管是哪种方案，都存在过期读的问题，即主库和从库存在一定的时延，用户刚做一个修改，然后立马发起查询，就有可能查到过期数据。以下给出几种解决方案。</p>
-<h1 id="强制走主库"><a href="#强制走主库" class="headerlink" title="强制走主库"></a>强制走主库</h1><p>该方案将请求分为了两类：</p>
-<p>1、必须拿到最新数据的，就强制走主库查询。</p>
-<p>2、对于可以读取到旧数据的，就走从库查询。</p>
-<h1 id="Sleep-方案"><a href="#Sleep-方案" class="headerlink" title="Sleep 方案"></a>Sleep 方案</h1><p>该方案的设计很简单，读从库之前先sleep一段时间。</p>
-<p>它假设大多情况下主备延迟在1秒之内，所以简单的sleep可以拿到最新的数据。</p>
-<h1 id="判断主备无延迟方案"><a href="#判断主备无延迟方案" class="headerlink" title="判断主备无延迟方案"></a>判断主备无延迟方案</h1><p>这里有几种办法，第一种是从库查询前，先判断seconds_behind_master是否已经等于0。如果还不等于0 ，那就必须等到这个参数变为0才能执行查询请求。</p>
-<p>第二种和第三种方案，都是通过对比主库和从库的日志执行位点来判断是否有延迟，即通过对比主库和从库执行的日志，来判断，要比对比时间准确。</p>
-<p>但是这里也存在问题，主库存在一部分日志刚刚提交，而从库还没收到该日志，也会导致有一定的延迟。</p>
-<h1 id="配合semi-sync"><a href="#配合semi-sync" class="headerlink" title="配合semi-sync"></a>配合semi-sync</h1><p>这里引入了半同步复制，semi-sync做了这样的设计：</p>
-<ol>
-<li>事务提交的时候，主库把binlog发给从库；</li>
-<li>从库收到binlog以后，发回给主库一个ack，表示收到了；</li>
-<li>主库收到这个ack以后，才能给客户端返回“事务完成”的确认。</li>
-</ol>
-<p>这样可以保证如果从库发送过确认消息，就代表收到了日志。这样，semi-sync配合前面关于位点的判断，就能够确定在从库上执行的查询请求，可以避免过期读。</p>
-<p>但是该方案适合一主一从的架构，如果一主多从，那么一个从库响应，就默认已经同步成功，但是其他从库不确定。如果此时查询走的是其他从库，则还是会有问题。</p>
-<p>而且存在一种情况，如果高峰期日志写的很快，可能会导致主库位点一直不一致的情况，就出现从库迟迟无法响应的问题。</p>
-<h1 id="等主库位点方案"><a href="#等主库位点方案" class="headerlink" title="等主库位点方案"></a>等主库位点方案</h1><p>该方案涉及到以下命令：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select master_pos_wait(file, pos[, timeout]);</span><br></pre></td></tr></table></figure>
-
-<p>该命令在从库执行，参数file和pos指向从库上的某个文件以及对应位置，timeout可选，表示这个函数最多的等待时间。</p>
-<p>这个命令正常返回的结果是一个正整数M，表示从命令开始执行，到应用完file和pos表示的binlog位置，执行了多少事务。</p>
-<p>那么我们的查询逻辑变为以下：</p>
-<p>1、主库执行完事务后，执行show master status得到当前主库执行到的File和Position；</p>
-<p>2、从库查询之间，先执行master_pos_wait（File，Position）</p>
-<p>3、如果返回 &gt;&#x3D; 0的正整数，则在该从库执行查询，否则到主库查询。</p>
-<h1 id="GTID方案"><a href="#GTID方案" class="headerlink" title="GTID方案"></a>GTID方案</h1><p>该方案和上述等主库位点方案思路一致，只不过是后续MySQL做了优化。</p>
-<p>我们不再需要去主库执行show master status来获取位点，而是主库执行完后，直接返回一个事务的GTID，然后从库执行时，只需要在从库执行select wait_for_executed_gtid_set(gtid1, 1)，该命令也是用于等待主从同步的命令。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>其他</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>order by是怎么工作的</title>
-    <url>/2023/04/10/MySQL/order%20by%E6%98%AF%E6%80%8E%E4%B9%88%E5%B7%A5%E4%BD%9C%E7%9A%84/</url>
-    <content><![CDATA[<p>假设我们现在有如下表，其中<strong>id是主键，city上有普通索引</strong>。</p>
-<table>
-<thead>
-<tr>
-<th>id</th>
-<th>city</th>
-<th>name</th>
-<th>age</th>
-</tr>
-</thead>
-<tbody><tr>
-<td>1</td>
-<td>杭州</td>
-<td>张三</td>
-<td>22</td>
-</tr>
-<tr>
-<td>2</td>
-<td>杭州</td>
-<td>李四</td>
-<td>23</td>
-</tr>
-<tr>
-<td>3</td>
-<td>郑州</td>
-<td>王五</td>
-<td>24</td>
-</tr>
-<tr>
-<td>……</td>
-<td>……</td>
-<td>……</td>
-<td>……</td>
-</tr>
-</tbody></table>
-<p>现在需要查出city为杭州的人的性命和年龄，并按照年龄排序的前100个人。那么sql语句如下：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select city, name, age from t where city=&#x27;杭州&#x27; order by name limit 100;</span><br></pre></td></tr></table></figure>
-
-<h1 id="全字段排序"><a href="#全字段排序" class="headerlink" title="全字段排序"></a>全字段排序</h1><p>先初始化sort_buffer，这是一块用于排序的内存，然后确定放入city，name，age三个字段。</p>
-<p>之后，会在city索引树中找到值为杭州的记录，然后去主键索引取这一行的值存入sort_buffer，直到city不为杭州。</p>
-<p>然后在sort_buffer中使用快排根据name字段进行排序，对排序结果取前100行返回给客户端。</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410155143209.png" alt="image-20230410155143209" style="zoom: 67%;" />
-
-<p>其中，如果取出的数据量太大，无法存入sort_buffer，则需要利用磁盘临时文件辅助排序。</p>
-<h1 id="rowid排序"><a href="#rowid排序" class="headerlink" title="rowid排序"></a>rowid排序</h1><p>上述情况可以把所有数据都放入sort_buffer中进行排序，但是如果不能全部放入，会把原来的文件分成多份，借助临时文件来进行归并排序。如果一行的数据量太大，则要分的份数太多，会影响性能。</p>
-<p>MySQL提供了一个参数，max_length_for_sort_data用于限制排序的行数据的长度。比如我们设置它为16，如果sort_buffer在初始时确定放入字段的长度超过16，则会采用rowid排序。</p>
-<p>现在的排序过程如下：</p>
-<p>初始化sort_buffer，确定放入id和name字段（只放入排序相关的字段）。</p>
-<p>这之后的步骤与上面的排序过程类似，不过在sort_buffer内排序完成后，需要根据id去主键上取city，name，age字段后，再返回给用户。相当于多了一次回表操作。</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410160554644.png" alt="image-20230410160554644" style="zoom:67%;" />
-
-<h1 id="全字段排序和rowid排序"><a href="#全字段排序和rowid排序" class="headerlink" title="全字段排序和rowid排序"></a>全字段排序和rowid排序</h1><p>如果内存足够大，则会优先使用全字段排序，因为可以减少一次回表操作，否则会采用rowid排序。</p>
-<p>这里也体现了MySQL的一个设计思想：能用内存就用，尽量减少磁盘访问。</p>
-<h1 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h1><p>上述SQL需要排序是因为数据是无序的，但是如果我们保证了从city索引中取出的数据就是按name有序的，就可以省略掉排序的过程。</p>
-<p>所以我们可以建立一个联合索引 (city, name)，然后执行流程如下：</p>
-<p>1、从联合索引中找到city为杭州的记录。</p>
-<p>2、去主键索引取name、city、age三个字段的值，作为结果集的一部分直接返回。</p>
-<p>3、一直重复上述步骤，直到city不为杭州或者够100条记录。</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410161831144.png" alt="image-20230410161831144" style="zoom:67%;" />
-
-<p>这样，就不需要使用临时表了。</p>
-<p>如果创建了（city，name，age）的联合索引，则还可以省去回表的操作，进一步优化查询时间。但是会导致索引占用空间过多。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>执行流程</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>一条sql更新语句是如何执行的</title>
-    <url>/2023/03/29/MySQL/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
-    <content><![CDATA[<p>一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。</p>
-<h2 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log(重做日志)"></a>redo log(重做日志)</h2><p>在MySQL中，如果每一次更新都要写进磁盘，而磁盘又需要找到对应记录的位置，然后再更新，整个过程I&#x2F;O成本，查找都很高，所以MySQL采用WAL技术，全称是Write-Ahead Logging，关键点就是先写日志，然后再写磁盘。</p>
-<p>具体做法是，当有一条记录需要更新的时候，InnoDB引擎就会先把记录写到redo log里面，并更新内存，这个时候更新就算完成了。同时，InnoDB引擎会在适当的时候，将这个操作记录更新到磁盘里面，而这个更新往往是在系统比较空闲的时候。</p>
-<p>而InnoDB的redo log大小是固定的，可以进行配置，如果被写满，那么就会从头开始写。可以理解为一个循环队列，如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329094715314.png" alt="image-20230329094715314"></p>
-<p>write pos是当前记录的位置，一边写一边后移，写到第3号文件末尾后就回到0号文件开头。checkpoint是当前要擦除的位置，也是往后推移并且循环的，擦除记录前要把记录更新到数据文件。write pos和checkpoint之间的位置就是空闲的，可以用来记录操作。如果write pos追上checkpoint，就表示写满了，需要清除一些记录，再继续写。</p>
-<p>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为<strong>crash-safe</strong>。</p>
-<h2 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog(归档日志)"></a>binlog(归档日志)</h2><p>上面提到的redo log是属于引擎层的日志，是InnoDB特有的。而binlog，则是Server层自己的日志。</p>
-<h3 id="这两种日志的区别"><a href="#这两种日志的区别" class="headerlink" title="这两种日志的区别"></a>这两种日志的区别</h3><p>1、redo log记录的是对某一个数据页所做的修改，它主要目的是防止数据库宕机重启后有部分修改没来得及同步到磁盘，可以去redo log中查找然后写入磁盘（因为修改数据时采用先写日志，然后修改内存，并不会立即去修改磁盘中的数据）。最简单的说法，他其实是为了保证数据库数据的持久性与完整性。</p>
-<p>而binlog则记录了所有对数据库所作的修改，最简单理解就是记录了sql语句，以及对应语句的反向，比如执行delete操作，它不仅会记录这个delete，还会生成对应的insert语句，我们可以用它来将数据恢复到之前的某一时刻。其实就是数据库备份，主备，主主，主从都需要依赖binlog。</p>
-<p>2、redo log 是循环写，而binlog是追加写（不会覆盖之前的）。</p>
-<p>3、redo log是InnoDB特有的，binlog是MySQL的Server层实现的。</p>
-<h2 id="执行一条update语句的流程"><a href="#执行一条update语句的流程" class="headerlink" title="执行一条update语句的流程"></a>执行一条update语句的流程</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
-
-<p>1、执行器会先找ID&#x3D;2这一行，该数据页本来就在内存当中，就直接返回给执行器，否则先从磁盘读入内存，再返回。</p>
-<p>2、执行器拿到行数据，进行修改，然后调用引擎接口写入这行数据。</p>
-<p>3、引擎将新输入的数据写入内存，同时将操作更新到redo log，此时redo log 处于prepare转来。然后告知执行器执行完了，随时可以提交事务。</p>
-<p>4、执行器生成这个binlog操作，并把binlog写入磁盘。</p>
-<p>5、执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交状态。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329150131900.png" alt="image-20230329150131900"></p>
-<p>最后三步，将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。</p>
-<h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
-
-<p>仍然采用这个例子，假设在执行语句前，c 的值是0。如果我们不采用两阶段提交，先写redo log，然后binlog 或者先写binlog，然后再写redo log。</p>
-<p>两阶段提交主要是为了保证两个日志的数据一致性。</p>
-<h3 id="先写redo-log后写binlog"><a href="#先写redo-log后写binlog" class="headerlink" title="先写redo log后写binlog"></a>先写redo log后写binlog</h3><p>假设在redo log写完，binlog 还没写完，MySQL异常重启，这时重启之后，我们可以根据redo log把数据库的值恢复到1，但是binlog没写完就崩溃了，所以没有这条记录，如果用binlog进行恢复，那么值就是0。</p>
-<h3 id="先写binlog后写redo-log"><a href="#先写binlog后写redo-log" class="headerlink" title="先写binlog后写redo log"></a>先写binlog后写redo log</h3><p>如果binlog写完然后崩溃，但是redo log没写，所以崩溃恢复后的值还是0，但是binlog里面已经记录了把0改为1这条操作，导致数据不一致。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>日志</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
-        <tag>redo log</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>高并发系统的通用设计方案</title>
-    <url>/2023/04/22/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</url>
-    <content><![CDATA[<p>高并发系统的通用设计：</p>
-<p>Scale-out（横向扩展）：采用分布式部署的方式把流量分流开，让每个服务器都承担一部分并发和流量。</p>
-<p>缓存：使用缓存来提高系统的性能，就好比用“拓宽河道”的方式抵抗高并发大流量的冲击。</p>
-<p>异步：在某些场景下，未处理完成之前我们可以让请求先返回，在数据准备好之后再通知请求方，这样可以在单位时间内处理更多的请求。</p>
-<h1 id="Scale-out"><a href="#Scale-out" class="headerlink" title="Scale-out"></a>Scale-out</h1><p>这里牵扯到一个横向扩展（Scale-out）与纵向扩展（Scale-up）。其中纵向扩展是不断的提高单个cpu的处理能力，来处理更多的请求。而横向扩展则是指利用多个cpu资源来并行处理，来处理更多请求。</p>
-<p>一般来说，在项目初期，我们可以采用纵向扩展，当单机无法承受时，再使用横向扩展。</p>
-<h1 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h1><p>我们的数据都是存储在磁盘上的，而磁盘的读取速度特别的慢，会给处理请求带来很大的压力。所以产生了缓存。在现代的设计中，从操作系统到浏览器，从数据库到消息队列都可以看到缓存的影子。</p>
-<p>由于缓存是基于内存读写的，所以速度要比磁盘读取快很多。如果能够能快的读写数据，那么每个请求的处理时间都会变短，那么就会提高系统的并发度。</p>
-<h1 id="异步处理"><a href="#异步处理" class="headerlink" title="异步处理"></a>异步处理</h1><p>异步处理相对应的就是同步。</p>
-<p>同步是指调用一个方法，需要等到该方法返回之后，才可以继续执行后续的操作。这种情况下，如果调用的方法响应时间太长的话，会导致后续的业务阻塞。</p>
-<p>异步处理是指调用方法后，并不需要等待方法处理完，可以直接执行后续的请求。比如说，我们可以将请求放入队列当中，然后响应用户一个信息，等处理完结果后，再给用户反馈一下，这样可以处理更多的请求。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230422182314880.png" alt="image-20230422182314880"></p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计40问》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>高并发系统设计</category>
-      </categories>
-      <tags>
-        <tag>并发</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>一条sql查询语句是如何执行的</title>
-    <url>/2023/03/28/MySQL/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
-    <content><![CDATA[<h2 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h2><p>Mysql的架构图如下所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230328110656604.png" alt="image-20230328110656604"></p>
-<p>上图架构中的查询缓存，在myssql8.0及其以上版本已经被移除。</p>
-<p>MySQL可以分为<strong>Server层</strong>和<strong>存储引擎层</strong>两部分。</p>
-<p>Server层包括连接器、查询缓存、分析器、优化器、执行器等，涵盖MySQL的大多数核心服务功能，以及所有的内置函数（如日期、时间、数学和加密函数等），所有跨存储引擎的功能都在这一层实现，比如存储过程、触发器、视图等。</p>
-<p>而存储引擎层负责数据的存储和提取。其架构模式是插件式的，支持InnoDB、MyISAM、Memory等多个存储引擎。现在最常用的存储引擎是InnoDB，它从MySQL 5.5.5版本开始成为了默认存储引擎。</p>
-<h3 id="连接器"><a href="#连接器" class="headerlink" title="连接器"></a>连接器</h3><p>连接器是负责客户端和MySQL进行连接的，在连接器这里会验证用户输入的账号和密码，以及对应的权限。</p>
-<p>连接完成后，如果客户端太长时间没有动静，连接器就会将它断开。这个时间由wait_timeout控制，默认8小时。</p>
-<p>数据库里面，长连接是指连接成功后，如果客户端持续有请求，则一直使用同一个连接。短连接则是指每次执行完很少的几次查询就断开连接，下次查询再重新建立一个。</p>
-<h3 id="分析器"><a href="#分析器" class="headerlink" title="分析器"></a>分析器</h3><p>这一步的主要工作就是检查sql语法是否正确。首先是词法分析，然后是语法分析。这一步也会检查这条sql的目的是什么。一般的语法错误，比如找不到一个字段，找不到某张表，都是这个阶段检测出来的。</p>
-<h3 id="优化器"><a href="#优化器" class="headerlink" title="优化器"></a>优化器</h3><p>优化器是在表里面有多个索引的时候，决定使用哪个索引；或者在一个语句有多表关联（join）的时候，决定各个表的连接顺序。</p>
-<h3 id="执行器"><a href="#执行器" class="headerlink" title="执行器"></a>执行器</h3><p>执行阶段会先判断是否有权限，如果没有，则会返回错误。</p>
-<p>比如下面的语句：</p>
-<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from T where ID=10;</span><br></pre></td></tr></table></figure>
-
-<p>如果id字段没有索引，那么大概的流程是下面的样子：</p>
-<ol>
-<li>调用InnoDB引擎接口取这个表的第一行，判断ID值是不是10，如果不是则跳过，如果是则将这行存在结果集中；</li>
-<li>调用引擎接口取“下一行”，重复相同的判断逻辑，直到取到这个表的最后一行。</li>
-<li>执行器将上述遍历过程中所有满足条件的行组成的记录集作为结果集返回给客户端。</li>
-</ol>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>MySQL</category>
-        <category>执行流程</category>
-      </categories>
-      <tags>
-        <tag>MySQL45讲</tag>
+        <tag>Redis核心技术实战</tag>
       </tags>
   </entry>
   <entry>
@@ -1703,31 +847,6 @@
       </categories>
       <tags>
         <tag>Redis持久化</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>CPU结构对Redis性能的影响</title>
-    <url>/2023/04/05/Redis/CPU%E7%BB%93%E6%9E%84%E5%AF%B9Redis%E6%80%A7%E8%83%BD%E7%9A%84%E5%BD%B1%E5%93%8D/</url>
-    <content><![CDATA[<h1 id="主流CPU架构"><a href="#主流CPU架构" class="headerlink" title="主流CPU架构"></a>主流CPU架构</h1><p>一个 CPU 处理器中一般有多个运行核心，我们把一个运行核心称为一个物理核。每个物理核都有私有的一级缓存（L1 cache）以及二级缓存（L2 cache），即其他物理核无法访问。</p>
-<p>不同的物理核还会共享一个共同的三级缓存（L3 cache）</p>
-<p>现在主流的 CPU 处理器中，每个物理核通常都会运行两个超线程，也叫作逻辑核。同一个物理核的逻辑核会共享使用 L1、L2 缓存。</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110450816.png" alt="image-20230405110450816"></p>
-<p>一个CPU会有多个物理核，而一个服务器上可能会有多个CPU，如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405110614748.png" alt="image-20230405110614748"></p>
-<p>在上图的这种CPU架构中，Redis可以在不同的CPU上运行，意味着它可以现在Socket1上运行，然后被调度到Socket2上执行。</p>
-<p>这里就会出现问题，如果应用程序先在一个 Socket 上运行，并且把数据保存到了内存，然后被调度到另一个 Socket 上运行，此时，应用程序再进行内存访问时，就需要访问之前 Socket 上连接的内存，这种访问属于<strong>远端内存访问</strong>。<strong>和访问 Socket 直接连接的内存相比，远端内存访问会增加应用程序的延迟。</strong></p>
-<p>每一个CPU会管理一部分内存，所以存在从Socket1切换到Socket2上存在远端访问。</p>
-<h1 id="CPU多核对Redis的影响"><a href="#CPU多核对Redis的影响" class="headerlink" title="CPU多核对Redis的影响"></a>CPU多核对Redis的影响</h1><p>在一个 CPU 核上运行时，应用程序需要记录自身使用的软硬件资源信息（例如栈指针、CPU 核的寄存器值等），我们把这些信息称为<strong>运行时信息</strong>。同时，应用程序访问最频繁的指令和数据还会被缓存到 L1、L2 缓存上，以便提升执行速度。</p>
-<p>Redis在不同cpu之前进行切换时，另一个cpu上并没有redis之前运行时频繁访问的指令和数据，所以这些数据都需要重新从L3缓存甚至是内存中加载，Redis需要等到这些加载完才处理请求，所以会导致较高的延迟。</p>
-<p>如果在 CPU 多核场景下，Redis 实例被频繁调度到不同 CPU 核上运行的话，那么，对 Redis 实例的请求处理时间影响就更大了。<strong>每调度一次，一些请求就会受到运行时信息、指令和数据重新加载过程的影响，这就会导致某些请求的延迟明显高于其他请求</strong>。</p>
-<h1 id="解决方案"><a href="#解决方案" class="headerlink" title="解决方案"></a>解决方案</h1><p>可以把Redis实例绑定到一个CPU的一个<strong>物理核</strong>上面。</p>
-<p>这里是因为同一个CPU里面会有多个物理核，而物理核的L1和L2缓存是私有的，如果在同一个CPU的不同物理核切换，也会导致一些命令需要重新加载。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>Redis核心技术实战</tag>
       </tags>
   </entry>
   <entry>
@@ -1833,34 +952,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis为什么可以支撑秒杀场景</title>
-    <url>/2023/03/22/Redis/Redis%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E6%94%AF%E6%92%91%E7%A7%92%E6%9D%80%E5%9C%BA%E6%99%AF/</url>
-    <content><![CDATA[<h3 id="秒杀场景的负载特征对支撑系统的要求"><a href="#秒杀场景的负载特征对支撑系统的要求" class="headerlink" title="秒杀场景的负载特征对支撑系统的要求"></a>秒杀场景的负载特征对支撑系统的要求</h3><h4 id="特征一：瞬时并发访问很高。"><a href="#特征一：瞬时并发访问很高。" class="headerlink" title="特征一：瞬时并发访问很高。"></a>特征一：瞬时并发访问很高。</h4><p>一般的数据库每秒可以支撑千级别的并发请求，而Redis的并发处理能力达到了万级别。所以当有大量请求涌入系统，我们可以使用Redis先拦截大部分请求，避免很多请求直接发到数据库。</p>
-<h4 id="特征二：读多写少，而且读操作是简单查询操作。"><a href="#特征二：读多写少，而且读操作是简单查询操作。" class="headerlink" title="特征二：读多写少，而且读操作是简单查询操作。"></a>特征二：读多写少，而且读操作是简单查询操作。</h4><p>一般的场景，需要先验证库存，然后再进行下单和商品购买，而查询库存这一操作也比较简单，适合使用Redis。</p>
-<h3 id="Redis-可以在秒杀场景的哪些环节发挥作用"><a href="#Redis-可以在秒杀场景的哪些环节发挥作用" class="headerlink" title="Redis 可以在秒杀场景的哪些环节发挥作用"></a>Redis 可以在秒杀场景的哪些环节发挥作用</h3><h4 id="秒杀活动前"><a href="#秒杀活动前" class="headerlink" title="秒杀活动前"></a>秒杀活动前</h4><p>在这个阶段，用户会不断刷新商品详情页，这会导致详情页的瞬时请求量剧增。这个阶段的应对方案，一般是尽量<strong>把商品详情页的页面元素静态化，然后使用 CDN 或是浏览器把这些静态化的元素缓存起来</strong>。这样一来，秒杀前的大量请求可以直接由 CDN 或是浏览器缓存服务，不会到达服务器端了，这就减轻了服务器端的压力。</p>
-<h4 id="秒杀活动开始"><a href="#秒杀活动开始" class="headerlink" title="秒杀活动开始"></a>秒杀活动开始</h4><p>简单来说这个阶段的操作有三个，库存查验、库存扣减和订单处理，其中查看库存的请求应该是最多的。所以我们可以使用Redis来保存库存数量，减少查询库存给数据库带来的压力。</p>
-<p>除了查库存外，订单处理的操作可以放在后端处理。因为这时候只有少部分请求可以到达，所以压力不会太大。</p>
-<p>但是扣减库存的操作最好不要放在后端。因为扣减库存放在数据库则需要维护Redis和数据库数据的一致性，会增加额外的开销。而且数据库更新比较慢，可能会导致大量请求查到旧的库存，导致超卖。所以扣减库存的操作最好放在redis中。</p>
-<h4 id="秒杀结束后"><a href="#秒杀结束后" class="headerlink" title="秒杀结束后"></a>秒杀结束后</h4><p>整个阶段并发量会小很多，并不需要redis过多参与。</p>
-<h3 id="Redis-的哪些特点可以支撑秒杀场景"><a href="#Redis-的哪些特点可以支撑秒杀场景" class="headerlink" title="Redis 的哪些特点可以支撑秒杀场景"></a>Redis 的哪些特点可以支撑秒杀场景</h3><h4 id="支持高并发"><a href="#支持高并发" class="headerlink" title="支持高并发"></a>支持高并发</h4><p>Redis本身就支持高并发，如果有多个秒杀商品，我们也可以使用切片集群，用不同的实例保存不同商品的库存，这样就避免，使用单个实例导致所有的秒杀请求都集中在一个实例上的问题了。</p>
-<h4 id="保证库存查验和库存扣减原子性执行"><a href="#保证库存查验和库存扣减原子性执行" class="headerlink" title="保证库存查验和库存扣减原子性执行"></a>保证库存查验和库存扣减原子性执行</h4><p>针对这条要求，我们就可以使用 Redis 的原子操作或是分布式锁这两个功能特性来支撑了。</p>
-<p><strong>基于原子操作支撑秒杀场景</strong></p>
-<p>因为查验库存和扣减库存这两个操作要保证一起执行，<strong>一个直接的方法就是使用 Redis 的原子操作</strong>。</p>
-<p>Redis原子操作有两种办法，原子命令或者Lua脚本。由于这是两个操作，无法使用一个命令，所以这里要使用lua脚本。</p>
-<p><strong>基于分布式锁来支撑秒杀场景</strong></p>
-<p><strong>使用分布式锁来支撑秒杀场景的具体做法是，先让客户端向 Redis 申请分布式锁，只有拿到锁的客户端才能执行库存查验和库存扣减</strong>。这样一来，大量的秒杀请求就会在争夺分布式锁时被过滤掉。而且，库存查验和扣减也不用使用原子操作了，因为多个并发客户端只有一个客户端能够拿到锁，已经保证了客户端并发访问的互斥性。</p>
-<h3 id="秒杀场景其他需要注意的点"><a href="#秒杀场景其他需要注意的点" class="headerlink" title="秒杀场景其他需要注意的点"></a>秒杀场景其他需要注意的点</h3><h4 id="请求拦截和流控"><a href="#请求拦截和流控" class="headerlink" title="请求拦截和流控"></a>请求拦截和流控</h4><p>在秒杀系统的接入层，对恶意请求进行拦截，避免对系统的恶意攻击，例如使用黑名单禁止恶意 IP 进行访问。如果 Redis 实例的访问压力过大，为了避免实例崩溃，我们也需要在接入层进行限流，控制进入秒杀系统的请求数量。</p>
-<h4 id="库存信息过期时间处理"><a href="#库存信息过期时间处理" class="headerlink" title="库存信息过期时间处理"></a>库存信息过期时间处理</h4><p>Redis 中保存的库存信息其实是数据库的缓存，为了避免缓存击穿问题，我们不要给库存信息设置过期时间。</p>
-<h4 id="数据库订单异常处理"><a href="#数据库订单异常处理" class="headerlink" title="数据库订单异常处理"></a>数据库订单异常处理</h4><p>如果数据库没能成功处理订单，可以增加订单重试功能，保证订单最终能被成功处理。</p>
-]]></content>
-      <categories>
-        <category>Redis</category>
-      </categories>
-      <tags>
-        <tag>并发</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Redis主从同步与故障切换的一些问题</title>
     <url>/2023/03/19/Redis/Redis%E4%B8%BB%E4%BB%8E%E5%90%8C%E6%AD%A5%E4%B8%8E%E6%95%85%E9%9A%9C%E5%88%87%E6%8D%A2%E7%9A%84%E4%B8%80%E4%BA%9B%E9%97%AE%E9%A2%98/</url>
     <content><![CDATA[<h3 id="主从数据不一致"><a href="#主从数据不一致" class="headerlink" title="主从数据不一致"></a>主从数据不一致</h3><p>主从数据不一致，就是指客户端从从库中读取到的值和主库中的最新值并不一致。</p>
@@ -1913,6 +1004,34 @@
       </categories>
       <tags>
         <tag>集群</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Redis为什么可以支撑秒杀场景</title>
+    <url>/2023/03/22/Redis/Redis%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E6%94%AF%E6%92%91%E7%A7%92%E6%9D%80%E5%9C%BA%E6%99%AF/</url>
+    <content><![CDATA[<h3 id="秒杀场景的负载特征对支撑系统的要求"><a href="#秒杀场景的负载特征对支撑系统的要求" class="headerlink" title="秒杀场景的负载特征对支撑系统的要求"></a>秒杀场景的负载特征对支撑系统的要求</h3><h4 id="特征一：瞬时并发访问很高。"><a href="#特征一：瞬时并发访问很高。" class="headerlink" title="特征一：瞬时并发访问很高。"></a>特征一：瞬时并发访问很高。</h4><p>一般的数据库每秒可以支撑千级别的并发请求，而Redis的并发处理能力达到了万级别。所以当有大量请求涌入系统，我们可以使用Redis先拦截大部分请求，避免很多请求直接发到数据库。</p>
+<h4 id="特征二：读多写少，而且读操作是简单查询操作。"><a href="#特征二：读多写少，而且读操作是简单查询操作。" class="headerlink" title="特征二：读多写少，而且读操作是简单查询操作。"></a>特征二：读多写少，而且读操作是简单查询操作。</h4><p>一般的场景，需要先验证库存，然后再进行下单和商品购买，而查询库存这一操作也比较简单，适合使用Redis。</p>
+<h3 id="Redis-可以在秒杀场景的哪些环节发挥作用"><a href="#Redis-可以在秒杀场景的哪些环节发挥作用" class="headerlink" title="Redis 可以在秒杀场景的哪些环节发挥作用"></a>Redis 可以在秒杀场景的哪些环节发挥作用</h3><h4 id="秒杀活动前"><a href="#秒杀活动前" class="headerlink" title="秒杀活动前"></a>秒杀活动前</h4><p>在这个阶段，用户会不断刷新商品详情页，这会导致详情页的瞬时请求量剧增。这个阶段的应对方案，一般是尽量<strong>把商品详情页的页面元素静态化，然后使用 CDN 或是浏览器把这些静态化的元素缓存起来</strong>。这样一来，秒杀前的大量请求可以直接由 CDN 或是浏览器缓存服务，不会到达服务器端了，这就减轻了服务器端的压力。</p>
+<h4 id="秒杀活动开始"><a href="#秒杀活动开始" class="headerlink" title="秒杀活动开始"></a>秒杀活动开始</h4><p>简单来说这个阶段的操作有三个，库存查验、库存扣减和订单处理，其中查看库存的请求应该是最多的。所以我们可以使用Redis来保存库存数量，减少查询库存给数据库带来的压力。</p>
+<p>除了查库存外，订单处理的操作可以放在后端处理。因为这时候只有少部分请求可以到达，所以压力不会太大。</p>
+<p>但是扣减库存的操作最好不要放在后端。因为扣减库存放在数据库则需要维护Redis和数据库数据的一致性，会增加额外的开销。而且数据库更新比较慢，可能会导致大量请求查到旧的库存，导致超卖。所以扣减库存的操作最好放在redis中。</p>
+<h4 id="秒杀结束后"><a href="#秒杀结束后" class="headerlink" title="秒杀结束后"></a>秒杀结束后</h4><p>整个阶段并发量会小很多，并不需要redis过多参与。</p>
+<h3 id="Redis-的哪些特点可以支撑秒杀场景"><a href="#Redis-的哪些特点可以支撑秒杀场景" class="headerlink" title="Redis 的哪些特点可以支撑秒杀场景"></a>Redis 的哪些特点可以支撑秒杀场景</h3><h4 id="支持高并发"><a href="#支持高并发" class="headerlink" title="支持高并发"></a>支持高并发</h4><p>Redis本身就支持高并发，如果有多个秒杀商品，我们也可以使用切片集群，用不同的实例保存不同商品的库存，这样就避免，使用单个实例导致所有的秒杀请求都集中在一个实例上的问题了。</p>
+<h4 id="保证库存查验和库存扣减原子性执行"><a href="#保证库存查验和库存扣减原子性执行" class="headerlink" title="保证库存查验和库存扣减原子性执行"></a>保证库存查验和库存扣减原子性执行</h4><p>针对这条要求，我们就可以使用 Redis 的原子操作或是分布式锁这两个功能特性来支撑了。</p>
+<p><strong>基于原子操作支撑秒杀场景</strong></p>
+<p>因为查验库存和扣减库存这两个操作要保证一起执行，<strong>一个直接的方法就是使用 Redis 的原子操作</strong>。</p>
+<p>Redis原子操作有两种办法，原子命令或者Lua脚本。由于这是两个操作，无法使用一个命令，所以这里要使用lua脚本。</p>
+<p><strong>基于分布式锁来支撑秒杀场景</strong></p>
+<p><strong>使用分布式锁来支撑秒杀场景的具体做法是，先让客户端向 Redis 申请分布式锁，只有拿到锁的客户端才能执行库存查验和库存扣减</strong>。这样一来，大量的秒杀请求就会在争夺分布式锁时被过滤掉。而且，库存查验和扣减也不用使用原子操作了，因为多个并发客户端只有一个客户端能够拿到锁，已经保证了客户端并发访问的互斥性。</p>
+<h3 id="秒杀场景其他需要注意的点"><a href="#秒杀场景其他需要注意的点" class="headerlink" title="秒杀场景其他需要注意的点"></a>秒杀场景其他需要注意的点</h3><h4 id="请求拦截和流控"><a href="#请求拦截和流控" class="headerlink" title="请求拦截和流控"></a>请求拦截和流控</h4><p>在秒杀系统的接入层，对恶意请求进行拦截，避免对系统的恶意攻击，例如使用黑名单禁止恶意 IP 进行访问。如果 Redis 实例的访问压力过大，为了避免实例崩溃，我们也需要在接入层进行限流，控制进入秒杀系统的请求数量。</p>
+<h4 id="库存信息过期时间处理"><a href="#库存信息过期时间处理" class="headerlink" title="库存信息过期时间处理"></a>库存信息过期时间处理</h4><p>Redis 中保存的库存信息其实是数据库的缓存，为了避免缓存击穿问题，我们不要给库存信息设置过期时间。</p>
+<h4 id="数据库订单异常处理"><a href="#数据库订单异常处理" class="headerlink" title="数据库订单异常处理"></a>数据库订单异常处理</h4><p>如果数据库没能成功处理订单，可以增加订单重试功能，保证订单最终能被成功处理。</p>
+]]></content>
+      <categories>
+        <category>Redis</category>
+      </categories>
+      <tags>
+        <tag>并发</tag>
       </tags>
   </entry>
   <entry>
@@ -2443,38 +1562,6 @@
       </tags>
   </entry>
   <entry>
-    <title>Redis设计之基本数据结构（一）</title>
-    <url>/2022/11/05/Redis/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%80%EF%BC%89/</url>
-    <content><![CDATA[<h3 id="简单动态字符串SDS"><a href="#简单动态字符串SDS" class="headerlink" title="简单动态字符串SDS"></a>简单动态字符串SDS</h3><h4 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h4><p>1、保存数据库中字符串的值</p>
-<p>2、AOF中的缓冲区以及客户端状态中的缓冲区</p>
-<h4 id="具体结构代码"><a href="#具体结构代码" class="headerlink" title="具体结构代码"></a>具体结构代码</h4><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">	<span class="comment">// 记录buf数组中已经使用字节的数量</span></span><br><span class="line">    <span class="comment">// 等于SDS所保存字符串的长度</span></span><br><span class="line">    <span class="type">int</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录buf数组中未使用字节的数量</span></span><br><span class="line">    <span class="type">int</span> <span class="built_in">free</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字节数组，用于保存字符串</span></span><br><span class="line">    <span class="type">char</span> buf[];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
-
-<p>因为C语言的字符串在每次赋值前都需要申请空间，而且获取长度需要遍历整个字符串，所以Redis采用上述设计。</p>
-<h4 id="SDS的好处"><a href="#SDS的好处" class="headerlink" title="SDS的好处"></a>SDS的好处</h4><p>1、可以在O(1)的时间复杂度之内获取到字符串的长度。</p>
-<p>2、杜绝缓冲区的溢出。</p>
-<p>​	SDS的API每次操作SDS时，会先检查SDS空间是否满足，如果不满足会将空间扩展至足够的大小，然后才执行实际的修改。</p>
-<p>3、减少修改字符串时带来的内存分配的次数。在C语言中，每一次修改字符串都需要重新分配内存空间，而SDS采用空间预分配和惰性删除来减少分配次数</p>
-<p>​	1）空间预分配：如果需要对SDS进行扩容，如果扩容后SDS的长度小于1mb，那么就会额外分配len长度的空间。比如原来10kb，扩容后30kb，小于1mb，就会多分配30kb。如果大于1mb，就会额外分配1mb。</p>
-<p>​	2）惰性删除：当需要缩短字符串时，SDS并不会了立即释放多余的空间，而是使用free字段来记录这些空间，等到下一次分配时使用。同时也提供了API进行真正的释放这些空间。</p>
-<h3 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><p>1、发布与订阅</p>
-<p>2、慢查询</p>
-<p>3、监视器</p>
-<p>4、构建客户端输出缓冲区</p>
-<h4 id="链表以及链表节点的实现"><a href="#链表以及链表节点的实现" class="headerlink" title="链表以及链表节点的实现"></a>链表以及链表节点的实现</h4><p>链表的每一个节点结构体</p>
-<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 链表每个节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 前置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">prev</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 后置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">next</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点的值</span></span><br><span class="line">    <span class="type">void</span> *val;</span><br><span class="line">&#125; listNode;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 整个链表</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 表头节点</span></span><br><span class="line">    listNode *head;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 表尾节点</span></span><br><span class="line">    listNode *tail;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 链表所包含节点的数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点复制函数</span></span><br><span class="line">    <span class="type">void</span> *(*dup) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值释放函数</span></span><br><span class="line">    <span class="type">void</span> (*<span class="built_in">free</span>) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值对比函数</span></span><br><span class="line">    <span class="type">int</span> (*match) &#123;<span class="type">void</span> *ptr, <span class="type">void</span> * key;&#125;</span><br><span class="line">&#125; <span class="built_in">list</span>;</span><br></pre></td></tr></table></figure>
-
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Redis设计与实现》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>Redis</category>
-        <category>数据结构</category>
-      </categories>
-      <tags>
-        <tag>Redis设计与实现</tag>
-      </tags>
-  </entry>
-  <entry>
     <title>Redis设计与实现之基本数据结构（三）</title>
     <url>/2022/11/07/Redis/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%89%EF%BC%89/</url>
     <content><![CDATA[<h3 id="跳跃表"><a href="#跳跃表" class="headerlink" title="跳跃表"></a>跳跃表</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><p>跳跃表在大多数时间内可以与平衡树媲美，而且跳跃表的设计要比平衡树简单，所以采用跳跃表。</p>
@@ -2623,6 +1710,38 @@
       </tags>
   </entry>
   <entry>
+    <title>Redis设计之基本数据结构（一）</title>
+    <url>/2022/11/05/Redis/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0%E4%B9%8B%E5%9F%BA%E6%9C%AC%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84%EF%BC%88%E4%B8%80%EF%BC%89/</url>
+    <content><![CDATA[<h3 id="简单动态字符串SDS"><a href="#简单动态字符串SDS" class="headerlink" title="简单动态字符串SDS"></a>简单动态字符串SDS</h3><h4 id="作用"><a href="#作用" class="headerlink" title="作用"></a>作用</h4><p>1、保存数据库中字符串的值</p>
+<p>2、AOF中的缓冲区以及客户端状态中的缓冲区</p>
+<h4 id="具体结构代码"><a href="#具体结构代码" class="headerlink" title="具体结构代码"></a>具体结构代码</h4><figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">sdshdr</span> &#123;</span></span><br><span class="line">	<span class="comment">// 记录buf数组中已经使用字节的数量</span></span><br><span class="line">    <span class="comment">// 等于SDS所保存字符串的长度</span></span><br><span class="line">    <span class="type">int</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 记录buf数组中未使用字节的数量</span></span><br><span class="line">    <span class="type">int</span> <span class="built_in">free</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 字节数组，用于保存字符串</span></span><br><span class="line">    <span class="type">char</span> buf[];</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>因为C语言的字符串在每次赋值前都需要申请空间，而且获取长度需要遍历整个字符串，所以Redis采用上述设计。</p>
+<h4 id="SDS的好处"><a href="#SDS的好处" class="headerlink" title="SDS的好处"></a>SDS的好处</h4><p>1、可以在O(1)的时间复杂度之内获取到字符串的长度。</p>
+<p>2、杜绝缓冲区的溢出。</p>
+<p>​	SDS的API每次操作SDS时，会先检查SDS空间是否满足，如果不满足会将空间扩展至足够的大小，然后才执行实际的修改。</p>
+<p>3、减少修改字符串时带来的内存分配的次数。在C语言中，每一次修改字符串都需要重新分配内存空间，而SDS采用空间预分配和惰性删除来减少分配次数</p>
+<p>​	1）空间预分配：如果需要对SDS进行扩容，如果扩容后SDS的长度小于1mb，那么就会额外分配len长度的空间。比如原来10kb，扩容后30kb，小于1mb，就会多分配30kb。如果大于1mb，就会额外分配1mb。</p>
+<p>​	2）惰性删除：当需要缩短字符串时，SDS并不会了立即释放多余的空间，而是使用free字段来记录这些空间，等到下一次分配时使用。同时也提供了API进行真正的释放这些空间。</p>
+<h3 id="链表"><a href="#链表" class="headerlink" title="链表"></a>链表</h3><h4 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h4><p>1、发布与订阅</p>
+<p>2、慢查询</p>
+<p>3、监视器</p>
+<p>4、构建客户端输出缓冲区</p>
+<h4 id="链表以及链表节点的实现"><a href="#链表以及链表节点的实现" class="headerlink" title="链表以及链表节点的实现"></a>链表以及链表节点的实现</h4><p>链表的每一个节点结构体</p>
+<figure class="highlight c"><table><tr><td class="code"><pre><span class="line"><span class="comment">// 链表每个节点</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 前置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">prev</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 后置节点</span></span><br><span class="line">    <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> *<span class="title">next</span>;</span></span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点的值</span></span><br><span class="line">    <span class="type">void</span> *val;</span><br><span class="line">&#125; listNode;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 整个链表</span></span><br><span class="line"><span class="keyword">typedef</span> <span class="class"><span class="keyword">struct</span> <span class="title">listNode</span> &#123;</span></span><br><span class="line">    <span class="comment">// 表头节点</span></span><br><span class="line">    listNode *head;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 表尾节点</span></span><br><span class="line">    listNode *tail;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 链表所包含节点的数量</span></span><br><span class="line">    <span class="type">unsigned</span> <span class="type">long</span> len;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点复制函数</span></span><br><span class="line">    <span class="type">void</span> *(*dup) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值释放函数</span></span><br><span class="line">    <span class="type">void</span> (*<span class="built_in">free</span>) &#123;<span class="type">void</span> *ptr;&#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 节点值对比函数</span></span><br><span class="line">    <span class="type">int</span> (*match) &#123;<span class="type">void</span> *ptr, <span class="type">void</span> * key;&#125;</span><br><span class="line">&#125; <span class="built_in">list</span>;</span><br></pre></td></tr></table></figure>
+
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Redis设计与实现》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>Redis</category>
+        <category>数据结构</category>
+      </categories>
+      <tags>
+        <tag>Redis设计与实现</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>redis如何避免数据倾斜</title>
     <url>/2023/03/23/Redis/redis%E5%A6%82%E4%BD%95%E9%81%BF%E5%85%8D%E6%95%B0%E6%8D%AE%E5%80%BE%E6%96%9C/</url>
     <content><![CDATA[<h3 id="数据倾斜分类"><a href="#数据倾斜分类" class="headerlink" title="数据倾斜分类"></a>数据倾斜分类</h3><h4 id="数据量倾斜"><a href="#数据量倾斜" class="headerlink" title="数据量倾斜"></a>数据量倾斜</h4><p>在某些情况下，实例上的数据分布不均衡，某个实例上的数据特别多。</p>
@@ -2692,6 +1811,113 @@
       </categories>
       <tags>
         <tag>事务</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>如何使用Redis作为消息队列</title>
+    <url>/2023/03/28/Redis/%E4%BD%BF%E7%94%A8Redis%E5%BD%93%E4%BD%9C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/</url>
+    <content><![CDATA[<h2 id="消息队列的存取需求"><a href="#消息队列的存取需求" class="headerlink" title="消息队列的存取需求"></a>消息队列的存取需求</h2><p>在分布式系统中，当两个组件要基于消息队列进行通信，一个组件会把消息传递给消息队列，然后就去做其他的事情，另一个组件会从消息队列中读取数据，在进行处理。我们把发送消息的称为生产者，消费消息的称为消费者。</p>
+<p>这样处理的好处是，如果生产者发送消息的速度很快，消费者来不及处理也没问题，可以将这些消息暂存在消息队列当中，然后消费者可以按照一定的处理速度去异步的处理这些消息，从而达到一个流量消峰的效果。</p>
+<p><strong>不过，消息队列在存取消息时，必须要满足三个需求，分别是消息保序、处理重复的消息和保证消息可靠性。</strong></p>
+<h2 id="消息队列对可靠性的要求"><a href="#消息队列对可靠性的要求" class="headerlink" title="消息队列对可靠性的要求"></a>消息队列对可靠性的要求</h2><h3 id="消息保序"><a href="#消息保序" class="headerlink" title="消息保序"></a>消息保序</h3><p>虽然消费者是异步处理这些消息的，但是需要按照消息的顺序进行消费。不然可能会出现错误。</p>
+<p>假如现在有一个x&#x3D;3，第一个消息要把x * 2，然后第二个消息要把x + 3，如果消息正常执行，x的值最终为9，如果先执行了x + 3，那么x的值最终就会变为12。</p>
+<h3 id="重复消息处理"><a href="#重复消息处理" class="headerlink" title="重复消息处理"></a>重复消息处理</h3><p>消费者从消息队列读取消息时，有时会因为网络堵塞而出现消息重传的情况。此时，消费者可能会收到多条重复的消息。对于重复的消息，消费者如果多次处理的话，就可能造成一个业务逻辑被多次执行，如果业务逻辑正好是要修改数据，那就会出现数据被多次修改的问题了。</p>
+<h3 id="消息可靠性保证"><a href="#消息可靠性保证" class="headerlink" title="消息可靠性保证"></a>消息可靠性保证</h3><p>另外，消费者在处理消息的时候，还可能出现因为故障或宕机导致消息没有处理完成的情况。此时，消息队列需要能提供消息可靠性的保证，也就是说，当消费者重启后，可以重新读取消息再次进行处理，否则，就会出现消息漏处理的问题了。</p>
+<h2 id="Redis消息队列的解决方案"><a href="#Redis消息队列的解决方案" class="headerlink" title="Redis消息队列的解决方案"></a>Redis消息队列的解决方案</h2><p>Redis 的 List 和 Streams 两种数据类型，就可以满足消息队列的这三个需求。</p>
+<h3 id="基于-List-的消息队列解决方案"><a href="#基于-List-的消息队列解决方案" class="headerlink" title="基于 List 的消息队列解决方案"></a>基于 List 的消息队列解决方案</h3><p>具体来说，生产者可以使用 LPUSH 命令把要发送的消息依次写入 List，而消费者则可以使用 RPOP 命令，从 List 的另一端按照消息的写入顺序，依次读取消息并进行处理。</p>
+<p>但是这里有一个性能问题，在生产者往 List 中写入数据时，List 并不会主动地通知消费者有新消息写入，如果消费者想要及时处理消息，就需要在程序中不停地调用 RPOP 命令（比如使用一个 while(1) 循环）。如果有新消息写入，RPOP 命令就会返回结果，否则，RPOP 命令返回空值，再继续循环。</p>
+<p>所以，即使没有新消息写入 List，消费者也要不停地调用 RPOP 命令，这就会导致消费者程序的 CPU 一直消耗在执行 RPOP 命令上，带来不必要的性能损失。</p>
+<p>Redis 提供了 BRPOP 命令。<strong>BRPOP 命令也称为阻塞式读取，客户端在没有读到队列数据时，自动阻塞，直到有新的数据写入队列，再开始读取新数据</strong></p>
+<p>我们在将消息插入list时，要生成一个全局唯一的id，用来作为消息是否处理的标志。</p>
+<p>为了留存消息，List 类型提供了 BRPOPLPUSH 命令，这个命令的作用是让消费者程序从一个 List 中读取消息，同时，Redis 会把这个消息再插入到另一个 List（可以叫作备份 List）留存。这样一来，如果消费者程序读了消息但没能正常处理，等它重启后，就可以从备份 List 中重新读取消息并进行处理了。</p>
+<h3 id="基于-Streams-的消息队列解决方案"><a href="#基于-Streams-的消息队列解决方案" class="headerlink" title="基于 Streams 的消息队列解决方案"></a>基于 Streams 的消息队列解决方案</h3><p>Streams 是 Redis 专门为消息队列设计的数据类型，它提供了丰富的消息队列操作命令。</p>
+<p>XADD：插入消息，保证有序，可以自动生成全局唯一 ID；</p>
+<p>XREAD：用于读取消息，可以按 ID 读取数据；</p>
+<p>XREADGROUP：按消费组形式读取消息；</p>
+<p>XPENDING 和 XACK：XPENDING 命令可以用来查询每个消费组内所有消费者已读取但尚未确认的消息，而 XACK 命令用于向消息队列确认消息处理已完成。</p>
+<p>list支持的操作，stream都支持，下面是stream特有的。</p>
+<p>1、Streams 本身可以使用 XGROUP 创建消费组，创建消费组之后，Streams 可以使用 XREADGROUP 命令让消费组内的消费者读取消息，消息队列中的消息一旦被消费组里的一个消费者读取了，就不能再被该消费组内的其他消费者读取了。使用消费组的目的是让组内的多个消费者共同分担读取消息，所以，我们通常会让每个消费者读取部分消息，从而实现消息读取负载在多个消费者间是均衡分布的。</p>
+<p>为了保证消费者在发生故障或宕机再次重启后，仍然可以读取未处理完的消息，Streams 会自动使用内部队列（也称为 PENDING List）留存消费组里每个消费者读取的消息，直到消费者使用 XACK 命令通知 Streams“消息已经处理完成”。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Redis核心技术实战》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>Redis</category>
+        <category>其他</category>
+      </categories>
+      <tags>
+        <tag>消息队列</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL为什么会卡一下</title>
+    <url>/2023/04/05/MySQL/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/</url>
+    <content><![CDATA[<p>InnoDB在处理更新操作时，它并不会直接把数据直接写入磁盘，而是先在内存找到对应的数据页做修改，之后把修改写入redo log，然后这一次更新操作就算完成了。（这里也存在数据页不在内存的情况，那么它会直接将数据修改的操作写入change buffer，然后记录redo log）。</p>
+<p>这些被修改过的数据页，或者说内存中的数据页与磁盘中的数据页不一样的，就叫做脏页。而MySQL卡的那一下，就是把脏页写回内存时发生的。</p>
+<h1 id="写回脏页的时机"><a href="#写回脏页的时机" class="headerlink" title="写回脏页的时机"></a>写回脏页的时机</h1><p>1、redo log满了</p>
+<p>redo log是一个循环队列，当它写满时，系统会停止当前的操作，把redo log中记录的一部分操作所对应的脏页写回内存，然后在redo log中腾出足够的地方。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230405145823007.png" alt="image-20230405145823007" style="zoom:50%;" />
+
+<p>2、内存满了</p>
+<p>在这种情况下，内存里无法加载更多的内存页，需要淘汰掉一部分内存页，而淘汰掉的内存页如果有脏页，就会把他们写入磁盘。</p>
+<p>3、MySQL空闲时</p>
+<p>4、MySQL正常关闭的情况。</p>
+<h1 id="情况1和2对性能的影响"><a href="#情况1和2对性能的影响" class="headerlink" title="情况1和2对性能的影响"></a>情况1和2对性能的影响</h1><p>情况1是需要避免的，因为发生这种情况后，整个系统就无法处理新的请求。</p>
+<p>情况2是一种常态，<strong>InnoDB用缓冲池（buffer pool）管理内存，缓冲池中的内存页有三种状态：</strong></p>
+<ul>
+<li>第一种是，还没有使用的；</li>
+<li>第二种是，使用了并且是干净页；</li>
+<li>第三种是，使用了并且是脏页。</li>
+</ul>
+<p>而当要读入的数据页没有在内存的时候，就必须到缓冲池中申请一个数据页。这时候只能把最久不使用的数据页从内存中淘汰掉：如果要淘汰的是一个干净页，就直接释放出来复用；但如果是脏页呢，就必须将脏页先刷到磁盘，变成干净页后才能复用。</p>
+<p>如果一个查询要淘汰的数据页太多，那么就会很明显的影响性能。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>缓存</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL事务隔离</title>
+    <url>/2023/03/30/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/</url>
+    <content><![CDATA[<h2 id="什么是事务"><a href="#什么是事务" class="headerlink" title="什么是事务"></a>什么是事务</h2><p>事务就是要保证一组数据库操作，要么全部成功，要么全部失败。也就是ACID（Atomicity、Consistency、Isolation、Durability，即原子性、一致性、隔离性、持久性）。</p>
+<h2 id="隔离性与隔离级别"><a href="#隔离性与隔离级别" class="headerlink" title="隔离性与隔离级别"></a>隔离性与隔离级别</h2><p>当数据库上有多个事务同时执行的时候，就可能出现脏读（dirty read）、不可重复读（non-repeatable read）、幻读（phantom read）的问题，为了解决这些问题，就有了“隔离级别”的概念（隔离级别越高，效率越低）。</p>
+<h3 id="SQL标准的隔离级别"><a href="#SQL标准的隔离级别" class="headerlink" title="SQL标准的隔离级别"></a>SQL标准的隔离级别</h3><p>1、读未提交：一个事务还没提交时，它做的变更就能被其他事务看到。</p>
+<p>2、读提交：一个事务提交后，它做的变更才能被其他事务看到。</p>
+<p>3、可重复读：一个事务执行过程中看到的数据，总是和 这个事务开始时看到的数据时一致的。该事务未提交的变更对其他事务也是不可见的。</p>
+<p>4、串行化：将事务串行执行，如果出现冲突，则后执行的事务必须等前面的执行完才可以执行。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330100101877.png" alt="image-20230330100101877"></p>
+<p>假如数据库只有一列，且只有一个值c &#x3D; 1，执行上面事务时，不同隔离级别得到的结果如下：</p>
+<p>1、读未提交：虽然事务b没提交，但是可以被事务A看到，所以V1的值是2，提交后查询到的V2还是2提交事务后查到的V3还是2。</p>
+<p>2、读提交：因为这种隔离级别只有提交后才能被看到，所以查询V1时，因为B没提交，所以是1，而V2和V3因为B提交了事务，所作的就该可以被看到，所以V2和V3都是2。</p>
+<p>3、可重复读：因为可重复读会保证事务期间查询到的数据和事务开始时一致，那么在事务提交前，V1和V2的值都会是1，而V3因为事务结束，而且事务B已经提交，所以结果是2。</p>
+<p>4、串行化：在这种隔离级别下，由于事务A先开始，所以事务B在修改时会被阻塞，直到A提交后，才可以执行。所以V1和V2的值都是1，而V3在提交事务A后才查询，此时B已经被唤醒执行并且提交，所以值是2。</p>
+<h3 id="隔离的实现"><a href="#隔离的实现" class="headerlink" title="隔离的实现"></a>隔离的实现</h3><p>在可重复读的隔离级别下，事务启动时会创建一个识图，整个事务存在期间都是用这个识图。</p>
+<p>在读提交隔离级别下，这个试图是每个SQL语句开始执行的时候创建的。</p>
+<p>读未提交没有试图的概念，它永远返回最新值。</p>
+<p>串行化是通过加锁避免并行访问。</p>
+<h4 id="可重复读的实现"><a href="#可重复读的实现" class="headerlink" title="可重复读的实现"></a>可重复读的实现</h4><p>每条记录更新时都会同时记录一条回滚操作，记录上的最新值都可以通过回滚操作回到前一个状态值。</p>
+<p>假设一个值从1被按顺序改成了2，3，4，那么回滚日志就会有类似记录：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230330103610703.png" alt="image-20230330103610703"></p>
+<p>有了上面的记录，我们实现不同隔离级别下，对同一条记录查询到不同的值。比如在A、B、C里面，值分别是1，2，4。简单来说，就是同一个值在系统中可以保存多个版本。但是并非真正的保存至，像上面的视图，如果要获取A，就只能从C开始一步一步回滚。</p>
+<h3 id="事务的开启方式"><a href="#事务的开启方式" class="headerlink" title="事务的开启方式"></a>事务的开启方式</h3><p>以下两种：</p>
+<p>1、显式启动事务语句， begin 或 start transaction。配套的提交语句是commit，回滚语句是rollback。</p>
+<p>2、set autocommit&#x3D;0，这个命令会将这个线程的自动提交关掉。意味着如果你只执行一个select语句，这个事务就启动了，而且并不会自动提交。这个事务持续存在直到你主动执行commit 或 rollback 语句，或者断开连接。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
+        <tag>MySQL45讲</tag>
       </tags>
   </entry>
   <entry>
@@ -2814,39 +2040,813 @@
       </categories>
   </entry>
   <entry>
-    <title>如何使用Redis作为消息队列</title>
-    <url>/2023/03/28/Redis/%E4%BD%BF%E7%94%A8Redis%E5%BD%93%E4%BD%9C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/</url>
-    <content><![CDATA[<h2 id="消息队列的存取需求"><a href="#消息队列的存取需求" class="headerlink" title="消息队列的存取需求"></a>消息队列的存取需求</h2><p>在分布式系统中，当两个组件要基于消息队列进行通信，一个组件会把消息传递给消息队列，然后就去做其他的事情，另一个组件会从消息队列中读取数据，在进行处理。我们把发送消息的称为生产者，消费消息的称为消费者。</p>
-<p>这样处理的好处是，如果生产者发送消息的速度很快，消费者来不及处理也没问题，可以将这些消息暂存在消息队列当中，然后消费者可以按照一定的处理速度去异步的处理这些消息，从而达到一个流量消峰的效果。</p>
-<p><strong>不过，消息队列在存取消息时，必须要满足三个需求，分别是消息保序、处理重复的消息和保证消息可靠性。</strong></p>
-<h2 id="消息队列对可靠性的要求"><a href="#消息队列对可靠性的要求" class="headerlink" title="消息队列对可靠性的要求"></a>消息队列对可靠性的要求</h2><h3 id="消息保序"><a href="#消息保序" class="headerlink" title="消息保序"></a>消息保序</h3><p>虽然消费者是异步处理这些消息的，但是需要按照消息的顺序进行消费。不然可能会出现错误。</p>
-<p>假如现在有一个x&#x3D;3，第一个消息要把x * 2，然后第二个消息要把x + 3，如果消息正常执行，x的值最终为9，如果先执行了x + 3，那么x的值最终就会变为12。</p>
-<h3 id="重复消息处理"><a href="#重复消息处理" class="headerlink" title="重复消息处理"></a>重复消息处理</h3><p>消费者从消息队列读取消息时，有时会因为网络堵塞而出现消息重传的情况。此时，消费者可能会收到多条重复的消息。对于重复的消息，消费者如果多次处理的话，就可能造成一个业务逻辑被多次执行，如果业务逻辑正好是要修改数据，那就会出现数据被多次修改的问题了。</p>
-<h3 id="消息可靠性保证"><a href="#消息可靠性保证" class="headerlink" title="消息可靠性保证"></a>消息可靠性保证</h3><p>另外，消费者在处理消息的时候，还可能出现因为故障或宕机导致消息没有处理完成的情况。此时，消息队列需要能提供消息可靠性的保证，也就是说，当消费者重启后，可以重新读取消息再次进行处理，否则，就会出现消息漏处理的问题了。</p>
-<h2 id="Redis消息队列的解决方案"><a href="#Redis消息队列的解决方案" class="headerlink" title="Redis消息队列的解决方案"></a>Redis消息队列的解决方案</h2><p>Redis 的 List 和 Streams 两种数据类型，就可以满足消息队列的这三个需求。</p>
-<h3 id="基于-List-的消息队列解决方案"><a href="#基于-List-的消息队列解决方案" class="headerlink" title="基于 List 的消息队列解决方案"></a>基于 List 的消息队列解决方案</h3><p>具体来说，生产者可以使用 LPUSH 命令把要发送的消息依次写入 List，而消费者则可以使用 RPOP 命令，从 List 的另一端按照消息的写入顺序，依次读取消息并进行处理。</p>
-<p>但是这里有一个性能问题，在生产者往 List 中写入数据时，List 并不会主动地通知消费者有新消息写入，如果消费者想要及时处理消息，就需要在程序中不停地调用 RPOP 命令（比如使用一个 while(1) 循环）。如果有新消息写入，RPOP 命令就会返回结果，否则，RPOP 命令返回空值，再继续循环。</p>
-<p>所以，即使没有新消息写入 List，消费者也要不停地调用 RPOP 命令，这就会导致消费者程序的 CPU 一直消耗在执行 RPOP 命令上，带来不必要的性能损失。</p>
-<p>Redis 提供了 BRPOP 命令。<strong>BRPOP 命令也称为阻塞式读取，客户端在没有读到队列数据时，自动阻塞，直到有新的数据写入队列，再开始读取新数据</strong></p>
-<p>我们在将消息插入list时，要生成一个全局唯一的id，用来作为消息是否处理的标志。</p>
-<p>为了留存消息，List 类型提供了 BRPOPLPUSH 命令，这个命令的作用是让消费者程序从一个 List 中读取消息，同时，Redis 会把这个消息再插入到另一个 List（可以叫作备份 List）留存。这样一来，如果消费者程序读了消息但没能正常处理，等它重启后，就可以从备份 List 中重新读取消息并进行处理了。</p>
-<h3 id="基于-Streams-的消息队列解决方案"><a href="#基于-Streams-的消息队列解决方案" class="headerlink" title="基于 Streams 的消息队列解决方案"></a>基于 Streams 的消息队列解决方案</h3><p>Streams 是 Redis 专门为消息队列设计的数据类型，它提供了丰富的消息队列操作命令。</p>
-<p>XADD：插入消息，保证有序，可以自动生成全局唯一 ID；</p>
-<p>XREAD：用于读取消息，可以按 ID 读取数据；</p>
-<p>XREADGROUP：按消费组形式读取消息；</p>
-<p>XPENDING 和 XACK：XPENDING 命令可以用来查询每个消费组内所有消费者已读取但尚未确认的消息，而 XACK 命令用于向消息队列确认消息处理已完成。</p>
-<p>list支持的操作，stream都支持，下面是stream特有的。</p>
-<p>1、Streams 本身可以使用 XGROUP 创建消费组，创建消费组之后，Streams 可以使用 XREADGROUP 命令让消费组内的消费者读取消息，消息队列中的消息一旦被消费组里的一个消费者读取了，就不能再被该消费组内的其他消费者读取了。使用消费组的目的是让组内的多个消费者共同分担读取消息，所以，我们通常会让每个消费者读取部分消息，从而实现消息读取负载在多个消费者间是均衡分布的。</p>
-<p>为了保证消费者在发生故障或宕机再次重启后，仍然可以读取未处理完的消息，Streams 会自动使用内部队列（也称为 PENDING List）留存消费组里每个消费者读取的消息，直到消费者使用 XACK 命令通知 Streams“消息已经处理完成”。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Redis核心技术实战》</p>
+    <title>MySQL事务隔离（2）</title>
+    <url>/2023/04/02/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/</url>
+    <content><![CDATA[<h2 id="到底是隔离还是不隔离"><a href="#到底是隔离还是不隔离" class="headerlink" title="到底是隔离还是不隔离"></a>到底是隔离还是不隔离</h2><p>假如现在有如下表：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>k</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2</td>
+</tr>
+</tbody></table>
+<p>现在执行如下操作：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402142051361.png" alt="image-20230402142051361"></p>
+<p><strong>在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1</strong>。下面看具体原因。</p>
+<p>在MySQL中，有两个视图概念：</p>
+<p>第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。</p>
+<p>另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent read view，用于支持RC（Read Committed，读提交）和RR（Repeatable Read，可重复读）隔离级别的实现。</p>
+<p>可重复读隔离主要用到第二个识图。</p>
+<h3 id="“快照”在MVCC里是怎么工作的？"><a href="#“快照”在MVCC里是怎么工作的？" class="headerlink" title="“快照”在MVCC里是怎么工作的？"></a>“快照”在MVCC里是怎么工作的？</h3><p>在可重复读隔离级别下，事务启动时就拍了个快照，这个快照是基于整个库的。但是这个快照并不需要拷贝整个数据库的数据，具体做法如下：</p>
+<p>InnoDB的每一个事务都有一个唯一的事务ID，叫作transaction id。它是在事务开始的时候向InnoDB的事务系统申请的，是按申请顺序严格递增的。</p>
+<p>而每一行的数据都是有多个版本。每次事务进行更新数据时，都会生成一个新的版本的数据，然后这个新数据会绑定这个事务ID，记为row trx_id。也就是说，数据表中的一行记录，其实可能有多个版本(row)，每个版本有自己的row trx_id，通过这个row trx_id可以知道是哪个事务更新的数据。</p>
+<p>一个具体的例子如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402144408772.png" alt="image-20230402144408772"></p>
+<p>这里V4是最新的版本，但是数据库只存了V4，它前面的版本V1和V2以及V3并不是真实存在的，而是每次需要的时候根据当前版本和undo log计算出来的。比如，需要V2的时候，就是通过V4依次执行U3、U2算出来。</p>
+<p>按照可重复读的定义，一个事务启动的时候，能够看到所有已经提交的事务。但是事务执行期间，其他事务的更新对他不可见。</p>
+<h4 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h4><p>InnoDB为每一个事务构造了一个数组，用来保存事务启动的瞬间，当前启动了但是还没提交的事务。</p>
+<p>通过这个数组，我们可以将系统中的所有事务划分为3个部分，小于数组中最小ID的是已经提交了的事务，高于数组最大值是还没开始的事务，数组中的是已经开始的但是还没提交的事务。如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402152032322.png" alt="image-20230402152032322"></p>
+<p>针对当前事务，如果一个数据的row trx_id是在绿色区域，那么一定是可见的，如果在红色区域，则不可见。而处于黄色区域的数据，则分为两种情况，如果该row trx_id位于数组中，则说明该事务还没提交，那么就是不可见的，如果不在该数组中，说明已经提交了，则是可见的数据。这里可见得数据直接读取即可，不可见得数据是需要根据undo log进行回滚得数据。</p>
+<p>要注意这里的一个可能的误区，这个数组并不一定是连续的，比如它可以是[50, 53, 60, 62]这种，而不连续的部分说明事务已经提交了。</p>
+<p>通过这种设计，如果一个数据的row trx_id小于数组中得最小值，则直接按当前值读取，如果大于，则根据情况，看是否可见，如果不可见则需要根据undo log 进行回滚操作。</p>
+<h2 id="开头的问题"><a href="#开头的问题" class="headerlink" title="开头的问题"></a>开头的问题</h2><p>现在看开头的那个问题。假设事务A的id是100，那么事务B的id是101，事务C的id是102。假设id &#x3D; 1那一行的row trx_id的值是90。</p>
+<p>那么事务A中，事务创建的数组就只有 100，而事务B创建的数组有100，101。事务C创建的数组有100，101，102。</p>
+<p>那么从结果上看，值为(1，1)的数据版本号为90， (1，2)数据的版本号为102（事务C修改的）， (1，3)的数据版本号为101（事务B修改的）。</p>
+<p>所以事务A在执行查询操作时，发现数据（1，3）的版本号为102，高于数组最大值，是不可见的状态，所以他要退回，一直退到（1，1）这个状态，版本号为90，小于数组中的值，是可见的，所以事务A查到的k &#x3D; 1。</p>
+<p>同理，事务B在执行查找时，发现当前数据（1，3）的版本号为101，是它自己的版本，所以直接展示k &#x3D; 3。注意，这里展示k &#x3D; 3是因为直接展示了最终结果，在事务B修改操作时，把k的版本号改为了事务B的id。</p>
+<h2 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h2><p>这里针对上面事务B中的update语句将数据改为（1，3）做出解释：在事务B中，如果修改数据之前，执行一次查询操作，它读到的k的值的确是1，但此时的set k&#x3D;k+1是在（1,2）的基础上进行的操作，否则它将使得事务C的修改无效，导致数据不一致。</p>
+<h2 id="事务的可重复读是怎么实现的"><a href="#事务的可重复读是怎么实现的" class="headerlink" title="事务的可重复读是怎么实现的"></a>事务的可重复读是怎么实现的</h2><p>简单来说，就是读操作，需要判断当前数据版本是否可见，不可见就回滚到可见版本。而写操作，则直接在当前版本进行修改。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
 ]]></content>
       <categories>
         <category>学习笔记</category>
-        <category>Redis</category>
+        <category>MySQL</category>
+        <category>事务</category>
+      </categories>
+      <tags>
+        <tag>事务</tag>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL全局锁和表锁</title>
+    <url>/2023/04/01/MySQL/MySQL%E5%85%A8%E5%B1%80%E9%94%81%E5%92%8C%E8%A1%A8%E9%94%81/</url>
+    <content><![CDATA[<p><strong>根据加锁的范围，MySQL里面的锁大致可以分成全局锁、表级锁和行锁三类</strong></p>
+<h1 id="全局锁"><a href="#全局锁" class="headerlink" title="全局锁"></a>全局锁</h1><p>全局锁就是对整个数据库实例进行加锁。它的一个经典使用场景就是做全库的逻辑备份，也就是把整个库的数据都查出来存成文本。</p>
+<p>加了全局锁之后，整个数据库系统就变为了只读状态，意味着很多业务不可以进行。但是如果不加，那么考虑以下情况：</p>
+<p>现在有一个用户余额表以及用户库存表，假设用户购买商品时发起了逻辑备份，如果先备份余额表，后备份商品表，那么在扣除余额前余额表备份完成，添加商品到用户库存后才备份的库存表，这时如果用备份进行恢复，那么就会导致用户账户没有扣钱，但是却多了库存。如果反过来，则会导致用户账户被扣，而且没有商品。</p>
+<p>而我们会发现，在真正导出数据时，是可以对数据库做修改。这是因为导出数据前，数据库开启了一个<strong>可重复读</strong>隔离级别的事务，保证了在事务执行期间读到的数据和事务开始时是一致的。</p>
+<h1 id="表级锁"><a href="#表级锁" class="headerlink" title="表级锁"></a>表级锁</h1><p>MySQL的表级锁有两种，一种是表锁，一种是元数据锁（MDL），</p>
+<h2 id="表锁"><a href="#表锁" class="headerlink" title="表锁"></a>表锁</h2><p>可以使用<strong>lock tables … read&#x2F;write</strong>给数据库加表锁，可以使用unlock tables主动释放锁，也可以在客户端断开时自动释放。</p>
+<p> 但是需要注意，加了表锁以后，其他线程无法访问这个表，而且加锁的线程接下来的操作也会受到限制。</p>
+<p>比如线程A对执行了以下操作：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">lock tables t1 read, t2 write</span><br></pre></td></tr></table></figure>
+
+<p>那么其他所有线程写t1，读写t2的语句都会被阻塞，同时在线程A释放锁之前，它只能对表t1进行读操作，t2进行读写操作，而且不允许操作其他表。</p>
+<h2 id="元数据锁（MDL）"><a href="#元数据锁（MDL）" class="headerlink" title="元数据锁（MDL）"></a>元数据锁（MDL）</h2><p>MDL锁并不用显式使用，在访问一个表时会被自动追加。它的作用是保证读写的正确性。</p>
+<p>假如一个线程在遍历一张表获取数据，此时有另外一个线程删除了表中的一列，这样肯定是不行的。所以在MySQL5.5版本引入了MDL锁。当对一个表做增删改查操作时，加MDL共享锁（读锁），当需要对表结构做调整时，加MDL（排他锁）写锁。</p>
+<p>MDL<strong>读锁</strong>之间不互斥，所以加读锁可以允许有多个线程同时对一张表进行增删改查。</p>
+<p><strong>读锁与写锁</strong>之间以及<strong>写锁</strong>之间是互斥的，这就意味着如果有线程在进行正删改查时是不可以进行表结构调整，而调整时也不能进行增删改查。</p>
+<p>正是由于上面的原因，考虑以下场景：</p>
+<p>在一个事务中，线程A执行了查询语句，加了MDL读锁，线程B也执行查询操作，也加了MDL读锁，之后线程C试图修改表结构，需要MDL写锁，这时由于事务没有结束，线程A加的MDL读锁未释放，就会导致线程C被阻塞。但是后续申请MDL读锁的操作也会被线程C阻塞，这就导致了整个表的数据不可访问，严重时会导致数据库崩溃。</p>
+<h1 id="行锁"><a href="#行锁" class="headerlink" title="行锁"></a>行锁</h1><p>MySQL的行锁是由各个存储引擎实现的，有些引擎是不支持行锁的。</p>
+<h2 id="两阶段锁"><a href="#两阶段锁" class="headerlink" title="两阶段锁"></a>两阶段锁</h2><p>考虑以下场景：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401155349241.png" alt="image-20230401155349241"></p>
+<p>事务B会被阻塞，直到事务A提交。这就意味着，事务A持有了id &#x3D; 1和id &#x3D; 2的行锁，但是在修改完它并不会立即释放该锁，而是等到事务结束后才释放。这个就是两阶段锁协议。</p>
+<p>根据这个协议，我们应该在事务中需要锁多个行时，要把最可能造成冲突的、最可能影响并发度的锁尽量往后放。</p>
+<h2 id="死锁和死锁检测"><a href="#死锁和死锁检测" class="headerlink" title="死锁和死锁检测"></a>死锁和死锁检测</h2><p>死锁，简单来说，就是线程A对资源C加了锁，线程B也对资源D加了锁，而线程A释放锁需要资源D，线程B释放锁需要资源C，就会导致死锁。</p>
+<p>在MySQL中，考虑以下情况：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230401160812101.png" alt="image-20230401160812101"></p>
+<p>事务A对id &#x3D; 1的行加了锁， 事务B对id &#x3D; 2的行加了锁，然后事务A在修改 id &#x3D; 2时会被阻塞，事务B修改id &#x3D; 1时会被阻塞。但此时，他们两个会互相等待对方释放资源，导致死锁。</p>
+<p>在MySQL中，可以设置超时时间，或者发起死锁检测，发现死锁后，主动回滚死锁链条中的某一个事务。将innodb_deadlock_detect参数设置未on表示开启死锁检测。</p>
+<p>但是死锁的检测是一个时间复杂度为O(N)的操作，即每一个被堵住的线程，都要去判断是不是因为自己的加入导致了死锁，判断的方法就是遍历之前的线程去做判断。</p>
+<h2 id="基本原理"><a href="#基本原理" class="headerlink" title="基本原理"></a>基本原理</h2><p>InnoDB行锁是<strong>通过给索引上的索引项加锁来实现的</strong>。这个索引项指的是在B+树索引结构中，指向一个具体行记录的索引项。索引项是一个键值和一个指向数据页和行号的指针。</p>
+<p>InnoDB的索引是建立在数据页上面，而每一个数据页里面有很多条记录，每条记录都有一个对应的索引项。行锁就是锁住了这个索引项，也就是对应的每一条记录。</p>
+<p>这也就意味着，如果查询或者修改的条件字段没有索引，那么就不会加行锁，而是直接加表锁。</p>
+<p>比如说下面语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update table1 set name = 1 where age = 20</span><br></pre></td></tr></table></figure>
+
+<p>如果age字段没有索引，那么就会对table1整张表加锁。如果age有索引，那么就会加行锁。</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>锁</category>
+      </categories>
+      <tags>
+        <tag>锁</tag>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL怎么保证数据不丢失</title>
+    <url>/2023/04/18/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/</url>
+    <content><![CDATA[<h1 id="binlog的写入机制"><a href="#binlog的写入机制" class="headerlink" title="binlog的写入机制"></a>binlog的写入机制</h1><p>总的流程：先把日志写到binlog cache，事务提交的时候，再把binlog cache写到binlog文件中。</p>
+<p>但是需要注意，一个事务的binlog无论多大，都需要一次性写入，这就涉及到binlog cache的保存。</p>
+<p>每一个线程都会有一个binlog cache，可以设置其大小。如果超过大小限制，就要暂存在磁盘当中。但是所有的线程共享一个binlog file，也就是说，每个线程的binlog cache，都会存入到同一个文件。</p>
+<p>一个具体的例子如下：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418143649904.png" alt="image-20230418143649904" style="zoom:67%;" />
+
+<p>上图中的write操作，其实只是把binlog cache的内容写入文件系统的缓存，并没有直接同步到磁盘，而fsync才是真正的将文件系统缓存的内容写入到磁盘上。</p>
+<p>write 和fsync的时机，是由参数sync_binlog控制的：</p>
+<ol>
+<li>sync_binlog&#x3D;0的时候，表示每次提交事务都只write，不fsync；</li>
+<li>sync_binlog&#x3D;1的时候，表示每次提交事务都会执行fsync；</li>
+<li>sync_binlog&#x3D;N(N&gt;1)的时候，表示每次提交事务都write，但累积N个事务后才fsync。</li>
+</ol>
+<h1 id="redo-log的写入机制"><a href="#redo-log的写入机制" class="headerlink" title="redo log的写入机制"></a>redo log的写入机制</h1><p>redo log 每次写入时，生成的redo log会先写入redo log buffer，而redo log buffer里面的内容并不需要每次写完后都同步到磁盘。</p>
+<p>因为事务还没提交时，数据库异常重启，这部分日志会丢失，但是因为事务没提交，所以不会对数据一致性造成影响。因为事务只有在提交时，事务内所作的修改才真正起作用。</p>
+<p><strong>但是事务还没提交时，redo log buffer里面的内容也会有刷入磁盘的情况。</strong></p>
+<h2 id="redo-log可能存在的三种状态"><a href="#redo-log可能存在的三种状态" class="headerlink" title="redo log可能存在的三种状态"></a>redo log可能存在的三种状态</h2><p>1、存在于redo log buffer中，也就是还在MySQL进程中。</p>
+<p>2、写入了文件系统的缓存当中。</p>
+<p>3、写入了磁盘当中。</p>
+<h2 id="redo-log的写入策略"><a href="#redo-log的写入策略" class="headerlink" title="redo log的写入策略"></a>redo log的写入策略</h2><p>为了控制redo log的写入策略，InnoDB提供了innodb_flush_log_at_trx_commit参数，控制写入策略：</p>
+<ol>
+<li>设置为0的时候，表示每次事务提交时都只是把redo log留在redo log buffer中;</li>
+<li>设置为1的时候，表示每次事务提交时都将redo log直接持久化到磁盘；</li>
+<li>设置为2的时候，表示每次事务提交时都只是把redo log写到page cache。</li>
+</ol>
+<p>InnoDB有一个后台线程，每隔1秒，就会把redo log buffer中的日志，调用write写到文件系统的page cache，然后调用fsync持久化到磁盘。</p>
+<p>这也就解释了为什么会有没提交事务的redo log也被写入了磁盘当中。因为事务执行时，日志就会先写入redo log buffer中，后台线程会在事务没提交时，将数据刷入磁盘当中。</p>
+<p>另外两种会导致事务没提交时，redo log 被写入磁盘：</p>
+<p><strong>一种是，redo log buffer占用的空间即将达到 innodb_log_buffer_size一半的时候，后台线程会主动写盘。</strong>但这里只是写入文件系统的缓存中，不是写入磁盘。</p>
+<p><strong>另一种是，并行的事务提交的时候，顺带将这个事务的redo log buffer持久化到磁盘。</strong>比如说事务A执行了一半，它已经写入了一部分日志到redo log buffer中。如果此时另一个事务提交了，而且innodb_flush_log_at_trx_commit参数设置的是1，那么它就会直接将redo log buffer中的内容直接写入磁盘，这样事务A的一部分日志就被写入了磁盘当中。</p>
+<h1 id="双一配置"><a href="#双一配置" class="headerlink" title="双一配置"></a>双一配置</h1><p>两阶段提交的流程是：时序上redo log先prepare， 再写binlog，最后再把redo log commit。</p>
+<p>将innodb_flush_log_at_trx_commit设置为1时，redo log在处于prepare阶段时，就会刷新到磁盘当中。</p>
+<p>通常我们说MySQL的“双1”配置，指的就是sync_binlog和innodb_flush_log_at_trx_commit都设置成 1。也就是说，一个事务完整提交前，需要等待两次刷盘，一次是redo log（prepare 阶段），一次是binlog。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>日志</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL怎么保证主备一致</title>
+    <url>/2023/04/19/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/</url>
+    <content><![CDATA[<p>MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。</p>
+<h1 id="binlog的三种格式"><a href="#binlog的三种格式" class="headerlink" title="binlog的三种格式"></a>binlog的三种格式</h1><p>binlog有三种格式，分别是statement，row和mixed。其中第三种是前两种的混合方式。</p>
+<h2 id="这三种日志的区别"><a href="#这三种日志的区别" class="headerlink" title="这三种日志的区别"></a>这三种日志的区别</h2><p>假如说执行如下sql语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">delete from t where a &gt;= 4 and t_modified &lt;= &#x27;2018-11-10&#x27; limit 1;</span><br></pre></td></tr></table></figure>
+
+<p>如果说binlog的格式为statement，那么binlog中会记录一个事务，事务中会执行这个sql。也就是说，该设置下，相当于把该条sql语句直接拿到从库中去执行。</p>
+<p>如果说格式为row，那么binglog中会记录很多的内容，但是总的来说，它能够根据这些内容，去从库中直接定位到主库删除的那一条记录。就比如说，主库删除主键是1的那一行，如果记录为row格式，那么从库一定可以定位到从库中主键是1的那一行。</p>
+<p>为什么说要定位到从库主键是1的这一行呢？</p>
+<p>因为如果格式为statement，那么直接在从库中执行上述语句，可能会导致一些主备不一致的情况。</p>
+<p>上述语句，如果走索引a，那么会找到第一条a &gt;&#x3D; 4的记录后，就直接删除。而走索引t_modified，则会找到第一条满足t_modified &lt;&#x3D; ‘2018-11-10’的后，就直接删除。这样的话，如果主备的索引不一致，那么就会导致删除不同的行，导致主备不一致。</p>
+<p>而mixed就是结合了两者的优点。因为row格式需要记录 太多的内容，会占用大量的空间。比如我删除10万行数据，row格式就需要10万条记录。而statement格式只需要记录一条sql，但有可能会导致主备不一致，所以采用结合的方式。由系统判断该sql是否会产生主备不一致的可能，如果会就用row记录，否则用statement。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>日志</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL普通索引和唯一索引</title>
+    <url>/2023/04/03/MySQL/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/</url>
+    <content><![CDATA[<p>假如有一张表，它需要存储用户的身份证号以及姓名，业务层已经保证了身份证号唯一，此时有以下查询:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select name from table where id_card = &quot;xxxxyy&quot;</span><br></pre></td></tr></table></figure>
+
+<p>为了提高效率，我们会在id_card上面加索引，那么到底是加唯一索引还是普通索引呢？我们可以从这两种索引对查询语句以及更新语句的性能影响来进行分析。</p>
+<h1 id="查询过程"><a href="#查询过程" class="headerlink" title="查询过程"></a>查询过程</h1><p>假设执行的语句是select id from T where k&#x3D;5。对于两种索引执行过程如下：</p>
+<p>普通索引：他会先找到k &#x3D; 5的这一条数据，然后会继续往下找，直到第一条不满足k &#x3D; 5的数据。</p>
+<p>唯一索引：因为索引保证了唯一性，所以碰到第一条为5的记录后，就可以直接返回。</p>
+<p>这一点的不同带来的性能差距很小。因为InnoDB的数据是以<strong>数据页</strong>为单位来读的，意味着读一条数据，会将那条数据所在的页都加载到内存当中，所以读取k &#x3D; 5的时候，大概率后续几条数据会在同一个数据页中，此时性能差异很小。一个特殊情况是后续几条数据和k &#x3D; 5不在同一个页中，那么此时效率会有点低。</p>
+<h1 id="更新过程"><a href="#更新过程" class="headerlink" title="更新过程"></a>更新过程</h1><h2 id="change-buffer"><a href="#change-buffer" class="headerlink" title="change buffer"></a>change buffer</h2><p>MySQL在更新数据时，如果数据页不在内存中，就会先将更新操作写入change buffer中，等到下次查询该数据时，将change buffer中的操作执行到具体的数据。</p>
+<p>除了查询的时候会进行数据同步外，后台也会有线程定期对change buffer中的操作执行到具体的数据。</p>
+<p>change buffer在内存中也有拷贝，也会被写入到磁盘。</p>
+<h3 id="使用条件"><a href="#使用条件" class="headerlink" title="使用条件"></a>使用条件</h3><p>对于唯一索引来说，在更新数据前他需要先判断该操作是否满足唯一性约束，进行判断就意味着必须要将数据页读到内存。这也就意味着唯一索引在进行修改时，修改数据所在的数据页一定在内存中。</p>
+<p><strong>也就是说，change buffer只有普通索引才可以使用。</strong></p>
+<p>针对于一个更新，分为两种情况：</p>
+<p>如果要更新的数据在内存中，那么两种索引的更新情况类似，只不过唯一索引多了一次判断，影响不大。</p>
+<p>但是如果数据不在内存中，那么唯一索引需要先把数据查询出来放入内存，然后再更新，而普通索引写入change buffer即可。</p>
+<h3 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h3><p>由于在进行合并的时候，change buffer记录的变更越多（也就是这个页面上要更新的次数越多），收益就越大。</p>
+<p>因此，对于写多读少的业务来说，页面在写完以后马上被访问到的概率比较小，此时change buffer的使用效果最好。</p>
+<h1 id="change-buffer-和-redo-log"><a href="#change-buffer-和-redo-log" class="headerlink" title="change buffer 和 redo log"></a>change buffer 和 redo log</h1><p>这两种设计原理，都是为了减少随机的磁盘读取。现在考虑执行下面的语句:</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t(id,k) values(id1,k1),(id2,k2);</span><br></pre></td></tr></table></figure>
+
+<p>这里我们假设k1所在的数据页在内存中，而k2所在的数据页不在内存中。那么这条更新语句要做的处理如下：</p>
+<p>1、因为k1数据页在内存中，则直接更新k1数据所在的数据页即可。</p>
+<p>2、因为k2数据页不在内存，就在change buffer中记录类似于我要插入k2这条记录即可。</p>
+<p>3、将上述两个动作记录redo log中。</p>
+<p>这样，插入就执行完成了。两次内存操作，一次磁盘操作。</p>
+<p>在执行完上面的插入操作后，如果继续执行下面语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from t where k in (k1, k2)。</span><br></pre></td></tr></table></figure>
+
+<p>由于k1所在的数据页还在内存当中，直接从内存中读取返回，而k2所在的数据页不在内存中，则从磁盘读取，然后于change buffer整合，返回正确的结果。</p>
+<h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><p>所以，如果要简单地对比这两个机制在提升更新性能上的收益的话，<strong>redo log 主要节省的是随机写磁盘的IO消耗（转成顺序写），而change buffer主要节省的则是随机读磁盘的IO消耗。</strong></p>
+<p>增删改操作都涉及到从磁盘中读取数据页加载到内存，而使用了change buffer后，直接将增删改操作记录到change buffer中即可，下次做查询操作时进行整合即可，减少读磁盘的次数。</p>
+<p>而redo log是在增删改操作时，先将操作记录redo log，然后将数据在数据库缓存（buffer pool）中修改。由于这部分数据是在内存当中，没有同步到磁盘，而此时数据库异常关闭，可以通过redo log来恢复这段期间的数据，保证数据的一致性。</p>
+<h2 id="一个小疑问"><a href="#一个小疑问" class="headerlink" title="一个小疑问"></a>一个小疑问</h2><p>我最开始比较疑惑为什么插入操作会涉及到考虑数据页是否在内存当中，原因是MySQL在插入数据时，会先找到这条语句所对应的数据页，然后把数据插入到对应的数据页中。所以说，即使是插入操作，也要确保数据页在内存中。如果在插入时使用了 Change Buffer 技术，那么可以将这些插入操作暂时缓存到 Change Buffer 中，等到后续查询这个数据页的时候，再将 Change Buffer 中的数据一次性刷新到对应的数据页中，这样就可以减少磁盘 IO 操作，提高系统的性能。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>索引</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL的next-key lock</title>
+    <url>/2023/04/16/MySQL/MySQL%E7%9A%84next-key%20lock/</url>
+    <content><![CDATA[<p>InnoDB引擎为了解决幻读带来的问题，引入了间隙锁。而间隙锁和行锁组合起来叫做next-key lock，他是一个左开右闭的区间，代表锁住对应数据行以及数据行之间的间隙。</p>
+<p>比如现在有两行数据，（5，5，5）和（10，10，10）。在可重复读得隔离级别下执行如下sql ，，</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from table where id = 7</span><br></pre></td></tr></table></figure>
+
+<p>就会锁住(5, 10]之间的间隙，以及第（10，10，10）这一行。因为锁是加在索引上面，而索引是有序的，所以需要保证这两条数据间没有新的数据插入。</p>
+<p>在《MySQL45讲》中给出了加锁的一些规则：</p>
+<ol>
+<li>原则1：加锁的基本单位是next-key lock。希望你还记得，next-key lock是前开后闭区间。</li>
+<li>原则2：查找过程中访问到的对象才会加锁。</li>
+<li>优化1：索引上的等值查询，给唯一索引加锁的时候，next-key lock退化为行锁。</li>
+<li>优化2：索引上的等值查询，向右遍历时且最后一个值不满足等值条件的时候（比如查询id &#x3D; 5，而最后一个值是id &#x3D; 10，那么就会变为间隙锁），next-key lock退化为间隙锁。</li>
+<li>一个bug：唯一索引上的范围查询会访问到不满足条件的第一个值为止。</li>
+</ol>
+<p>假如现在有如下表：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">CREATE TABLE `t` (</span><br><span class="line">  `id` int(11) NOT NULL,</span><br><span class="line">  `c` int(11) DEFAULT NULL,</span><br><span class="line">  `d` int(11) DEFAULT NULL,</span><br><span class="line">  PRIMARY KEY (`id`),</span><br><span class="line">  KEY `c` (`c`)</span><br><span class="line">) ENGINE=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into t values(0,0,0),(5,5,5),</span><br><span class="line">(10,10,10),(15,15,15),(20,20,20),(25,25,25);</span><br></pre></td></tr></table></figure>
+
+<p>下面我们看一些具体的例子。</p>
+<h1 id="等值查询间隙锁"><a href="#等值查询间隙锁" class="headerlink" title="等值查询间隙锁"></a>等值查询间隙锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152532725.png" alt="image-20230416152532725"></p>
+<p>课程中讲的是：</p>
+<p>1、根据原则1，加锁单位是next-key lock，session A加锁范围就是(5,10]；</p>
+<p>2、同时根据优化2，这是一个等值查询(id&#x3D;7)，而id&#x3D;10不满足查询条件，next-key lock退化成间隙锁，因此最终加锁的范围是(5,10)。</p>
+<p>所以插入（8，8，8）失败，而update10成功。</p>
+<p>这里有一个疑问：为什么没有根据优化1，将（5，10]的next-key lock转变为行锁呢？</p>
+<p>个人理解：虽然是唯一索引的等值操作，但是查询条件是id &#x3D; 7，而表中的值是id &#x3D; 5和 id &#x3D; 10这两条记录，并不相等，所以没有退化成行锁。</p>
+<h1 id="非唯一索引等值锁"><a href="#非唯一索引等值锁" class="headerlink" title="非唯一索引等值锁"></a>非唯一索引等值锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152814309.png" alt="image-20230416152814309"></p>
+<p>这个例子中，由于数据是（0，0，0）（5，5，5）（10，10，10），而查询条件是c &#x3D; 5，所以会先在（0，5]之间加上next-key lock。</p>
+<p>但是c是非唯一索引，所以需要遍历到不满足条件的为止，也就是说会访问到c &#x3D; 10这一行。所以还会给（5，10]加上锁，但是该锁最后一行c &#x3D; 10并不满足c &#x3D; 5的查询条件，所以会退化为间隙锁，也就是（5，10），并不锁c &#x3D; 10这一行。</p>
+<p>而这个查询语走索引c，却只查询了id，恰好是覆盖索引，并不会回表，也就是说只锁了索引c，而没有锁索引id，那么意味着sessionB要操作的数据并没有加锁，所以B成功了，而C失败了。</p>
+<h1 id="主键索引范围锁"><a href="#主键索引范围锁" class="headerlink" title="主键索引范围锁"></a>主键索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416154441303.png" alt="image-20230416154441303" style="zoom: 50%;" />
+
+<p>sessionA会先找到id &#x3D; 5这一行，然后是id &#x3D; 10这一行，所以会加（5，10]的next-key lock。但是id &#x3D; 10满足了查询条件，所以这个锁会退化为行锁，只锁id &#x3D; 10这一行。</p>
+<p>但是查询还有第二个条件id  &lt;  11，则会继续往后走，查找到id &#x3D; 15这一行。所以会加（10，15]的next-key lock。由于查询条件id &lt; 11在id &#x3D; 15这一行不满足，所以无法退化成间隙锁，也即是说15这一行也会被锁住。就会导致如图的情况。</p>
+<h1 id="非唯一索引范围锁"><a href="#非唯一索引范围锁" class="headerlink" title="非唯一索引范围锁"></a>非唯一索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416160330625.png" alt="image-20230416160330625" style="zoom:50%;" />
+
+<p>这个例子中，由于查询所有的值，所以走索引c需要回表。意味着不仅要锁索引c，也要锁id。</p>
+<p>在第一次用c&#x3D;10定位记录的时候，索引c上加了(5,10]这个next-key lock后，由于索引c是非唯一索引，没有优化规则，也就是说不会变为行锁，因此最终sesion A加的锁是，索引c上的(5,10] 和(10,15] 这两个next-key lock。</p>
+<p>所以插入8 和修改c &#x3D; 15也都会被阻塞。</p>
+<h1 id="非唯一索引上存在”等值”的例子"><a href="#非唯一索引上存在”等值”的例子" class="headerlink" title="非唯一索引上存在”等值”的例子"></a>非唯一索引上存在”等值”的例子</h1><p>假如新插入了一行记录（30，10，30）那么索引c就会变为如下：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162231844.png" alt="image-20230416162231844" style="zoom: 67%;" />
+
+<p>那么如下操作：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162440432.png" alt="image-20230416162440432"></p>
+<p>这里会加5，10以及10，15的锁，然后不包括端点。</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>锁</category>
+      </categories>
+      <tags>
+        <tag>锁</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL的幻读</title>
+    <url>/2023/04/14/MySQL/MySQL%E7%9A%84%E5%B9%BB%E8%AF%BB/</url>
+    <content><![CDATA[<p>这篇文章将介绍MySQL幻读相关的内容。</p>
+<p>假设数据库中有以下表：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>c</th>
+<th>d</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5</td>
+<td>5</td>
+</tr>
+<tr>
+<td>10</td>
+<td>10</td>
+<td>10</td>
+</tr>
+<tr>
+<td>15</td>
+<td>15</td>
+<td>15</td>
+</tr>
+<tr>
+<td>20</td>
+<td>20</td>
+<td>20</td>
+</tr>
+<tr>
+<td>25</td>
+<td>25</td>
+<td>25</td>
+</tr>
+</tbody></table>
+<p>其中id是主键，c上建立有普通索引。</p>
+<p>以下讨论场景除非必要说明，否则都是在可重复读的隔离级别下。</p>
+<h1 id="什么是幻读"><a href="#什么是幻读" class="headerlink" title="什么是幻读"></a>什么是幻读</h1><p>现在考虑以下场景：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414141001291.png" alt="image-20230414141001291" style="zoom:50%;" />
+
+<p>其中，select * from table for update表示当前读，并且加上写锁。</p>
+<p>幻读就是指在同一个事务中执行相同的sql，后一次查询看到了前一次没看到的数据。就比如Q3比Q2多了一条数据。</p>
+<p>Q2看到Q1并不被称为幻读，幻读仅仅指新插入的数据。</p>
+<p>在可重复读的隔离级别下，普通查询是看不到其他插入的数据，只有当前读（要能读到所有已经提交的记录的最新值）才有可能出现幻读。</p>
+<h1 id="幻读存在的问题"><a href="#幻读存在的问题" class="headerlink" title="幻读存在的问题"></a>幻读存在的问题</h1><h2 id="1、语义的破坏"><a href="#1、语义的破坏" class="headerlink" title="1、语义的破坏"></a>1、语义的破坏</h2><p>session A已经声明了写锁，即要锁住d &#x3D; 5的行，不允许其他事务进行读写，而后续却插入了一条d &#x3D; 5的数据。</p>
+<p>考虑另一个更明显的场景：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414143724913.png" alt="image-20230414143724913" style="zoom: 50%;" />
+
+<p>sessionB将id &#x3D; 0的这一行的d改成了5，然后又把c改成了5，也就是说变化为从（0，0，5）-&gt;（0，5，5）。这样破坏了sessionA要锁住所有d&#x3D;5的行的加锁声明。</p>
+<p>sessionC也是同样的道理，修改了d &#x3D; 5，id &#x3D; 1的行。</p>
+<h2 id="2、数据一致性问题"><a href="#2、数据一致性问题" class="headerlink" title="2、数据一致性问题"></a>2、数据一致性问题</h2><p>现在在sessionA追加一条语句：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414144337377.png" alt="image-20230414144337377" style="zoom:50%;" />
+
+<p>此时，sessionA要锁住d &#x3D; 5的这一行，然后把d 改为100，即sessionA在T1要做的操作为将（5，5，5）-&gt; (5，5，100)。</p>
+<p>在T2时刻，id &#x3D; 0这一行变成了（0，5，5）</p>
+<p>在T4时刻，数据库多了一条（1，5，5）的记录。</p>
+<p>但是我们看binlog的内容：</p>
+<p>在T2时刻，sessionB提交，写入两条语句，两条update。</p>
+<p>T4时刻，sessionC提交，写入两条语句，一条insert，一条update。</p>
+<p>把上面的语句放在一起，顺序如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">/* sessionB */</span><br><span class="line">update t set d = 5 where id = 0; /*(0,0,5)*/</span><br><span class="line">update t set c = 5 where id = 0; /*(0,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionC */</span><br><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c = 5 where id = 1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">/* sessionA */</span><br><span class="line">update t set d = 100 where d = 5;/*所有d=5的行，d改成100*/</span><br></pre></td></tr></table></figure>
+
+<p>通过这个语句的顺序，如果我们要拿它来恢复数据，最终恢复出来的数据会变为： (0,5,100)、(1,5,100) 和 (5,5,100)。</p>
+<p>而正确的数据应该是（0，5，5），（1，5，5）和（5，5，100）。因为在可重复读隔离级别下，事务A没提交，事务B和C看不到A的修改，而事务A在提交之前看不到B和C的修改。</p>
+<p>这里的数据不一致是因为我们假设了select * from t where d&#x3D;5 for update这条语句只给id &#x3D; 5这一样加锁导致的。</p>
+<p>现在我们假设把扫描过程中的所有行都加锁，场景如下：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414150914211.png" alt="image-20230414150914211" style="zoom:50%;" />
+
+<p>这个时候，id &#x3D; 0的这一行在修改时，由于被加了锁，所以无法执行。也就是说现在的执行顺序如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">insert into t values(1,1,5); /*(1,1,5)*/</span><br><span class="line">update t set c=5 where id=1; /*(1,5,5)*/</span><br><span class="line"></span><br><span class="line">update t set d=100 where d=5;/*所有d=5的行，d改成100*/</span><br><span class="line"></span><br><span class="line">update t set d=5 where id=0; /*(0,0,5)*/</span><br><span class="line">update t set c=5 where id=0; /*(0,5,5)*/</span><br></pre></td></tr></table></figure>
+
+<p>此时，id &#x3D; 0的这一行数据正确，但是新插入的id &#x3D; 1的问题还是没有解决。</p>
+<p><strong>也就是说，即使把所有的记录都加上锁，还是阻止不了新插入的记录</strong>，这也是为什么要单独解决幻读。</p>
+<h1 id="如何解决"><a href="#如何解决" class="headerlink" title="如何解决"></a>如何解决</h1><p>即使我们在一开始就锁住所有行，但是由于插入语句是在行的间隙进行的，所以InnoDB的解决办法是引入了间隙锁(Gap Lock)。比如开头的表，有6行数据，7个间隙。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414151304834.png" alt="image-20230414151304834" style="zoom:67%;" />
+
+<p>这样，当你执行 select * from t where d&#x3D;5 for update的时候，就不止是给数据库中已有的6个记录加上了行锁，还同时加了7个间隙锁。这样就确保了无法再插入新的记录。</p>
+<p>间隙锁和间隙锁之间不冲突，两个事务可以在同一个间隙加间隙锁，与间隙锁冲突的是往间隙插入数据的操作。</p>
+<p><strong>间隙锁和行锁合称next-key lock</strong>，每个next-key lock是前开后闭区间，</p>
+<p>间隙锁只有在可重复读的隔离级别下才有。而且引入间隙锁会降低并发度，并且有可能造成死锁。</p>
+<p>另外一种解决幻读的方式是采用读提交的隔离级别加binlog_format&#x3D;row。</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
         <category>其他</category>
       </categories>
       <tags>
-        <tag>消息队列</tag>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL索引</title>
+    <url>/2023/03/31/MySQL/MySQL%E7%B4%A2%E5%BC%95/</url>
+    <content><![CDATA[<p>索引的出现其实就是为了提高数据查询的效率。</p>
+<h2 id="索引常见的模型"><a href="#索引常见的模型" class="headerlink" title="索引常见的模型"></a>索引常见的模型</h2><h3 id="哈希表"><a href="#哈希表" class="headerlink" title="哈希表"></a>哈希表</h3><p>适合等值查询，不适合范围查询。因为会出现哈希冲突，冲突后采用链地址法解决。就会导致发生冲突后要遍历整个链表。</p>
+<h3 id="有序数组"><a href="#有序数组" class="headerlink" title="有序数组"></a>有序数组</h3><p>适合等值查询以及范围查询。有序数组在单值查询可以使用二分法快速查找，范围找到一个然后往左右遍历即可，但是它插入数据时要维护这个有序数组就比较麻烦，适合用于静态存储引擎。</p>
+<h3 id="搜索树"><a href="#搜索树" class="headerlink" title="搜索树"></a>搜索树</h3><p>二叉搜索树的特点是：左边小，右边大（相对根节点）查找效率和二分一样，O(LogN)。但是为了保证这个效率，就需要保证它是平衡二叉树（考虑插入数据是正序或者倒序情况，会退化成链表），为了确保平衡，插入时间复杂度也是O(LogN)</p>
+<p>多叉树：孩子节点从左到右依次递增。</p>
+<p>二叉树搜索效率最高，但是往往采用多叉树，因为索引还要写入磁盘，意味着我们查询索引可能也要读取磁盘。考虑一种情况，100万数据量，那么二叉树高20，如果这些索引没有在内存当中，那么就需要去读取20个数据块。</p>
+<p>每次从磁盘读取数据都是按照<strong>数据块</strong>来读取的，而不是仅仅查找那一条记录。而MySQL并不是一开始就把所有的索引都加载到内存当中，而是按需加载。MySQL有一个缓冲池，当需要访问索引时，会先在缓冲池中查看有没有，如果没有就从磁盘读取，然后写入缓冲池中。</p>
+<p>N叉树的N一般是1200。考虑到树根的数据块总是在内存中，一个10亿行的表上一个整数字段的索引，查找一个值最多只需要访问3次磁盘。</p>
+<h2 id="InnoDB索引模型"><a href="#InnoDB索引模型" class="headerlink" title="InnoDB索引模型"></a>InnoDB索引模型</h2><p>假如有如下表：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>k</th>
+<th>name</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>100</td>
+<td>1</td>
+<td>null</td>
+</tr>
+<tr>
+<td>200</td>
+<td>2</td>
+<td>null</td>
+</tr>
+<tr>
+<td>300</td>
+<td>3</td>
+<td>null</td>
+</tr>
+<tr>
+<td>500</td>
+<td>5</td>
+<td>null</td>
+</tr>
+<tr>
+<td>600</td>
+<td>6</td>
+<td>null</td>
+</tr>
+</tbody></table>
+<p>其中ID是主键，k上有索引。那么它的索引结构大致如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230331104745662.png" alt="image-20230331104745662"></p>
+<p>在InnoDB中，索引类型分为主键索引和非主键索引。</p>
+<p>主键索引的<strong>叶子节点存的是整行数据</strong>。在InnoDB里，主键索引也被称为<strong>聚簇索引</strong>（clustered index）。</p>
+<p>非主键索引的<strong>叶子节点内容是主键的值</strong>。在InnoDB里，非主键索引也被称为<strong>二级索引</strong>（secondary index）。</p>
+<p>其中，如果是按照主键索引查询，那么只会搜索上图的第一颗树，然后找到对应记录直接返回行数据即可。但是如果是按照k这个索引来查询，那么会现根据k索引查找到对应数据的主键，然后去第一颗树中查找对应的实际数据。</p>
+<h2 id="索引维护"><a href="#索引维护" class="headerlink" title="索引维护"></a>索引维护</h2><p>索引的插入可能会导致数据的其他数据的移位，在极端情况下，如果要插入的索引页满了，那么就会导致页分裂。这个页分裂的过程就是B+树页分裂的过程。</p>
+<p>最重要的一点，B+树的索引是建立在数据所在的数据页上的，而不是直接建立在数据。其实通过索引找到数据页后，还要在数据页中去找具体的数据，才能返回。</p>
+<h2 id="回表"><a href="#回表" class="headerlink" title="回表"></a>回表</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from T where k between 3 and 5</span><br></pre></td></tr></table></figure>
+
+<p>首先在非主键索引树上找到k &#x3D; 3的值，取得ID &#x3D; 300，然后去主键索引树上查找ID &#x3D;  300所对应的具体值。然后在非主键索引树上找下一个值，k &#x3D; 5，找ID，然后拿ID去查主键索引。然后继续去下一个，发现k &#x3D; 6，大于5，查找结束。</p>
+<p>这个从非主键索引查找完去主键索引查找的过程就叫做回表。</p>
+<h2 id="覆盖索引"><a href="#覆盖索引" class="headerlink" title="覆盖索引"></a>覆盖索引</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select ID from T where k between 3 and 5</span><br></pre></td></tr></table></figure>
+
+<p>执行这个语句时，虽然会走非主键索引，但是索引的值存的是ID，即索引里面包含了所有要查询的数据，这就是覆盖索引。<strong>由于覆盖索引可以减少树的搜索次数，显著提升查询性能，所以使用覆盖索引是一个常用的性能优化手段。</strong></p>
+<h2 id="最左前缀原则"><a href="#最左前缀原则" class="headerlink" title="最左前缀原则"></a>最左前缀原则</h2><p>比如我们建立了一个（姓名，年龄）的索引，那么它可以用来匹配按名字的查找，但是按照年龄就不行。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p>
+<h2 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h2><p>比如我们已经建立了（姓名，年龄），此时要执行以下SQL：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tuser where name like &#x27;张%&#x27; and age=10 and ismale=1;</span><br></pre></td></tr></table></figure>
+
+<p>假如数据库表数据如下：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>name</th>
+<th>age</th>
+<th>ismale</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>李四</td>
+<td>2</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>123</td>
+<td>10</td>
+<td>1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>张三</td>
+<td>10</td>
+<td>1</td>
+</tr>
+<tr>
+<td>4</td>
+<td>张三</td>
+<td>10</td>
+<td>1</td>
+</tr>
+<tr>
+<td>5</td>
+<td>张三</td>
+<td>30</td>
+<td>1</td>
+</tr>
+<tr>
+<td>6</td>
+<td>张六</td>
+<td>40</td>
+<td>0</td>
+</tr>
+</tbody></table>
+<p>在执行这条语句时，如果没有索引下推，则每次按索引找到姓张的后，都需要回表去查看对应的一整行数据，来判断后两个字段是否一致。但是有了索引下推，可以在这里直接判断age是否满足条件，可以减少回表的次数。注意，这里的索引是联合索引，如果没有下推，即便是索引里有age字段，也不会进行判断。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>索引</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL索引失效的情况</title>
+    <url>/2023/04/12/MySQL/MySQL%E7%B4%A2%E5%BC%95%E5%A4%B1%E6%95%88%E7%9A%84%E6%83%85%E5%86%B5/</url>
+    <content><![CDATA[<h1 id="条件字段函数操作"><a href="#条件字段函数操作" class="headerlink" title="条件字段函数操作"></a>条件字段函数操作</h1><p>假如我们现在有如下需求，我们要统计一张表2021年和2022年8月份的记录，那么SQL语句可以这么写：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select column_1, column_2 from table_1 where month(record_time) = 7;</span><br></pre></td></tr></table></figure>
+
+<p>虽然数据库表在record_time上加了索引（结构图如下），但是这个sql还是会执行的特别慢。</p>
+<img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230412151341061.png" alt="image-20230412151341061" style="zoom:67%;" />
+
+<p>因为在用month函数对record_time做计算后，得到的数字是记录的月份，而索引的值却并不是一个单独的数字，所以会导致它走全表扫描。</p>
+<p>也就是说，<strong>对索引字段做函数操作，可能会破坏索引值的有序性，因此优化器就决定放弃走树搜索功能。</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">// 无法使用id这个索引</span><br><span class="line">select * from table_1 where id + 1 = 1000 </span><br><span class="line"></span><br><span class="line">// 可以使用</span><br><span class="line">select * from table_1 where id = 1000 - 1</span><br></pre></td></tr></table></figure>
+
+<h1 id="隐式类型转换"><a href="#隐式类型转换" class="headerlink" title="隐式类型转换"></a>隐式类型转换</h1><p>现在有如下例子：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tradelog where id = 110717;</span><br></pre></td></tr></table></figure>
+
+<p>其中，id是一个varchar类型的值，虽然它上面有索引，但还是走了全表扫描。这里就是因为id是varchar，而输入的值是数字，导致类型转换。</p>
+<p>而发生转换要走全表索引的原因是转换相当于一个函数调用，上面语句相当于：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from tradelog where CAST(id AS signed int) = 110717;</span><br></pre></td></tr></table></figure>
+
+<p>而对索引字段使用函数会导致无法使用索引。</p>
+<h1 id="隐式字符编码转换"><a href="#隐式字符编码转换" class="headerlink" title="隐式字符编码转换"></a>隐式字符编码转换</h1><p>假如有如下语句</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select d.* from tradelog l, trade_detail d where d.tradeid = l.tradeid and l.id = 2</span><br></pre></td></tr></table></figure>
+
+<p>这是一个简单的连表操作，其中tradelog为驱动表，trade_detail为被驱动表，tradeid为关联字段。</p>
+<p>但是使用explain却发现在tradelog上使用了索引，但是在trade_detail上却走了全表扫描。</p>
+<p>这个语句的执行流程是，从驱动表中找到一行数据，然后去被驱动表查找对值一样的数据组成结果集，过程如下：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230412153535466.png" alt="image-20230412153535466" style="zoom: 67%;" />
+
+<p>而这里走全表扫描的原因是发生了类型的转换。这里两个表的字段一个类型是utf8，另一个是utf8mb4，导致实际执行的sql相当于：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from trade_detail  where CONVERT(traideid USING utf8mb4)=$L2.tradeid.value; </span><br></pre></td></tr></table></figure>
+
+<p>CONVERT()函数，在这里的意思是把输入的字符串转成utf8mb4字符集。</p>
+<p>而这里导致全表扫描的原因也是因为对索引字段加了函数操作。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>索引</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>索引</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL表空间回收</title>
+    <url>/2023/04/06/MySQL/MySQL%E8%A1%A8%E7%A9%BA%E9%97%B4%E5%9B%9E%E6%94%B6/</url>
+    <content><![CDATA[<h1 id="数据删除流程"><a href="#数据删除流程" class="headerlink" title="数据删除流程"></a>数据删除流程</h1><p>假如现在有如下数据：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230406143630354.png" alt="image-20230406143630354"></p>
+<p>假如此时我们要删除R4的数据，InnoDB引擎只会把R4这个记录标记为删除。如果之后需要再300和600之间插入数据，可能会复用这个位置。所以这时删除一条数据时空间不会变小。</p>
+<p>如果我们删除一整个页的数据，那么这整个数据页都可以复用。</p>
+<p>如果删除了一整张表，那么所有的数据页都会被标记为可用。</p>
+<p>以上这三个删除都是针对delete命令。</p>
+<p>也就是说，delete命令只会把对应的数据标记为可以复用，下次需要写对应位置的数据时，直接覆盖掉原来的数据，并没有真正的释放空间。如果这些位置没有被复用，就会造成空间的浪费。</p>
+<p>不仅删除会导致这些空洞，插入数据也会。因为如果插入的数据不是按照索引有序的，就有可能导致页分裂。比如数据页A已经存满了，此时又有一条数据需要插入数据页A，此时会导致B+树页分裂，会多出一个数据页，但是数据页A和新数据页都不会存满数据。</p>
+<h1 id="重建表"><a href="#重建表" class="headerlink" title="重建表"></a>重建表</h1><p>如果想要消除表里面的空洞，就需要重建表。即把数据按照有序的方式从表A插入到表B当中，然后利用表B替换掉表A。在这个过程中，表A不能有更新操作。</p>
+<h2 id="Online-DDL"><a href="#Online-DDL" class="headerlink" title="Online DDL"></a>Online DDL</h2><p>在MySQL 5.6之前，重建表的逻辑和上面说的类似，但是5.6之后对此做了优化，大致过程如下：</p>
+<p>先生成一个临时文件，然后遍历表A的数据，生成一颗B+树（这里生成的B+树就是顺序生成的），然后用一个日志（row log）记录在扫描A时一些其他操作对表A的修改。然后先将生成的B+树存入临时文件，再把日志操作用于临时文件，之后用临时文件替换表A。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>执行流程</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>MySQL读写分离存在的问题</title>
+    <url>/2023/04/23/MySQL/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/</url>
+    <content><![CDATA[<p>在MySQL的一主多从的架构中，往往有以下两种设计方案：</p>
+<p>1、由客户端决定连接哪个数据库</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105127688.png" alt="image-20230423105127688" style="zoom:67%;" />
+
+<p>2、由代理决定请求分发到哪一个数据库</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105207833.png" alt="image-20230423105207833" style="zoom:67%;" />
+
+<p>但不管是哪种方案，都存在过期读的问题，即主库和从库存在一定的时延，用户刚做一个修改，然后立马发起查询，就有可能查到过期数据。以下给出几种解决方案。</p>
+<h1 id="强制走主库"><a href="#强制走主库" class="headerlink" title="强制走主库"></a>强制走主库</h1><p>该方案将请求分为了两类：</p>
+<p>1、必须拿到最新数据的，就强制走主库查询。</p>
+<p>2、对于可以读取到旧数据的，就走从库查询。</p>
+<h1 id="Sleep-方案"><a href="#Sleep-方案" class="headerlink" title="Sleep 方案"></a>Sleep 方案</h1><p>该方案的设计很简单，读从库之前先sleep一段时间。</p>
+<p>它假设大多情况下主备延迟在1秒之内，所以简单的sleep可以拿到最新的数据。</p>
+<h1 id="判断主备无延迟方案"><a href="#判断主备无延迟方案" class="headerlink" title="判断主备无延迟方案"></a>判断主备无延迟方案</h1><p>这里有几种办法，第一种是从库查询前，先判断seconds_behind_master是否已经等于0。如果还不等于0 ，那就必须等到这个参数变为0才能执行查询请求。</p>
+<p>第二种和第三种方案，都是通过对比主库和从库的日志执行位点来判断是否有延迟，即通过对比主库和从库执行的日志，来判断，要比对比时间准确。</p>
+<p>但是这里也存在问题，主库存在一部分日志刚刚提交，而从库还没收到该日志，也会导致有一定的延迟。</p>
+<h1 id="配合semi-sync"><a href="#配合semi-sync" class="headerlink" title="配合semi-sync"></a>配合semi-sync</h1><p>这里引入了半同步复制，semi-sync做了这样的设计：</p>
+<ol>
+<li>事务提交的时候，主库把binlog发给从库；</li>
+<li>从库收到binlog以后，发回给主库一个ack，表示收到了；</li>
+<li>主库收到这个ack以后，才能给客户端返回“事务完成”的确认。</li>
+</ol>
+<p>这样可以保证如果从库发送过确认消息，就代表收到了日志。这样，semi-sync配合前面关于位点的判断，就能够确定在从库上执行的查询请求，可以避免过期读。</p>
+<p>但是该方案适合一主一从的架构，如果一主多从，那么一个从库响应，就默认已经同步成功，但是其他从库不确定。如果此时查询走的是其他从库，则还是会有问题。</p>
+<p>而且存在一种情况，如果高峰期日志写的很快，可能会导致主库位点一直不一致的情况，就出现从库迟迟无法响应的问题。</p>
+<h1 id="等主库位点方案"><a href="#等主库位点方案" class="headerlink" title="等主库位点方案"></a>等主库位点方案</h1><p>该方案涉及到以下命令：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select master_pos_wait(file, pos[, timeout]);</span><br></pre></td></tr></table></figure>
+
+<p>该命令在从库执行，参数file和pos指向从库上的某个文件以及对应位置，timeout可选，表示这个函数最多的等待时间。</p>
+<p>这个命令正常返回的结果是一个正整数M，表示从命令开始执行，到应用完file和pos表示的binlog位置，执行了多少事务。</p>
+<p>那么我们的查询逻辑变为以下：</p>
+<p>1、主库执行完事务后，执行show master status得到当前主库执行到的File和Position；</p>
+<p>2、从库查询之间，先执行master_pos_wait（File，Position）</p>
+<p>3、如果返回 &gt;&#x3D; 0的正整数，则在该从库执行查询，否则到主库查询。</p>
+<h1 id="GTID方案"><a href="#GTID方案" class="headerlink" title="GTID方案"></a>GTID方案</h1><p>该方案和上述等主库位点方案思路一致，只不过是后续MySQL做了优化。</p>
+<p>我们不再需要去主库执行show master status来获取位点，而是主库执行完后，直接返回一个事务的GTID，然后从库执行时，只需要在从库执行select wait_for_executed_gtid_set(gtid1, 1)，该命令也是用于等待主从同步的命令。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>其他</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>order by是怎么工作的</title>
+    <url>/2023/04/10/MySQL/order%20by%E6%98%AF%E6%80%8E%E4%B9%88%E5%B7%A5%E4%BD%9C%E7%9A%84/</url>
+    <content><![CDATA[<p>假设我们现在有如下表，其中<strong>id是主键，city上有普通索引</strong>。</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>city</th>
+<th>name</th>
+<th>age</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>杭州</td>
+<td>张三</td>
+<td>22</td>
+</tr>
+<tr>
+<td>2</td>
+<td>杭州</td>
+<td>李四</td>
+<td>23</td>
+</tr>
+<tr>
+<td>3</td>
+<td>郑州</td>
+<td>王五</td>
+<td>24</td>
+</tr>
+<tr>
+<td>……</td>
+<td>……</td>
+<td>……</td>
+<td>……</td>
+</tr>
+</tbody></table>
+<p>现在需要查出city为杭州的人的性命和年龄，并按照年龄排序的前100个人。那么sql语句如下：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select city, name, age from t where city=&#x27;杭州&#x27; order by name limit 100;</span><br></pre></td></tr></table></figure>
+
+<h1 id="全字段排序"><a href="#全字段排序" class="headerlink" title="全字段排序"></a>全字段排序</h1><p>先初始化sort_buffer，这是一块用于排序的内存，然后确定放入city，name，age三个字段。</p>
+<p>之后，会在city索引树中找到值为杭州的记录，然后去主键索引取这一行的值存入sort_buffer，直到city不为杭州。</p>
+<p>然后在sort_buffer中使用快排根据name字段进行排序，对排序结果取前100行返回给客户端。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410155143209.png" alt="image-20230410155143209" style="zoom: 67%;" />
+
+<p>其中，如果取出的数据量太大，无法存入sort_buffer，则需要利用磁盘临时文件辅助排序。</p>
+<h1 id="rowid排序"><a href="#rowid排序" class="headerlink" title="rowid排序"></a>rowid排序</h1><p>上述情况可以把所有数据都放入sort_buffer中进行排序，但是如果不能全部放入，会把原来的文件分成多份，借助临时文件来进行归并排序。如果一行的数据量太大，则要分的份数太多，会影响性能。</p>
+<p>MySQL提供了一个参数，max_length_for_sort_data用于限制排序的行数据的长度。比如我们设置它为16，如果sort_buffer在初始时确定放入字段的长度超过16，则会采用rowid排序。</p>
+<p>现在的排序过程如下：</p>
+<p>初始化sort_buffer，确定放入id和name字段（只放入排序相关的字段）。</p>
+<p>这之后的步骤与上面的排序过程类似，不过在sort_buffer内排序完成后，需要根据id去主键上取city，name，age字段后，再返回给用户。相当于多了一次回表操作。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410160554644.png" alt="image-20230410160554644" style="zoom:67%;" />
+
+<h1 id="全字段排序和rowid排序"><a href="#全字段排序和rowid排序" class="headerlink" title="全字段排序和rowid排序"></a>全字段排序和rowid排序</h1><p>如果内存足够大，则会优先使用全字段排序，因为可以减少一次回表操作，否则会采用rowid排序。</p>
+<p>这里也体现了MySQL的一个设计思想：能用内存就用，尽量减少磁盘访问。</p>
+<h1 id="优化"><a href="#优化" class="headerlink" title="优化"></a>优化</h1><p>上述SQL需要排序是因为数据是无序的，但是如果我们保证了从city索引中取出的数据就是按name有序的，就可以省略掉排序的过程。</p>
+<p>所以我们可以建立一个联合索引 (city, name)，然后执行流程如下：</p>
+<p>1、从联合索引中找到city为杭州的记录。</p>
+<p>2、去主键索引取name、city、age三个字段的值，作为结果集的一部分直接返回。</p>
+<p>3、一直重复上述步骤，直到city不为杭州或者够100条记录。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230410161831144.png" alt="image-20230410161831144" style="zoom:67%;" />
+
+<p>这样，就不需要使用临时表了。</p>
+<p>如果创建了（city，name，age）的联合索引，则还可以省去回表的操作，进一步优化查询时间。但是会导致索引占用空间过多。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>执行流程</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一条sql更新语句是如何执行的</title>
+    <url>/2023/03/29/MySQL/%E4%B8%80%E6%9D%A1sql%E6%9B%B4%E6%96%B0%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
+    <content><![CDATA[<p>一条修改语句的过程也会涉及到查询语句的流程，不过它会额外涉及到两个日志操作，分别是redo log（重做日志）和 binlog（归档日志）。</p>
+<h2 id="redo-log-重做日志"><a href="#redo-log-重做日志" class="headerlink" title="redo log(重做日志)"></a>redo log(重做日志)</h2><p>在MySQL中，如果每一次更新都要写进磁盘，而磁盘又需要找到对应记录的位置，然后再更新，整个过程I&#x2F;O成本，查找都很高，所以MySQL采用WAL技术，全称是Write-Ahead Logging，关键点就是先写日志，然后再写磁盘。</p>
+<p>具体做法是，当有一条记录需要更新的时候，InnoDB引擎就会先把记录写到redo log里面，并更新内存，这个时候更新就算完成了。同时，InnoDB引擎会在适当的时候，将这个操作记录更新到磁盘里面，而这个更新往往是在系统比较空闲的时候。</p>
+<p>而InnoDB的redo log大小是固定的，可以进行配置，如果被写满，那么就会从头开始写。可以理解为一个循环队列，如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329094715314.png" alt="image-20230329094715314"></p>
+<p>write pos是当前记录的位置，一边写一边后移，写到第3号文件末尾后就回到0号文件开头。checkpoint是当前要擦除的位置，也是往后推移并且循环的，擦除记录前要把记录更新到数据文件。write pos和checkpoint之间的位置就是空闲的，可以用来记录操作。如果write pos追上checkpoint，就表示写满了，需要清除一些记录，再继续写。</p>
+<p>有了redo log，InnoDB就可以保证即使数据库发生异常重启，之前提交的记录都不会丢失，这个能力称为<strong>crash-safe</strong>。</p>
+<h2 id="binlog-归档日志"><a href="#binlog-归档日志" class="headerlink" title="binlog(归档日志)"></a>binlog(归档日志)</h2><p>上面提到的redo log是属于引擎层的日志，是InnoDB特有的。而binlog，则是Server层自己的日志。</p>
+<h3 id="这两种日志的区别"><a href="#这两种日志的区别" class="headerlink" title="这两种日志的区别"></a>这两种日志的区别</h3><p>1、redo log记录的是对某一个数据页所做的修改，它主要目的是防止数据库宕机重启后有部分修改没来得及同步到磁盘，可以去redo log中查找然后写入磁盘（因为修改数据时采用先写日志，然后修改内存，并不会立即去修改磁盘中的数据）。最简单的说法，他其实是为了保证数据库数据的持久性与完整性。</p>
+<p>而binlog则记录了所有对数据库所作的修改，最简单理解就是记录了sql语句，以及对应语句的反向，比如执行delete操作，它不仅会记录这个delete，还会生成对应的insert语句，我们可以用它来将数据恢复到之前的某一时刻。其实就是数据库备份，主备，主主，主从都需要依赖binlog。</p>
+<p>2、redo log 是循环写，而binlog是追加写（不会覆盖之前的）。</p>
+<p>3、redo log是InnoDB特有的，binlog是MySQL的Server层实现的。</p>
+<h2 id="执行一条update语句的流程"><a href="#执行一条update语句的流程" class="headerlink" title="执行一条update语句的流程"></a>执行一条update语句的流程</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+
+<p>1、执行器会先找ID&#x3D;2这一行，该数据页本来就在内存当中，就直接返回给执行器，否则先从磁盘读入内存，再返回。</p>
+<p>2、执行器拿到行数据，进行修改，然后调用引擎接口写入这行数据。</p>
+<p>3、引擎将新输入的数据写入内存，同时将操作更新到redo log，此时redo log 处于prepare转来。然后告知执行器执行完了，随时可以提交事务。</p>
+<p>4、执行器生成这个binlog操作，并把binlog写入磁盘。</p>
+<p>5、执行器调用引擎的提交事务接口，引擎把刚刚写入的redo log改成提交状态。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230329150131900.png" alt="image-20230329150131900"></p>
+<p>最后三步，将redo log的写入拆成了两个步骤：prepare和commit，这就是”两阶段提交”。</p>
+<h2 id="两阶段提交"><a href="#两阶段提交" class="headerlink" title="两阶段提交"></a>两阶段提交</h2><figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">update T set c=c+1 where ID=2;</span><br></pre></td></tr></table></figure>
+
+<p>仍然采用这个例子，假设在执行语句前，c 的值是0。如果我们不采用两阶段提交，先写redo log，然后binlog 或者先写binlog，然后再写redo log。</p>
+<p>两阶段提交主要是为了保证两个日志的数据一致性。</p>
+<h3 id="先写redo-log后写binlog"><a href="#先写redo-log后写binlog" class="headerlink" title="先写redo log后写binlog"></a>先写redo log后写binlog</h3><p>假设在redo log写完，binlog 还没写完，MySQL异常重启，这时重启之后，我们可以根据redo log把数据库的值恢复到1，但是binlog没写完就崩溃了，所以没有这条记录，如果用binlog进行恢复，那么值就是0。</p>
+<h3 id="先写binlog后写redo-log"><a href="#先写binlog后写redo-log" class="headerlink" title="先写binlog后写redo log"></a>先写binlog后写redo log</h3><p>如果binlog写完然后崩溃，但是redo log没写，所以崩溃恢复后的值还是0，但是binlog里面已经记录了把0改为1这条操作，导致数据不一致。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>日志</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
+        <tag>redo log</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>高并发系统的通用设计方案</title>
+    <url>/2023/04/22/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</url>
+    <content><![CDATA[<p>高并发系统的通用设计：</p>
+<p>Scale-out（横向扩展）：采用分布式部署的方式把流量分流开，让每个服务器都承担一部分并发和流量。</p>
+<p>缓存：使用缓存来提高系统的性能，就好比用“拓宽河道”的方式抵抗高并发大流量的冲击。</p>
+<p>异步：在某些场景下，未处理完成之前我们可以让请求先返回，在数据准备好之后再通知请求方，这样可以在单位时间内处理更多的请求。</p>
+<h1 id="Scale-out"><a href="#Scale-out" class="headerlink" title="Scale-out"></a>Scale-out</h1><p>这里牵扯到一个横向扩展（Scale-out）与纵向扩展（Scale-up）。其中纵向扩展是不断的提高单个cpu的处理能力，来处理更多的请求。而横向扩展则是指利用多个cpu资源来并行处理，来处理更多请求。</p>
+<p>一般来说，在项目初期，我们可以采用纵向扩展，当单机无法承受时，再使用横向扩展。</p>
+<h1 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h1><p>我们的数据都是存储在磁盘上的，而磁盘的读取速度特别的慢，会给处理请求带来很大的压力。所以产生了缓存。在现代的设计中，从操作系统到浏览器，从数据库到消息队列都可以看到缓存的影子。</p>
+<p>由于缓存是基于内存读写的，所以速度要比磁盘读取快很多。如果能够能快的读写数据，那么每个请求的处理时间都会变短，那么就会提高系统的并发度。</p>
+<h1 id="异步处理"><a href="#异步处理" class="headerlink" title="异步处理"></a>异步处理</h1><p>异步处理相对应的就是同步。</p>
+<p>同步是指调用一个方法，需要等到该方法返回之后，才可以继续执行后续的操作。这种情况下，如果调用的方法响应时间太长的话，会导致后续的业务阻塞。</p>
+<p>异步处理是指调用方法后，并不需要等待方法处理完，可以直接执行后续的请求。比如说，我们可以将请求放入队列当中，然后响应用户一个信息，等处理完结果后，再给用户反馈一下，这样可以处理更多的请求。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230422182314880.png" alt="image-20230422182314880"></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计40问》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>高并发系统设计</category>
+      </categories>
+      <tags>
+        <tag>并发</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>一条sql查询语句是如何执行的</title>
+    <url>/2023/03/28/MySQL/%E4%B8%80%E6%9D%A1sql%E8%AF%AD%E5%8F%A5%E6%98%AF%E5%A6%82%E4%BD%95%E6%89%A7%E8%A1%8C%E7%9A%84/</url>
+    <content><![CDATA[<h2 id="整体结构"><a href="#整体结构" class="headerlink" title="整体结构"></a>整体结构</h2><p>Mysql的架构图如下所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230328110656604.png" alt="image-20230328110656604"></p>
+<p>上图架构中的查询缓存，在myssql8.0及其以上版本已经被移除。</p>
+<p>MySQL可以分为<strong>Server层</strong>和<strong>存储引擎层</strong>两部分。</p>
+<p>Server层包括连接器、查询缓存、分析器、优化器、执行器等，涵盖MySQL的大多数核心服务功能，以及所有的内置函数（如日期、时间、数学和加密函数等），所有跨存储引擎的功能都在这一层实现，比如存储过程、触发器、视图等。</p>
+<p>而存储引擎层负责数据的存储和提取。其架构模式是插件式的，支持InnoDB、MyISAM、Memory等多个存储引擎。现在最常用的存储引擎是InnoDB，它从MySQL 5.5.5版本开始成为了默认存储引擎。</p>
+<h3 id="连接器"><a href="#连接器" class="headerlink" title="连接器"></a>连接器</h3><p>连接器是负责客户端和MySQL进行连接的，在连接器这里会验证用户输入的账号和密码，以及对应的权限。</p>
+<p>连接完成后，如果客户端太长时间没有动静，连接器就会将它断开。这个时间由wait_timeout控制，默认8小时。</p>
+<p>数据库里面，长连接是指连接成功后，如果客户端持续有请求，则一直使用同一个连接。短连接则是指每次执行完很少的几次查询就断开连接，下次查询再重新建立一个。</p>
+<h3 id="分析器"><a href="#分析器" class="headerlink" title="分析器"></a>分析器</h3><p>这一步的主要工作就是检查sql语法是否正确。首先是词法分析，然后是语法分析。这一步也会检查这条sql的目的是什么。一般的语法错误，比如找不到一个字段，找不到某张表，都是这个阶段检测出来的。</p>
+<h3 id="优化器"><a href="#优化器" class="headerlink" title="优化器"></a>优化器</h3><p>优化器是在表里面有多个索引的时候，决定使用哪个索引；或者在一个语句有多表关联（join）的时候，决定各个表的连接顺序。</p>
+<h3 id="执行器"><a href="#执行器" class="headerlink" title="执行器"></a>执行器</h3><p>执行阶段会先判断是否有权限，如果没有，则会返回错误。</p>
+<p>比如下面的语句：</p>
+<figure class="highlight plaintext"><table><tr><td class="code"><pre><span class="line">select * from T where ID=10;</span><br></pre></td></tr></table></figure>
+
+<p>如果id字段没有索引，那么大概的流程是下面的样子：</p>
+<ol>
+<li>调用InnoDB引擎接口取这个表的第一行，判断ID值是不是10，如果不是则跳过，如果是则将这行存在结果集中；</li>
+<li>调用引擎接口取“下一行”，重复相同的判断逻辑，直到取到这个表的最后一行。</li>
+<li>执行器将上述遍历过程中所有满足条件的行组成的记录集作为结果集返回给客户端。</li>
+</ol>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>MySQL</category>
+        <category>执行流程</category>
+      </categories>
+      <tags>
+        <tag>MySQL45讲</tag>
       </tags>
   </entry>
   <entry>
@@ -2871,6 +2871,21 @@
         <category>计算机网络</category>
         <category>应用层</category>
       </categories>
+  </entry>
+  <entry>
+    <title>UDP</title>
+    <url>/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UDP/</url>
+    <content><![CDATA[<p>UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。</p>
+<p>UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢复，只能选择丢弃，或者交给应用程序，并发出警告。</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>计算机网络</category>
+        <category>运输层</category>
+      </categories>
+      <tags>
+        <tag>运输层</tag>
+      </tags>
   </entry>
   <entry>
     <title>DNS域名解析</title>
@@ -2901,46 +2916,6 @@
       </categories>
       <tags>
         <tag>应用层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>UDP</title>
-    <url>/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UDP/</url>
-    <content><![CDATA[<p>UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。</p>
-<p>UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢复，只能选择丢弃，或者交给应用程序，并发出警告。</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>计算机网络</category>
-        <category>运输层</category>
-      </categories>
-      <tags>
-        <tag>运输层</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>地址转换</title>
-    <url>/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</url>
-    <content><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p>
-<p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p>
-<p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p>
-<h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p>
-<p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p>
-<p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p>
-<p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p>
-<h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p>
-<p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p>
-<p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p>
-<p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>操作系统</category>
-        <category>内存虚拟化</category>
-      </categories>
-      <tags>
-        <tag>虚拟化</tag>
       </tags>
   </entry>
   <entry>
@@ -2982,21 +2957,19 @@
       </tags>
   </entry>
   <entry>
-    <title>分段</title>
-    <url>/2023/04/17/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E6%AE%B5/</url>
-    <content><![CDATA[<p> 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：</p>
-<img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230417134359838.png" alt="image-20230417134359838" style="zoom: 67%;" />
-
-<p>但是由于进程的地址空间被加载到了内存中，那么就意味着这些虚拟的地址空间都会被分配对应的物理地址，虽然这些地址没有被该进程写入内容，但是他们已经不能再分配给其他进程使用。</p>
-<p>为了解决这个问题，引入了分段的概念。有了分段的概念后，就不是给每个地址空间一个寄存器，而是让地址空间内的每个段都有自己的基址寄存器和界限寄存器。<strong>一个段是地址空间中连续的定长区域。</strong></p>
-<p>这样设计，就可以把进程的单个段加载到内存中，而不是将整个地址空间都加载到内存中，这样就能确保被加载到物理内存空间中的内容都是正在使用的，或者说最小程度的浪费一些空间。</p>
-<p>在经典的地址空间中，有三个逻辑不同的段：代码，栈和堆。分段之后，我们可以把这三个部分分别加载到物理内存对应的位置，如下图所示：</p>
-<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417141138659.png" alt="image-20230417141138659" style="zoom: 67%;" />
-
-<p>而不需要像之前那样，必须把整个地址空间全部加载到内存当中。</p>
-<h1 id="分段存在的问题"><a href="#分段存在的问题" class="headerlink" title="分段存在的问题"></a>分段存在的问题</h1><p>分段的出现会导致内存中零散的分布很多的段，如果现在有不连续的24k空间，现在有一个20k大小的段，则会导致该段进入内存失败。</p>
-<p>即分段会造成一定的外部碎片。</p>
-<h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>这篇笔记是在学习操作系统导论时写的，该书采用的是层层递进的方式，由最初的设计，存在什么问题，一步一步解决问题，更改设计，得到一个现代的操作设计方案。所以本文中有些内容可能并非目前操作系统正确的设计。</p>
+    <title>地址转换</title>
+    <url>/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</url>
+    <content><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p>
+<p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p>
+<p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p>
+<h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p>
+<p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p>
+<p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p>
+<p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p>
+<h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p>
+<p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p>
+<p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p>
+<p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
 ]]></content>
       <categories>
@@ -3041,52 +3014,30 @@
       </tags>
   </entry>
   <entry>
-    <title>对于socket的一些理解</title>
-    <url>/2023/04/18/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%AF%B9%E4%BA%8Esocket%E7%9A%84%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/</url>
-    <content><![CDATA[<p> 在大学刚接触到网络编程以及web编程的时候，听说过socket以及端口号，但是当时只是知道写法如下：</p>
-<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// server</span></span><br><span class="line"><span class="type">int</span> <span class="variable">port</span> <span class="operator">=</span> xx;</span><br><span class="line">ServerSocket serverSocket <span class="keyword">new</span> <span class="title class_">ServerSocket</span>(port);;</span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> serverSocket.accept();</span><br><span class="line"></span><br><span class="line"><span class="comment">// client</span></span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(ip, port);</span><br></pre></td></tr></table></figure>
+    <title>分段</title>
+    <url>/2023/04/17/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E6%AE%B5/</url>
+    <content><![CDATA[<p> 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：</p>
+<img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230417134359838.png" alt="image-20230417134359838" style="zoom: 67%;" />
 
-<p>但是并不明白为什么要这样做，在学习了计算机网络后，有了一些个人理解。</p>
-<p>在计算机网络中，我们编写的代码，是属于应用层的内容，当需要传输数据时，需要先将数据传送给运输层，然后运输层送往网络层，依次往下传送。</p>
-<p>其实我们可以将应用层与其他的几层拆分开，然后把运输层及其以下的几层当作是一个其他人已经封装好了的计算机网络。我们传输数据，只需要把数据交给这个计算机网络，它就能帮我们把数据传输到我们的目的地。而socket，就是我们的编写的程序与计算机网络之间的接口，也可以理解为一个桥梁，连接我们应用程序与计算机网络。</p>
-<p>而我们在web编程，比如使用springboot框架，也需要在配置文件中指定端口号，它其实也是用于底层封装的socket指定对应端口号。</p>
-<p>一个较为形象的比喻，我们的应用程序可以理解为手机，也就是应用层。而运输层及其以下的那几层可以理解为我们的房子内的电线。我们想要充电，就需要一个充电器，连接我们的手机以及那些电线。而这个充电器，可以理解为socket。</p>
-<p>也就是说，每个socket都需要绑定端口号，用于标识它对应于哪个进程，我们的进程需要指定这个端口号，然后将数据通过socket传送到运输层，并进行第一次数据封装，用于目的主机找到对应的进程。到这里，就可以认为我们进程要传送的数据已经交给计算机网络，剩余的内容就由计算机网络处理。</p>
-]]></content>
-      <categories>
-        <category>个人心得</category>
-        <category>计算机网络</category>
-      </categories>
-      <tags>
-        <tag>网络编程</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>运输层概述</title>
-    <url>/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/</url>
-    <content><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。</p>
-<p>在发送端，运输层将从发送应用程序进程接收到的报文转换成运输层分组，该分组称为<strong>运输层报文段</strong>（segment）。</p>
-<p>转换的方法：</p>
-<p>1、将应用报文划分为较小的块，并为每块加上一个运输层首部以生成运输层报文段。</p>
-<p>2、然后，在发送端系统中，运输层将这些报文段传递给网络层，网路层将其封装成网络层分组（即数据报）并向目的地发送。</p>
-<h1 id="运输层和网络层关系"><a href="#运输层和网络层关系" class="headerlink" title="运输层和网络层关系"></a>运输层和网络层关系</h1><p>运输层位于网络层之上。网络层提供主机到主机的逻辑通信，而运输层提供的是进程到进程的逻辑通信。</p>
-<p>用书上的一个例子，场景是：假如现在有两个家庭A和B，每个家庭有4个孩子。而每个月两家孩子都会互相的写信。家庭A有一个孩子负责收集所有孩子的信件，然后送给邮局。家庭B同样有一个孩子来做这件事情。家庭A的孩子设为C，家庭B的孩子设为D。</p>
-<p>在这个例子中，从这些孩子的角度来看，孩子C和孩子D就为他们提供了逻辑通信。因为其他孩子只需要把信交给孩子C和D，剩余事情都无需关心。邮局则提供了两个家庭间的逻辑通信，因为孩子C和D只需要把信交给邮局，其他的也无需关心。</p>
-<p>所以可以做以下类比：</p>
-<p>1、应用层报文 &#x3D; 信封上的字符</p>
-<p>2、进程 &#x3D; 这群孩子 （他们是通信主体）</p>
-<p>3、主机（端系统） &#x3D;  家庭  </p>
-<p>4、运输层协议  &#x3D;  孩子C和D</p>
-<p>5、网络层协议  &#x3D;  邮政服务</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>
+<p>但是由于进程的地址空间被加载到了内存中，那么就意味着这些虚拟的地址空间都会被分配对应的物理地址，虽然这些地址没有被该进程写入内容，但是他们已经不能再分配给其他进程使用。</p>
+<p>为了解决这个问题，引入了分段的概念。有了分段的概念后，就不是给每个地址空间一个寄存器，而是让地址空间内的每个段都有自己的基址寄存器和界限寄存器。<strong>一个段是地址空间中连续的定长区域。</strong></p>
+<p>这样设计，就可以把进程的单个段加载到内存中，而不是将整个地址空间都加载到内存中，这样就能确保被加载到物理内存空间中的内容都是正在使用的，或者说最小程度的浪费一些空间。</p>
+<p>在经典的地址空间中，有三个逻辑不同的段：代码，栈和堆。分段之后，我们可以把这三个部分分别加载到物理内存对应的位置，如下图所示：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417141138659.png" alt="image-20230417141138659" style="zoom: 67%;" />
+
+<p>而不需要像之前那样，必须把整个地址空间全部加载到内存当中。</p>
+<h1 id="分段存在的问题"><a href="#分段存在的问题" class="headerlink" title="分段存在的问题"></a>分段存在的问题</h1><p>分段的出现会导致内存中零散的分布很多的段，如果现在有不连续的24k空间，现在有一个20k大小的段，则会导致该段进入内存失败。</p>
+<p>即分段会造成一定的外部碎片。</p>
+<h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>这篇笔记是在学习操作系统导论时写的，该书采用的是层层递进的方式，由最初的设计，存在什么问题，一步一步解决问题，更改设计，得到一个现代的操作设计方案。所以本文中有些内容可能并非目前操作系统正确的设计。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
 ]]></content>
       <categories>
         <category>学习笔记</category>
-        <category>计算机网络</category>
-        <category>运输层</category>
+        <category>操作系统</category>
+        <category>内存虚拟化</category>
       </categories>
       <tags>
-        <tag>运输层</tag>
+        <tag>虚拟化</tag>
       </tags>
   </entry>
   <entry>
@@ -3124,6 +3075,55 @@
       </tags>
   </entry>
   <entry>
+    <title>运输层概述</title>
+    <url>/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/</url>
+    <content><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。</p>
+<p>在发送端，运输层将从发送应用程序进程接收到的报文转换成运输层分组，该分组称为<strong>运输层报文段</strong>（segment）。</p>
+<p>转换的方法：</p>
+<p>1、将应用报文划分为较小的块，并为每块加上一个运输层首部以生成运输层报文段。</p>
+<p>2、然后，在发送端系统中，运输层将这些报文段传递给网络层，网路层将其封装成网络层分组（即数据报）并向目的地发送。</p>
+<h1 id="运输层和网络层关系"><a href="#运输层和网络层关系" class="headerlink" title="运输层和网络层关系"></a>运输层和网络层关系</h1><p>运输层位于网络层之上。网络层提供主机到主机的逻辑通信，而运输层提供的是进程到进程的逻辑通信。</p>
+<p>用书上的一个例子，场景是：假如现在有两个家庭A和B，每个家庭有4个孩子。而每个月两家孩子都会互相的写信。家庭A有一个孩子负责收集所有孩子的信件，然后送给邮局。家庭B同样有一个孩子来做这件事情。家庭A的孩子设为C，家庭B的孩子设为D。</p>
+<p>在这个例子中，从这些孩子的角度来看，孩子C和孩子D就为他们提供了逻辑通信。因为其他孩子只需要把信交给孩子C和D，剩余事情都无需关心。邮局则提供了两个家庭间的逻辑通信，因为孩子C和D只需要把信交给邮局，其他的也无需关心。</p>
+<p>所以可以做以下类比：</p>
+<p>1、应用层报文 &#x3D; 信封上的字符</p>
+<p>2、进程 &#x3D; 这群孩子 （他们是通信主体）</p>
+<p>3、主机（端系统） &#x3D;  家庭  </p>
+<p>4、运输层协议  &#x3D;  孩子C和D</p>
+<p>5、网络层协议  &#x3D;  邮政服务</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>计算机网络</category>
+        <category>运输层</category>
+      </categories>
+      <tags>
+        <tag>运输层</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>对于socket的一些理解</title>
+    <url>/2023/04/18/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%AF%B9%E4%BA%8Esocket%E7%9A%84%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/</url>
+    <content><![CDATA[<p> 在大学刚接触到网络编程以及web编程的时候，听说过socket以及端口号，但是当时只是知道写法如下：</p>
+<figure class="highlight java"><table><tr><td class="code"><pre><span class="line"><span class="comment">// server</span></span><br><span class="line"><span class="type">int</span> <span class="variable">port</span> <span class="operator">=</span> xx;</span><br><span class="line">ServerSocket serverSocket <span class="keyword">new</span> <span class="title class_">ServerSocket</span>(port);;</span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> serverSocket.accept();</span><br><span class="line"></span><br><span class="line"><span class="comment">// client</span></span><br><span class="line"><span class="type">Socket</span> <span class="variable">socket</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Socket</span>(ip, port);</span><br></pre></td></tr></table></figure>
+
+<p>但是并不明白为什么要这样做，在学习了计算机网络后，有了一些个人理解。</p>
+<p>在计算机网络中，我们编写的代码，是属于应用层的内容，当需要传输数据时，需要先将数据传送给运输层，然后运输层送往网络层，依次往下传送。</p>
+<p>其实我们可以将应用层与其他的几层拆分开，然后把运输层及其以下的几层当作是一个其他人已经封装好了的计算机网络。我们传输数据，只需要把数据交给这个计算机网络，它就能帮我们把数据传输到我们的目的地。而socket，就是我们的编写的程序与计算机网络之间的接口，也可以理解为一个桥梁，连接我们应用程序与计算机网络。</p>
+<p>而我们在web编程，比如使用springboot框架，也需要在配置文件中指定端口号，它其实也是用于底层封装的socket指定对应端口号。</p>
+<p>一个较为形象的比喻，我们的应用程序可以理解为手机，也就是应用层。而运输层及其以下的那几层可以理解为我们的房子内的电线。我们想要充电，就需要一个充电器，连接我们的手机以及那些电线。而这个充电器，可以理解为socket。</p>
+<p>也就是说，每个socket都需要绑定端口号，用于标识它对应于哪个进程，我们的进程需要指定这个端口号，然后将数据通过socket传送到运输层，并进行第一次数据封装，用于目的主机找到对应的进程。到这里，就可以认为我们进程要传送的数据已经交给计算机网络，剩余的内容就由计算机网络处理。</p>
+]]></content>
+      <categories>
+        <category>个人心得</category>
+        <category>计算机网络</category>
+      </categories>
+      <tags>
+        <tag>网络编程</tag>
+      </tags>
+  </entry>
+  <entry>
     <title>分页：快速地址转换</title>
     <url>/2023/04/19/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</url>
     <content><![CDATA[<p>为了解决分页带来的额外内存访问，又引入了地址转换旁路缓冲存储器，又称TLB。它是一个硬件缓存，它记录了频繁发生的虚拟地址到物理地址的转换。</p>
@@ -3135,23 +3135,6 @@
 <p>在发生上下文切换时，直接清空TLB，那么就不会有进程读到错误的TLB。但是也存在问题，每个进程刚运行时，都会发生TLB未命中。</p>
 <p>第二种解决方案：</p>
 <p>增加一个地址空间标识符，也可以看作是进程标识符，用于标识存储的内容是那个进程的映射。这样一来，TLB可以同时缓存多个进程的地址映射。</p>
-<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
-]]></content>
-      <categories>
-        <category>学习笔记</category>
-        <category>操作系统</category>
-        <category>内存虚拟化</category>
-      </categories>
-      <tags>
-        <tag>虚拟化</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title>地址空间</title>
-    <url>/2023/04/15/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4/</url>
-    <content><![CDATA[<h1 id="地址空间"><a href="#地址空间" class="headerlink" title="地址空间"></a>地址空间</h1><p>一个线程的地址空间如下图所示：</p>
-<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230415172631305.png" alt="image-20230415172631305"></p>
-<p>这个地址空间看似是从0KB开始，但这里的0KB映射到具体的物理地址并不一定是从内存的地址0开始，它可能是物理内存的任意位置。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
 ]]></content>
       <categories>
@@ -3199,22 +3182,17 @@
       </tags>
   </entry>
   <entry>
-    <title>调度：多级反馈队列</title>
-    <url>/2023/04/14/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</url>
-    <content><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p>
-<h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p>
-<p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p>
-<h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p>
-<p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p>
-<h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p>
-<p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p>
-<h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>
+    <title>地址空间</title>
+    <url>/2023/04/15/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4/</url>
+    <content><![CDATA[<h1 id="地址空间"><a href="#地址空间" class="headerlink" title="地址空间"></a>地址空间</h1><p>一个线程的地址空间如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230415172631305.png" alt="image-20230415172631305"></p>
+<p>这个地址空间看似是从0KB开始，但这里的0KB映射到具体的物理地址并不一定是从内存的地址0开始，它可能是物理内存的任意位置。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
 ]]></content>
       <categories>
         <category>学习笔记</category>
         <category>操作系统</category>
-        <category>CPU虚拟化</category>
+        <category>内存虚拟化</category>
       </categories>
       <tags>
         <tag>虚拟化</tag>
@@ -3243,6 +3221,28 @@
 <p><strong>即cpu1可以处理cpu2对应队列中的任务。</strong></p>
 <p>假如cpu1队列中一开始只有任务A，而cpu2中有任务B和D，那么在迁移的设计下，执行过程如下：</p>
 <p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230414205237310.png" alt="image-20230414205237310"></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
+]]></content>
+      <categories>
+        <category>学习笔记</category>
+        <category>操作系统</category>
+        <category>CPU虚拟化</category>
+      </categories>
+      <tags>
+        <tag>虚拟化</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>调度：多级反馈队列</title>
+    <url>/2023/04/14/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%A4%9A%E7%BA%A7%E5%8F%8D%E9%A6%88%E9%98%9F%E5%88%97/</url>
+    <content><![CDATA[<h1 id="基本规则"><a href="#基本规则" class="headerlink" title="基本规则"></a>基本规则</h1><p>MLFQ有许多独立的队列，每个队列都有优先级，任何时刻，一个任务只能存在一个队列当中，而MLFQ总是执行优先级最高的队列中的任务。在同一个队列中的任务，采用轮转调度。而MLFQ会观察任务的行为，然后调整他们的优先级。</p>
+<h1 id="尝试1：改变优先级"><a href="#尝试1：改变优先级" class="headerlink" title="尝试1：改变优先级"></a>尝试1：改变优先级</h1><p>工作进入系统时，放在优先级最高的队列当中，工作用完整个时间片后，降低其优先级，如果时间片没用完，主动放弃CPU，则优先级不进行变化。</p>
+<p>按照这种方法，如果有一个很长的cpu密集型任务要执行，那么它会被慢慢降级到最低的优先级。而此时来了一个短任务，会被放在优先级最高的队列中执行，它大概率会在降到最低优先级之前处理完，这种情况下MLFQ近似于短任务优先。</p>
+<h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>这样设计，如果一个任务一直不把CPU时间片用完，那么他就一直可以处于优先级最高的队列当中，那么会导致一些用完时间片而导致降级的任务永远无法处理。</p>
+<p>而且会有程序恶意放弃CPU资源而一直占用处理器，比如在时间片用完之间，执行一段I&#x2F;O操作，主动放弃CPU。</p>
+<h1 id="尝试2：提升优先级"><a href="#尝试2：提升优先级" class="headerlink" title="尝试2：提升优先级"></a>尝试2：提升优先级</h1><p>一个简单的设计，经过一段时间S后，就把队列中的所有任务全部放在优先级最高的队列当中。</p>
+<p>但是这个S的值设置不合适也会导致问题，太长，会导致任务饥饿，太短的话，交互性任务达不到合适的CPU时间比例。</p>
+<h1 id="尝试3：更好的设计"><a href="#尝试3：更好的设计" class="headerlink" title="尝试3：更好的设计"></a>尝试3：更好的设计</h1><p>为了防止一些恶意代码在CPU时间片用完前执行一次I&#x2F;O操作来放弃处理器资源，以达到刷新时间片的目的，我们可以将时间片设计为该任务在该队列可以执行的总时间。意思就是，一个任务可以执行1s，那么无论它放弃了多少次，只要执行的总时间达到1s，他就要被降到低优先级的队列当中。</p>
 <h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>
 ]]></content>
       <categories>
