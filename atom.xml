@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-22T08:28:11.169Z</updated>
+  <updated>2023-04-23T05:43:57.915Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,13 +17,72 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>MySQL读写分离存在的问题</title>
+    <link href="http://example.com/2023/04/23/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/"/>
+    <id>http://example.com/2023/04/23/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/</id>
+    <published>2023-04-23T02:49:01.000Z</published>
+    <updated>2023-04-23T05:43:57.915Z</updated>
+    
+    <content type="html"><![CDATA[<p>在MySQL的一主多从的架构中，往往有以下两种设计方案：</p><p>1、由客户端决定连接哪个数据库</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105127688.png" alt="image-20230423105127688" style="zoom:67%;" /><p>2、由代理决定请求分发到哪一个数据库</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230423105207833.png" alt="image-20230423105207833" style="zoom:67%;" /><p>但不管是哪种方案，都存在过期读的问题，即主库和从库存在一定的时延，用户刚做一个修改，然后立马发起查询，就有可能查到过期数据。以下给出几种解决方案。</p><h1 id="强制走主库"><a href="#强制走主库" class="headerlink" title="强制走主库"></a>强制走主库</h1><p>该方案将请求分为了两类：</p><p>1、必须拿到最新数据的，就强制走主库查询。</p><p>2、对于可以读取到旧数据的，就走从库查询。</p><h1 id="Sleep-方案"><a href="#Sleep-方案" class="headerlink" title="Sleep 方案"></a>Sleep 方案</h1><p>该方案的设计很简单，读从库之前先sleep一段时间。</p><p>它假设大多情况下主备延迟在1秒之内，所以简单的sleep可以拿到最新的数据。</p><h1 id="判断主备无延迟方案"><a href="#判断主备无延迟方案" class="headerlink" title="判断主备无延迟方案"></a>判断主备无延迟方案</h1><p>这里有几种办法，第一种是从库查询前，先判断seconds_behind_master是否已经等于0。如果还不等于0 ，那就必须等到这个参数变为0才能执行查询请求。</p><p>第二种和第三种方案，都是通过对比主库和从库的日志执行位点来判断是否有延迟，即通过对比主库和从库执行的日志，来判断，要比对比时间准确。</p><p>但是这里也存在问题，主库存在一部分日志刚刚提交，而从库还没收到该日志，也会导致有一定的延迟。</p><h1 id="配合semi-sync"><a href="#配合semi-sync" class="headerlink" title="配合semi-sync"></a>配合semi-sync</h1><p>这里引入了半同步复制，semi-sync做了这样的设计：</p><ol><li>事务提交的时候，主库把binlog发给从库；</li><li>从库收到binlog以后，发回给主库一个ack，表示收到了；</li><li>主库收到这个ack以后，才能给客户端返回“事务完成”的确认。</li></ol><p>这样可以保证如果从库发送过确认消息，就代表收到了日志。这样，semi-sync配合前面关于位点的判断，就能够确定在从库上执行的查询请求，可以避免过期读。</p><p>但是该方案适合一主一从的架构，如果一主多从，那么一个从库响应，就默认已经同步成功，但是其他从库不确定。如果此时查询走的是其他从库，则还是会有问题。</p><p>而且存在一种情况，如果高峰期日志写的很快，可能会导致主库位点一直不一致的情况，就出现从库迟迟无法响应的问题。</p><h1 id="等主库位点方案"><a href="#等主库位点方案" class="headerlink" title="等主库位点方案"></a>等主库位点方案</h1><p>该方案涉及到以下命令：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select master_pos_wait(file, pos[, timeout]);</span><br></pre></td></tr></table></figure><p>该命令在从库执行，参数file和pos指向从库上的某个文件以及对应位置，timeout可选，表示这个函数最多的等待时间。</p><p>这个命令正常返回的结果是一个正整数M，表示从命令开始执行，到应用完file和pos表示的binlog位置，执行了多少事务。</p><p>那么我们的查询逻辑变为以下：</p><p>1、主库执行完事务后，执行show master status得到当前主库执行到的File和Position；</p><p>2、从库查询之间，先执行master_pos_wait（File，Position）</p><p>3、如果返回 &gt;&#x3D; 0的正整数，则在该从库执行查询，否则到主库查询。</p><h1 id="GTID方案"><a href="#GTID方案" class="headerlink" title="GTID方案"></a>GTID方案</h1><p>该方案和上述等主库位点方案思路一致，只不过是后续MySQL做了优化。</p><p>我们不再需要去主库执行show master status来获取位点，而是主库执行完后，直接返回一个事务的GTID，然后从库执行时，只需要在从库执行select wait_for_executed_gtid_set(gtid1, 1)，该命令也是用于等待主从同步的命令。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在MySQL的一主多从的架构中，往往有以下两种设计方案：&lt;/p&gt;
+&lt;p&gt;1、由客户端决定连接哪个数据库&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-2023042310</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    <category term="其他" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E5%85%B6%E4%BB%96/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>高并发系统的通用设计方案</title>
+    <link href="http://example.com/2023/04/22/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/"/>
+    <id>http://example.com/2023/04/22/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/</id>
+    <published>2023-04-22T10:07:31.000Z</published>
+    <updated>2023-04-22T10:29:26.107Z</updated>
+    
+    <content type="html"><![CDATA[<p>高并发系统的通用设计：</p><p>Scale-out（横向扩展）：采用分布式部署的方式把流量分流开，让每个服务器都承担一部分并发和流量。</p><p>缓存：使用缓存来提高系统的性能，就好比用“拓宽河道”的方式抵抗高并发大流量的冲击。</p><p>异步：在某些场景下，未处理完成之前我们可以让请求先返回，在数据准备好之后再通知请求方，这样可以在单位时间内处理更多的请求。</p><h1 id="Scale-out"><a href="#Scale-out" class="headerlink" title="Scale-out"></a>Scale-out</h1><p>这里牵扯到一个横向扩展（Scale-out）与纵向扩展（Scale-up）。其中纵向扩展是不断的提高单个cpu的处理能力，来处理更多的请求。而横向扩展则是指利用多个cpu资源来并行处理，来处理更多请求。</p><p>一般来说，在项目初期，我们可以采用纵向扩展，当单机无法承受时，再使用横向扩展。</p><h1 id="缓存"><a href="#缓存" class="headerlink" title="缓存"></a>缓存</h1><p>我们的数据都是存储在磁盘上的，而磁盘的读取速度特别的慢，会给处理请求带来很大的压力。所以产生了缓存。在现代的设计中，从操作系统到浏览器，从数据库到消息队列都可以看到缓存的影子。</p><p>由于缓存是基于内存读写的，所以速度要比磁盘读取快很多。如果能够能快的读写数据，那么每个请求的处理时间都会变短，那么就会提高系统的并发度。</p><h1 id="异步处理"><a href="#异步处理" class="headerlink" title="异步处理"></a>异步处理</h1><p>异步处理相对应的就是同步。</p><p>同步是指调用一个方法，需要等到该方法返回之后，才可以继续执行后续的操作。这种情况下，如果调用的方法响应时间太长的话，会导致后续的业务阻塞。</p><p>异步处理是指调用方法后，并不需要等待方法处理完，可以直接执行后续的请求。比如说，我们可以将请求放入队列当中，然后响应用户一个信息，等处理完结果后，再给用户反馈一下，这样可以处理更多的请求。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230422182314880.png" alt="image-20230422182314880"></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计40问》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;高并发系统的通用设计：&lt;/p&gt;
+&lt;p&gt;Scale-out（横向扩展）：采用分布式部署的方式把流量分流开，让每个服务器都承担一部分并发和流量。&lt;/p&gt;
+&lt;p&gt;缓存：使用缓存来提高系统的性能，就好比用“拓宽河道”的方式抵抗高并发大流量的冲击。&lt;/p&gt;
+&lt;p&gt;异步：在某些场景下，</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
     <title>超越物理内存的策略</title>
     <link href="http://example.com/2023/04/21/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E7%AD%96%E7%95%A5/"/>
     <id>http://example.com/2023/04/21/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E7%AD%96%E7%95%A5/</id>
     <published>2023-04-21T12:47:18.000Z</published>
-    <updated>2023-04-22T08:28:11.169Z</updated>
+    <updated>2023-04-22T10:07:51.541Z</updated>
     
-    <content type="html"><![CDATA[<p>当有足够的内存时，发生页错误，只需要将页加入内存即可，但是如果内存不够，就需要将内存中的一些页换出，放入磁盘中去。那么现在问题就在于，要将那些页面换出呢？</p><p>这些存在于内存中的页，可以看作是一个缓存，如果访问该页时，页在内存，就当作缓存命中，不在就是没命中，那么我们的目标就变为让缓存的命中率尽可能地提高。</p><h1 id="最优替换策略"><a href="#最优替换策略" class="headerlink" title="最优替换策略"></a>最优替换策略</h1><p>该替换策略是将最远的将来才会使用到的页替换出去，这样就能使得命中率最高，但是也很难实现，或者换种方式说，几乎无法实现。因为我们无法知道哪个页最远才会被使用，该算法只能作为一个比较使用。</p><h1 id="FIFO（先进先出）"><a href="#FIFO（先进先出）" class="headerlink" title="FIFO（先进先出）"></a>FIFO（先进先出）</h1><p>先进入系统的页就先被换出。优点是实现很简单。缺点是可能导致内存页命中率特别低，极端情况下还会为0。</p><h1 id="随机"><a href="#随机" class="headerlink" title="随机"></a>随机</h1><p>依靠随机数，替换出某些页。该策略实现页比较简单，但是依靠运气。</p><h1 id="利用历史数据：LRU"><a href="#利用历史数据：LRU" class="headerlink" title="利用历史数据：LRU"></a>利用历史数据：LRU</h1><p>该算法考虑历史使用数据，如果一个页被很频繁的使用，那么它应该是比较重要的，不应该被换出。那么那些最近最不经常使用的页，就会被换出内存。</p><p>这里使用了局部性原则，包括空间局部性和时间局部性。</p><p>面临的问题：</p><p>该算法要求我们，每次访问内存，都需要同步的做一些修改，来更新页面位于队列中的位置。为了记录那些页最少被访问，我们需要记录内存的引用，但是这些记录可能会导致占用大量空间。</p><p>如果通过硬件实现，比如给每个页设置一个时间，每次系统访问内存时，硬件去更新该时间，而需要替换出页时，扫描所有页找到最久的即可。但是页特别多的话，耗时非常高。</p><h1 id="近似的LRU"><a href="#近似的LRU" class="headerlink" title="近似的LRU"></a>近似的LRU</h1><p>该算法的实现需要硬件添加一个使用位。系统的每一个页都有一个存在位，该值是0或者1。每当该页被引用时，就将该位改为1。但是硬件不会将其置为0，这是由操作系统设置的。</p><p>该算法的实现是始终算法。即将所有的页放在一个循环队列中，时钟指针开始时指向某个页，当需要替换页时，会检查时钟指针指向的页的标记为是0还是1，如果是1就说明不适合换出，而0就将它换出。如果是1，就会找下一个页，一直到找到一个是0的为止。如果找完所有的页，还是没有0，那么就将所有的页都设置为0。</p><p>它的一个改进算法为，扫描到1的，不置换出该页，但是将标记位改为0，防止遍历完一遍后找不到为0的标记位。</p>]]></content>
+    <content type="html"><![CDATA[<p>当有足够的内存时，发生页错误，只需要将页加入内存即可，但是如果内存不够，就需要将内存中的一些页换出，放入磁盘中去。那么现在问题就在于，要将那些页面换出呢？</p><p>这些存在于内存中的页，可以看作是一个缓存，如果访问该页时，页在内存，就当作缓存命中，不在就是没命中，那么我们的目标就变为让缓存的命中率尽可能地提高。</p><h1 id="最优替换策略"><a href="#最优替换策略" class="headerlink" title="最优替换策略"></a>最优替换策略</h1><p>该替换策略是将最远的将来才会使用到的页替换出去，这样就能使得命中率最高，但是也很难实现，或者换种方式说，几乎无法实现。因为我们无法知道哪个页最远才会被使用，该算法只能作为一个比较使用。</p><h1 id="FIFO（先进先出）"><a href="#FIFO（先进先出）" class="headerlink" title="FIFO（先进先出）"></a>FIFO（先进先出）</h1><p>先进入系统的页就先被换出。优点是实现很简单。缺点是可能导致内存页命中率特别低，极端情况下还会为0。</p><h1 id="随机"><a href="#随机" class="headerlink" title="随机"></a>随机</h1><p>依靠随机数，替换出某些页。该策略实现页比较简单，但是依靠运气。</p><h1 id="利用历史数据：LRU"><a href="#利用历史数据：LRU" class="headerlink" title="利用历史数据：LRU"></a>利用历史数据：LRU</h1><p>该算法考虑历史使用数据，如果一个页被很频繁的使用，那么它应该是比较重要的，不应该被换出。那么那些最近最不经常使用的页，就会被换出内存。</p><p>这里使用了局部性原则，包括空间局部性和时间局部性。</p><p>面临的问题：</p><p>该算法要求我们，每次访问内存，都需要同步的做一些修改，来更新页面位于队列中的位置。为了记录那些页最少被访问，我们需要记录内存的引用，但是这些记录可能会导致占用大量空间。</p><p>如果通过硬件实现，比如给每个页设置一个时间，每次系统访问内存时，硬件去更新该时间，而需要替换出页时，扫描所有页找到最久的即可。但是页特别多的话，耗时非常高。</p><h1 id="近似的LRU"><a href="#近似的LRU" class="headerlink" title="近似的LRU"></a>近似的LRU</h1><p>该算法的实现需要硬件添加一个使用位。系统的每一个页都有一个存在位，该值是0或者1。每当该页被引用时，就将该位改为1。但是硬件不会将其置为0，这是由操作系统设置的。</p><p>该算法的实现是始终算法。即将所有的页放在一个循环队列中，时钟指针开始时指向某个页，当需要替换页时，会检查时钟指针指向的页的标记为是0还是1，如果是1就说明不适合换出，而0就将它换出。如果是1，就会找下一个页，一直到找到一个是0的为止。如果找完所有的页，还是没有0，那么就将所有的页都设置为0。</p><p>它的一个改进算法为，扫描到1的，不置换出该页，但是将标记位改为0，防止遍历完一遍后找不到为0的标记位。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
     
     
       
@@ -534,64 +593,6 @@
     
     <category term="应用层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%BA%94%E7%94%A8%E5%B1%82/"/>
     
-    
-  </entry>
-  
-  <entry>
-    <title>地址空间</title>
-    <link href="http://example.com/2023/04/15/%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4/"/>
-    <id>http://example.com/2023/04/15/%E5%9C%B0%E5%9D%80%E7%A9%BA%E9%97%B4/</id>
-    <published>2023-04-15T09:23:14.000Z</published>
-    <updated>2023-04-15T10:39:36.517Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="地址空间"><a href="#地址空间" class="headerlink" title="地址空间"></a>地址空间</h1><p>一个线程的地址空间如下图所示：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230415172631305.png" alt="image-20230415172631305"></p><p>这个地址空间看似是从0KB开始，但这里的0KB映射到具体的物理地址并不一定是从内存的地址0开始，它可能是物理内存的任意位置。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;地址空间&quot;&gt;&lt;a href=&quot;#地址空间&quot; class=&quot;headerlink&quot; title=&quot;地址空间&quot;&gt;&lt;/a&gt;地址空间&lt;/h1&gt;&lt;p&gt;一个线程的地址空间如下图所示：&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://image-1314238346.cos.</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>一个sleep操作引起的问题</title>
-    <link href="http://example.com/2023/04/15/%E4%B8%80%E4%B8%AAsleep%E6%93%8D%E4%BD%9C%E5%BC%95%E8%B5%B7%E7%9A%84%E9%97%AE%E9%A2%98/"/>
-    <id>http://example.com/2023/04/15/%E4%B8%80%E4%B8%AAsleep%E6%93%8D%E4%BD%9C%E5%BC%95%E8%B5%B7%E7%9A%84%E9%97%AE%E9%A2%98/</id>
-    <published>2023-04-15T03:17:51.000Z</published>
-    <updated>2023-04-18T03:14:27.521Z</updated>
-    
-    <content type="html"><![CDATA[<p>在学习Java并发编程时，有以下demo，简单演示商品出售的问题。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="type">int</span> <span class="variable">t</span> <span class="operator">=</span> <span class="number">1000000</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span> (t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span>(t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这段代码是存在并发问题的，当库存为1的时候，两个线程同时判断 t &gt; 0，然后都进入t–操作，会导致输出的值为-1。</p><p>但是在本地实测的时候却发现，尝试了很多次都没有出现t为负数的情况，然后将代码改成如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="type">int</span> <span class="variable">t</span> <span class="operator">=</span> <span class="number">1000000</span>;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span> (t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    sleep(<span class="number">1000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span>(t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    sleep(<span class="number">1000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种情况，很容易出现t为负数的情况。</p><p>为什么加了sleep就很容易出现，而不加却需要尝试很多次呢？</p><h3 id="一个比较简单的解释"><a href="#一个比较简单的解释" class="headerlink" title="一个比较简单的解释"></a>一个比较简单的解释</h3><p>在不加sleep的情况下，由于操作只有t–，执行的特别快，所以说很难出现错误的情况，概率比较小。</p><p>而加了sleep之后，进入判断后会先进行sleep，sleep完再去处理t–。这样在t &#x3D; 1时，线程判断完进入while后就睡眠，另一个线程在这100ms内有很大概率也会进入相同的判断，导致结果为-1。</p><p>在这里加sleep可以理解为加大了判断与执行t–之间的时间，导致更多的线程会在这之间执行。</p><h3 id="另一种情况"><a href="#另一种情况" class="headerlink" title="另一种情况"></a>另一种情况</h3><p>如果sleep是在下面这个位置：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line">    <span class="keyword">static</span> <span class="type">int</span> <span class="variable">t</span> <span class="operator">=</span> <span class="number">1000000</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line"></span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span> (t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    sleep(<span class="number">1000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">        <span class="comment">// 减少t</span></span><br><span class="line">        <span class="keyword">new</span> <span class="title class_">Thread</span>(() -&gt; &#123;</span><br><span class="line">            <span class="keyword">while</span>(t &gt; <span class="number">0</span>)&#123;</span><br><span class="line">                t--;</span><br><span class="line">                System.out.println(Thread.currentThread().getName() + <span class="string">&quot; &quot;</span> + t);</span><br><span class="line">                <span class="keyword">try</span> &#123;</span><br><span class="line">                    sleep(<span class="number">1000</span>);</span><br><span class="line">                &#125; <span class="keyword">catch</span> (InterruptedException e) &#123;</span><br><span class="line">                    e.printStackTrace();</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;).start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>也就是说先执行t–，然后打印，之后再进行sleep。按照这么个顺序来执行，一个线程的判断和执行扣减操作的时间并没有被加长，却也很容易出现t为负数或者打印相同t的情况。</p><h3 id="从硬件考虑"><a href="#从硬件考虑" class="headerlink" title="从硬件考虑"></a>从硬件考虑</h3><p>我的电脑是8核cpu的，该程序只开了两个线程，如果当前电脑cpu资源比较充足是时，从理论上来讲，存在一种情况就是两个线程都是并行执行，并不存在竞争cpu资源的问题。</p><p>当并发的资源竞争没那么大时，每个线程在工作内存中所做的修改，可以很快的同步回主内存，另一个线程也可以从主内存中读取到最新的值（非volatile修饰的公共变量，虚拟机并不保证其可见性，但不代表一定是不可见的），然后再进行操作。</p><p>所以，当每个线程都执行的很快且并发资源竞争没那么大时（对应上面不加sleep的demo），我们可以做一个大胆一点的假设（虽然不对）：对t &gt; 0的判断和 t –操作是原子性的。也就是说，这两步执行的太快，以至于其他线程无法在中间穿插任何操作（而事实是存在穿插操作的可能），好像加了锁一样。</p><p>而加了sleep之后，无论在哪里加，都会导致当前的线程阻塞。而阻塞操作涉及到一个从用户态切换到核心态。因为Java的线程设计是每一个Java线程都绑定了一个内核线程，要阻塞一个线程或者唤醒都需要操作系统帮忙。这里由于内核切换带来的开销，可能会导致线程写入主内存延，也可能会导致另一个线程读取主内存的数据延迟，加大了发生问题的概率。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;在学习Java并发编程时，有以下demo，简单演示商品出售的问题。&lt;/p&gt;
-&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;s</summary>
-      
-    
-    
-    
-    <category term="个人心得" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/"/>
-    
-    <category term="并发" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/%E5%B9%B6%E5%8F%91/"/>
-    
-    
-    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
