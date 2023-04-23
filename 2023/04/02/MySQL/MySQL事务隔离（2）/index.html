@@ -1,0 +1,211 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>MySQL事务隔离（2） | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="到底是隔离还是不隔离假如现在有如下表：    id k    1 1   2 2   现在执行如下操作：  在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1。下面看具体原因。 在MySQL中，有两个视图概念： 第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。 另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL事务隔离（2）">
+<meta property="og:url" content="http://example.com/2023/04/02/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="到底是隔离还是不隔离假如现在有如下表：    id k    1 1   2 2   现在执行如下操作：  在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1。下面看具体原因。 在MySQL中，有两个视图概念： 第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。 另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-04-02T07:26:15.000Z">
+<meta property="article:modified_time" content="2023-04-14T13:59:33.999Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="MySQL45讲">
+<meta property="article:tag" content="事务">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/04/02/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB%EF%BC%882%EF%BC%89/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'MySQL事务隔离（2）',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-04-14 21:59:33'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">85</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">30</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">29</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">MySQL事务隔离（2）</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-04-02T07:26:15.000Z" title="Created 2023-04-02 15:26:15">2023-04-02</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-04-14T13:59:33.999Z" title="Updated 2023-04-14 21:59:33">2023-04-14</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/">MySQL</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E4%BA%8B%E5%8A%A1/">事务</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="MySQL事务隔离（2）"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h2 id="到底是隔离还是不隔离"><a href="#到底是隔离还是不隔离" class="headerlink" title="到底是隔离还是不隔离"></a>到底是隔离还是不隔离</h2><p>假如现在有如下表：</p>
+<table>
+<thead>
+<tr>
+<th>id</th>
+<th>k</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>1</td>
+<td>1</td>
+</tr>
+<tr>
+<td>2</td>
+<td>2</td>
+</tr>
+</tbody></table>
+<p>现在执行如下操作：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402142051361.png" alt="image-20230402142051361"></p>
+<p><strong>在可重复读的隔离下，这里面事务B读取到的k的值是3，而事务A读取到的k是1</strong>。下面看具体原因。</p>
+<p>在MySQL中，有两个视图概念：</p>
+<p>第一个是view，这里就是查询语句定义的虚拟表，在调用的时候执行查询语句并生成结果。</p>
+<p>另一个是InnoDB在实现MVCC时用到的一致性读视图，即consistent read view，用于支持RC（Read Committed，读提交）和RR（Repeatable Read，可重复读）隔离级别的实现。</p>
+<p>可重复读隔离主要用到第二个识图。</p>
+<h3 id="“快照”在MVCC里是怎么工作的？"><a href="#“快照”在MVCC里是怎么工作的？" class="headerlink" title="“快照”在MVCC里是怎么工作的？"></a>“快照”在MVCC里是怎么工作的？</h3><p>在可重复读隔离级别下，事务启动时就拍了个快照，这个快照是基于整个库的。但是这个快照并不需要拷贝整个数据库的数据，具体做法如下：</p>
+<p>InnoDB的每一个事务都有一个唯一的事务ID，叫作transaction id。它是在事务开始的时候向InnoDB的事务系统申请的，是按申请顺序严格递增的。</p>
+<p>而每一行的数据都是有多个版本。每次事务进行更新数据时，都会生成一个新的版本的数据，然后这个新数据会绑定这个事务ID，记为row trx_id。也就是说，数据表中的一行记录，其实可能有多个版本(row)，每个版本有自己的row trx_id，通过这个row trx_id可以知道是哪个事务更新的数据。</p>
+<p>一个具体的例子如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402144408772.png" alt="image-20230402144408772"></p>
+<p>这里V4是最新的版本，但是数据库只存了V4，它前面的版本V1和V2以及V3并不是真实存在的，而是每次需要的时候根据当前版本和undo log计算出来的。比如，需要V2的时候，就是通过V4依次执行U3、U2算出来。</p>
+<p>按照可重复读的定义，一个事务启动的时候，能够看到所有已经提交的事务。但是事务执行期间，其他事务的更新对他不可见。</p>
+<h4 id="具体实现"><a href="#具体实现" class="headerlink" title="具体实现"></a>具体实现</h4><p>InnoDB为每一个事务构造了一个数组，用来保存事务启动的瞬间，当前启动了但是还没提交的事务。</p>
+<p>通过这个数组，我们可以将系统中的所有事务划分为3个部分，小于数组中最小ID的是已经提交了的事务，高于数组最大值是还没开始的事务，数组中的是已经开始的但是还没提交的事务。如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230402152032322.png" alt="image-20230402152032322"></p>
+<p>针对当前事务，如果一个数据的row trx_id是在绿色区域，那么一定是可见的，如果在红色区域，则不可见。而处于黄色区域的数据，则分为两种情况，如果该row trx_id位于数组中，则说明该事务还没提交，那么就是不可见的，如果不在该数组中，说明已经提交了，则是可见的数据。这里可见得数据直接读取即可，不可见得数据是需要根据undo log进行回滚得数据。</p>
+<p>要注意这里的一个可能的误区，这个数组并不一定是连续的，比如它可以是[50, 53, 60, 62]这种，而不连续的部分说明事务已经提交了。</p>
+<p>通过这种设计，如果一个数据的row trx_id小于数组中得最小值，则直接按当前值读取，如果大于，则根据情况，看是否可见，如果不可见则需要根据undo log 进行回滚操作。</p>
+<h2 id="开头的问题"><a href="#开头的问题" class="headerlink" title="开头的问题"></a>开头的问题</h2><p>现在看开头的那个问题。假设事务A的id是100，那么事务B的id是101，事务C的id是102。假设id &#x3D; 1那一行的row trx_id的值是90。</p>
+<p>那么事务A中，事务创建的数组就只有 100，而事务B创建的数组有100，101。事务C创建的数组有100，101，102。</p>
+<p>那么从结果上看，值为(1，1)的数据版本号为90， (1，2)数据的版本号为102（事务C修改的）， (1，3)的数据版本号为101（事务B修改的）。</p>
+<p>所以事务A在执行查询操作时，发现数据（1，3）的版本号为102，高于数组最大值，是不可见的状态，所以他要退回，一直退到（1，1）这个状态，版本号为90，小于数组中的值，是可见的，所以事务A查到的k &#x3D; 1。</p>
+<p>同理，事务B在执行查找时，发现当前数据（1，3）的版本号为101，是它自己的版本，所以直接展示k &#x3D; 3。注意，这里展示k &#x3D; 3是因为直接展示了最终结果，在事务B修改操作时，把k的版本号改为了事务B的id。</p>
+<h2 id="更新逻辑"><a href="#更新逻辑" class="headerlink" title="更新逻辑"></a>更新逻辑</h2><p>这里针对上面事务B中的update语句将数据改为（1，3）做出解释：在事务B中，如果修改数据之前，执行一次查询操作，它读到的k的值的确是1，但此时的set k&#x3D;k+1是在（1,2）的基础上进行的操作，否则它将使得事务C的修改无效，导致数据不一致。</p>
+<h2 id="事务的可重复读是怎么实现的"><a href="#事务的可重复读是怎么实现的" class="headerlink" title="事务的可重复读是怎么实现的"></a>事务的可重复读是怎么实现的</h2><p>简单来说，就是读操作，需要判断当前数据版本是否可见，不可见就回滚到可见版本。而写操作，则直接在当前版本进行修改。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/MySQL45%E8%AE%B2/">MySQL45讲</a><a class="post-meta__tags" href="/tags/%E4%BA%8B%E5%8A%A1/">事务</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/04/03/Java/this%E5%BC%95%E7%94%A8%E9%80%83%E9%80%B8/" title="this引用逃逸"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">this引用逃逸</div></div></a></div><div class="next-post pull-right"><a href="/2023/04/02/Java/Java%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%85%B1%E4%BA%AB/" title="Java对象的共享"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">Java对象的共享</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2023/03/30/MySQL/MySQL%E4%BA%8B%E5%8A%A1%E9%9A%94%E7%A6%BB/" title="MySQL事务隔离"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-30</div><div class="title">MySQL事务隔离</div></div></a></div><div><a href="/2023/04/05/MySQL/MySQL%E4%B8%BA%E4%BB%80%E4%B9%88%E4%BC%9A%E5%8D%A1%E4%B8%80%E4%B8%8B/" title="MySQL为什么会卡一下"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-05</div><div class="title">MySQL为什么会卡一下</div></div></a></div><div><a href="/2023/04/01/MySQL/MySQL%E5%85%A8%E5%B1%80%E9%94%81%E5%92%8C%E8%A1%A8%E9%94%81/" title="MySQL全局锁和表锁"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-01</div><div class="title">MySQL全局锁和表锁</div></div></a></div><div><a href="/2023/04/18/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/" title="MySQL怎么保证数据不丢失"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-18</div><div class="title">MySQL怎么保证数据不丢失</div></div></a></div><div><a href="/2023/04/03/MySQL/MySQL%E6%99%AE%E9%80%9A%E7%B4%A2%E5%BC%95%E5%92%8C%E5%94%AF%E4%B8%80%E7%B4%A2%E5%BC%95/" title="MySQL普通索引和唯一索引"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-03</div><div class="title">MySQL普通索引和唯一索引</div></div></a></div><div><a href="/2023/04/19/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/" title="MySQL怎么保证主备一致"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-19</div><div class="title">MySQL怎么保证主备一致</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">85</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">30</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">29</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%88%B0%E5%BA%95%E6%98%AF%E9%9A%94%E7%A6%BB%E8%BF%98%E6%98%AF%E4%B8%8D%E9%9A%94%E7%A6%BB"><span class="toc-number">1.</span> <span class="toc-text">到底是隔离还是不隔离</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E2%80%9C%E5%BF%AB%E7%85%A7%E2%80%9D%E5%9C%A8MVCC%E9%87%8C%E6%98%AF%E6%80%8E%E4%B9%88%E5%B7%A5%E4%BD%9C%E7%9A%84%EF%BC%9F"><span class="toc-number">1.1.</span> <span class="toc-text">“快照”在MVCC里是怎么工作的？</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%85%B7%E4%BD%93%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.1.1.</span> <span class="toc-text">具体实现</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%BC%80%E5%A4%B4%E7%9A%84%E9%97%AE%E9%A2%98"><span class="toc-number">2.</span> <span class="toc-text">开头的问题</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E6%9B%B4%E6%96%B0%E9%80%BB%E8%BE%91"><span class="toc-number">3.</span> <span class="toc-text">更新逻辑</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E4%BA%8B%E5%8A%A1%E7%9A%84%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E6%98%AF%E6%80%8E%E4%B9%88%E5%AE%9E%E7%8E%B0%E7%9A%84"><span class="toc-number">4.</span> <span class="toc-text">事务的可重复读是怎么实现的</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number"></span> <span class="toc-text">参考</span></a></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/23/MySQL/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/" title="MySQL读写分离存在的问题">MySQL读写分离存在的问题</a><time datetime="2023-04-23T02:49:01.000Z" title="Created 2023-04-23 10:49:01">2023-04-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/22/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/" title="高并发系统的通用设计方案">高并发系统的通用设计方案</a><time datetime="2023-04-22T10:07:31.000Z" title="Created 2023-04-22 18:07:31">2023-04-22</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/21/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E7%AD%96%E7%95%A5/" title="超越物理内存的策略">超越物理内存的策略</a><time datetime="2023-04-21T12:47:18.000Z" title="Created 2023-04-21 20:47:18">2023-04-21</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/20/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E6%9C%BA%E5%88%B6/" title="超越物理内存的机制">超越物理内存的机制</a><time datetime="2023-04-20T14:04:38.000Z" title="Created 2023-04-20 22:04:38">2023-04-20</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/20/Java/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/" title="Synchronized的使用">Synchronized的使用</a><time datetime="2023-04-20T07:27:09.000Z" title="Created 2023-04-20 15:27:09">2023-04-20</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
