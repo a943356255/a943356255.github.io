@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-23T05:43:57.915Z</updated>
+  <updated>2023-04-24T12:24:03.314Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,94 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何提高系统性能</title>
+    <link href="http://example.com/2023/04/24/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E7%B3%BB%E7%BB%9F%E6%80%A7%E8%83%BD/"/>
+    <id>http://example.com/2023/04/24/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E7%B3%BB%E7%BB%9F%E6%80%A7%E8%83%BD/</id>
+    <published>2023-04-24T11:50:36.000Z</published>
+    <updated>2023-04-24T12:24:03.314Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="性能的度量指标"><a href="#性能的度量指标" class="headerlink" title="性能的度量指标"></a>性能的度量指标</h1><p>1、平均值</p><p>平均值是把这段时间所有请求的响应时间数据相加，再除以总请求数。但是它存在一定的问题，可能这段时间有10000个请求，只有100个响应时间为100ms，其他都是1s，这样算下来平均值不太大，但是系统是有问题的。</p><p>2、最大值</p><p>即找到一段时间请求的响应时间的最大值。但是又过于敏感，如果只有一个请求响应是100ms，那么最大值就是100。</p><p>3、分位值</p><p>分位值有很多种，比如 90 分位、95 分位、75 分位。以 90 分位为例，我们把这段时间请求的响应时间从小到大排序，假如一共有 100 个请求，那么排在第 90 位的响应时间就是 90 分位值。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424200201337.png" alt="image-20230424200201337"></p><h1 id="高并发下的性能优化"><a href="#高并发下的性能优化" class="headerlink" title="高并发下的性能优化"></a>高并发下的性能优化</h1><p>加入说现在的系统中只有一个处理核心，执行的响应时间都在10ms以内，我们该如何优化呢？</p><h2 id="1-提高系统的处理核心数"><a href="#1-提高系统的处理核心数" class="headerlink" title="1. 提高系统的处理核心数"></a>1. 提高系统的处理核心数</h2><p>当提高了系统的处理核心数，那么我们就可以开更多的线程来同时处理请求。那么系统的吞吐量会变得大一点。但是并不意味着无限制的增加处理核心数可以一直的提高性能。随着并发进程数的增加，并行的任务对于系统资源的争抢也会愈发严重。在某一个临界点上继续增加并发进程数，反而会造成系统性能的下降。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424201739627.png" alt="image-20230424201739627" style="zoom: 67%;" /><h2 id="2、减少单次任务响应时间"><a href="#2、减少单次任务响应时间" class="headerlink" title="2、减少单次任务响应时间"></a>2、减少单次任务响应时间</h2><p>想要减少任务的响应时间，首先要看你的系统是 CPU 密集型还是 IO 密集型的。不同类型的系统性能优化方式不尽相同。</p><p>CPU 密集型系统中，需要处理大量的 CPU 运算，那么选用更高效的算法或者减少运算次数就是这类系统重要的优化手段。</p><p>IO 密集型系统指的是系统的大部分操作是在等待 IO 完成，这里 IO 指的是磁盘 IO 和网络 IO。我们熟知的系统大部分都属于 IO 密集型，比如数据库系统、缓存系统、Web 系统。</p><p>比方说，如果是数据库访问慢，那么就要看是不是有锁表的情况、是不是有全表扫描、索引加的是否合适、是否有 JOIN 操作、需不需要加缓存，等等；如果是网络的问题，就要看网络的参数是否有优化的空间，抓包来看是否有大量的超时重传，网卡是否有大量丢包等。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计40问》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;性能的度量指标&quot;&gt;&lt;a href=&quot;#性能的度量指标&quot; class=&quot;headerlink&quot; title=&quot;性能的度量指标&quot;&gt;&lt;/a&gt;性能的度量指标&lt;/h1&gt;&lt;p&gt;1、平均值&lt;/p&gt;
+&lt;p&gt;平均值是把这段时间所有请求的响应时间数据相加，再除以总请求数。但是它存在一</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>临时表为什么可以重名</title>
+    <link href="http://example.com/2023/04/24/MySQL/%E4%B8%B4%E6%97%B6%E8%A1%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E9%87%8D%E5%90%8D/"/>
+    <id>http://example.com/2023/04/24/MySQL/%E4%B8%B4%E6%97%B6%E8%A1%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E9%87%8D%E5%90%8D/</id>
+    <published>2023-04-24T08:26:40.000Z</published>
+    <updated>2023-04-24T10:47:11.650Z</updated>
+    
+    <content type="html"><![CDATA[<p> 临时表的一些特性：</p><p>1、创建语法：create temporary table</p><p>2、只有创建该表的session才可以访问，其他线程无法访问</p><p>3、临时表可以与普通表重名</p><p>4、session中有同名的临时表和普通表时，操作的都是临时表</p><h1 id="临时表应用"><a href="#临时表应用" class="headerlink" title="临时表应用"></a>临时表应用</h1><p>在分库分表的场景下，我们现在假设某一个大表ht 按照字段f分为了1024个表，分布在32个数据库上。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424170242139.png" alt="image-20230424170242139" style="zoom: 50%;" /><p>这种设计下，如果我们执行如下sql：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select v from ht where f = N;</span><br></pre></td></tr></table></figure><p>因为该sql使用了分表的字段f，那么我们就可以直接找到数据所在的表。</p><p>但是如果是如下sql：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select v from ht where k &gt;= M order by t_modified desc limit 100;</span><br></pre></td></tr></table></figure><p>该sql没有使用到分表的字段f，那么只能到所有的分区中去查找满足条件的所有行，然后统一做order by 的操作。</p><p>这种情况下，有两种方法：</p><p>1、把所有的数据全部查到，然后交给代理层去做排序。这种方法的优点是MySQL查询会很快，但是需要代理层多做额外的处理。</p><p>2、把各个分库拿到的数据，汇总到一个MySQL实例的一个表中，然后在这个汇总实例上做逻辑操作。流程如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424171857340.png" alt="image-20230424171857340" style="zoom:67%;" /><h1 id="为什么临时表可以重名？"><a href="#为什么临时表可以重名？" class="headerlink" title="为什么临时表可以重名？"></a>为什么临时表可以重名？</h1><p>MySQL维护数据表，除了物理上要有文件外，内存里面也有一套机制区别不同的表，每个表都对应一个table_def_key。</p><ul><li>一个普通表的table_def_key的值是由“库名+表名”得到的，所以如果你要在同一个库下创建两个同名的普通表，创建第二个表的过程中就会发现table_def_key已经存在了。</li><li>而对于临时表，table_def_key在“库名+表名”基础上，又加入了“server_id+thread_id”。</li></ul><p>也就是说，session A和sessionB创建的两个临时表t1，它们的table_def_key不同，磁盘文件名也不同，因此可以并存。</p><p>在实现上，每个线程都维护了自己的临时表链表。这样每次session内操作表的时候，先遍历链表，检查是否有这个名字的临时表，如果有就优先操作临时表，如果没有再操作普通表；在session结束的时候，对链表里的每个临时表，执行 “DROP TEMPORARY TABLE +表名”操作。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 临时表的一些特性：&lt;/p&gt;
+&lt;p&gt;1、创建语法：create temporary table&lt;/p&gt;
+&lt;p&gt;2、只有创建该表的session才可以访问，其他线程无法访问&lt;/p&gt;
+&lt;p&gt;3、临时表可以与普通表重名&lt;/p&gt;
+&lt;p&gt;4、session中有同名的临时表和普通表时，</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    <category term="其他" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E5%85%B6%E4%BB%96/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>流水线可靠数据传输协议</title>
+    <link href="http://example.com/2023/04/24/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE/"/>
+    <id>http://example.com/2023/04/24/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE/</id>
+    <published>2023-04-24T06:24:35.000Z</published>
+    <updated>2023-04-24T08:11:32.420Z</updated>
+    
+    <content type="html"><![CDATA[<p>rdt3.0虽然是一个正确的协议，但是很多人对于它的性能并不是很满意，因为它基于停等协议。而且是发送一个报文，就需要等待对方回复后才可以发送下一个，这很大程度上会影响性能。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424143036576.png" alt="image-20230424143036576" style="zoom:67%;" /><p>对此最简单的解决办法是，发送一个报文段后并不等待回复，而是继续发送，累计N个报文段后再等待对方回复，这样效率就会提高。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424143059781.png" alt="image-20230424143059781" style="zoom:67%;" /><p>这种技术也被称为流水线。有如下要求：</p><p>1、必须增加序号范围，而且每个分组有一个唯一的序号，用于确认是否正确传输。</p><p>2、协议的发送方和接收方都需要缓存多个分组，发送方需最低要缓存已经发送的但是对方还没确认的报文，用于重新发送。</p><p>3、解决流水线的差错恢复有两种基本方法：回退N步和选择重传</p><h1 id="回退N步（GBN）"><a href="#回退N步（GBN）" class="headerlink" title="回退N步（GBN）"></a>回退N步（GBN）</h1><p>该协议中，允许发送方发送N个分组而不需要等待确认。这里的N一般称为窗口长度，如果窗口里面的数据都没有被确认，则无法继续发送，如果有数据确认，则窗口向前移动，继续发送数据。如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424144240644.png" alt="image-20230424144240644" style="zoom:80%;" /><p>该协议也被称为滑动窗口协议。该协议的发送方必须响应以下三类事件：</p><p>1、上层的调用。当上层调用时，发送方先检查窗口是否已满，即是否有N个数据未确认。如果没满，就产生分组并且发送，并更新变量。如果满了，就告诉上层窗口已满，让它过一段时间重试。</p><p>2、接受一个ACK。该协议中对序号为n的分组采用累计确认的方式，表明接收方已经接收到序号为n以前包括序号为n的所有分组。</p><p>3、超时事件。如果发送的数据超过一定时间还未收到回复，那么就需要重传所有已经发送但是还未确认收到的数据。</p><p>接收方也会有对应的要求：</p><p>如果接受方正确接收到一个分组为n的分组（即上一次交给应用层的分组号是n - 1），则会给发送方回复一个ACK，并将分组交给上层，其他情况都会丢弃该分组。因为接收方发送序号为n的ACK，意味着n以及n以前的数据都正确接收。</p><p>即接收方的逻辑如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424145709764.png" alt="image-20230424145709764" style="zoom:67%;" /><h1 id="选择重传"><a href="#选择重传" class="headerlink" title="选择重传"></a>选择重传</h1><p>上述协议虽然提升了性能，但是也存在一些问题。比如，当窗口和带宽的时延比较大的时候，中间有一个分组的差错，就会导致大量的重传。</p><p>而选择重传就是只重传错误的分组，而不是重传某一个错误分组以后的所有分组。该协议的实现需要接收方也缓存一部分的数据，而且也要有窗口。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424151809822.png" alt="image-20230424151809822" style="zoom:67%;" /><p>具体来说就是缓存那些乱序到达的数据，比如现在已经确认接收了需要为3的分组，而分组4丢失了，此时又接收到了分组5以及后续的数据。此时分组5以及以后的都会被缓存，直到接收到4后，才会从缓存中按序读取，然后交付给上层。具体过程如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424151833002.png" alt="image-20230424151833002"></p><p>由上图可以看出，发送方和接收方的窗口内的数据并不总是一样的，这也就会导致以下问题：</p><h2 id="如何判断一个分组是重传还是一个新的分组呢？"><a href="#如何判断一个分组是重传还是一个新的分组呢？" class="headerlink" title="如何判断一个分组是重传还是一个新的分组呢？"></a>如何判断一个分组是重传还是一个新的分组呢？</h2><p>考虑下面例子中可能发生的情况，该例有包括4个分组序号0、1、2、3的有限序号范围且窗口长度为3。假定发送了分组0至2,并在接收方被正确接收且确认了。此时，接收方窗口落在第4、5、6个分组上，其序号分别为3、0、1。</p><p>现在考虑两种情况，第一种如下图：</p><p>对前3个分组的ACK丢失，因此发送方重传这些分组，接收方下一步要接收序号为0的分组，而他期望的分组却是序号为3的，而且它无法发现这是重传的前三个已经接收的分组，而会当作是分组3丢失，等待重传3，而接收传送过来的0和1，将他们放在缓存当中。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424152342787.png" alt="image-20230424152342787" style="zoom:67%;" /><p>下图的情况是，对前3个分组的ACK都被正确交付。因此发送方向前移动窗口并发送第4、5、6个分组，其序号分别为3、0、10序号为3的分组丢失，但序号为0的分组到达（一个包含新数据的分组）。</p><p>这时候接收方收到序号为0的分组时，他无法判断发送方是重发自己已经接收的序号0还是新发送的序号为0的分组。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424152417252.png" alt="image-20230424152417252" style="zoom:67%;" /><p>显然，窗口长度比序号空间小1时协议无法工作。窗口长度必须小于或等于序号空间大小的一半。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;rdt3.0虽然是一个正确的协议，但是很多人对于它的性能并不是很满意，因为它基于停等协议。而且是发送一个报文，就需要等待对方回复后才可以发送下一个，这很大程度上会影响性能。&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-chon</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL读写分离存在的问题</title>
@@ -484,8 +572,8 @@
   
   <entry>
     <title>地址转换</title>
-    <link href="http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
-    <id>http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
+    <link href="http://example.com/2023/04/16/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
+    <id>http://example.com/2023/04/16/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
     <published>2023-04-16T09:35:58.000Z</published>
     <updated>2023-04-18T01:43:09.564Z</updated>
     
@@ -509,90 +597,6 @@
     
     
     <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL的next-key lock</title>
-    <link href="http://example.com/2023/04/16/MySQL/MySQL%E7%9A%84next-key%20lock/"/>
-    <id>http://example.com/2023/04/16/MySQL/MySQL%E7%9A%84next-key%20lock/</id>
-    <published>2023-04-16T07:10:20.000Z</published>
-    <updated>2023-04-16T08:31:50.128Z</updated>
-    
-    <content type="html"><![CDATA[<p>InnoDB引擎为了解决幻读带来的问题，引入了间隙锁。而间隙锁和行锁组合起来叫做next-key lock，他是一个左开右闭的区间，代表锁住对应数据行以及数据行之间的间隙。</p><p>比如现在有两行数据，（5，5，5）和（10，10，10）。在可重复读得隔离级别下执行如下sql ，，</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select * from table where id = 7</span><br></pre></td></tr></table></figure><p>就会锁住(5, 10]之间的间隙，以及第（10，10，10）这一行。因为锁是加在索引上面，而索引是有序的，所以需要保证这两条数据间没有新的数据插入。</p><p>在《MySQL45讲》中给出了加锁的一些规则：</p><ol><li>原则1：加锁的基本单位是next-key lock。希望你还记得，next-key lock是前开后闭区间。</li><li>原则2：查找过程中访问到的对象才会加锁。</li><li>优化1：索引上的等值查询，给唯一索引加锁的时候，next-key lock退化为行锁。</li><li>优化2：索引上的等值查询，向右遍历时且最后一个值不满足等值条件的时候（比如查询id &#x3D; 5，而最后一个值是id &#x3D; 10，那么就会变为间隙锁），next-key lock退化为间隙锁。</li><li>一个bug：唯一索引上的范围查询会访问到不满足条件的第一个值为止。</li></ol><p>假如现在有如下表：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">CREATE TABLE `t` (</span><br><span class="line">  `id` int(11) NOT NULL,</span><br><span class="line">  `c` int(11) DEFAULT NULL,</span><br><span class="line">  `d` int(11) DEFAULT NULL,</span><br><span class="line">  PRIMARY KEY (`id`),</span><br><span class="line">  KEY `c` (`c`)</span><br><span class="line">) ENGINE=InnoDB;</span><br><span class="line"></span><br><span class="line">insert into t values(0,0,0),(5,5,5),</span><br><span class="line">(10,10,10),(15,15,15),(20,20,20),(25,25,25);</span><br></pre></td></tr></table></figure><p>下面我们看一些具体的例子。</p><h1 id="等值查询间隙锁"><a href="#等值查询间隙锁" class="headerlink" title="等值查询间隙锁"></a>等值查询间隙锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152532725.png" alt="image-20230416152532725"></p><p>课程中讲的是：</p><p>1、根据原则1，加锁单位是next-key lock，session A加锁范围就是(5,10]；</p><p>2、同时根据优化2，这是一个等值查询(id&#x3D;7)，而id&#x3D;10不满足查询条件，next-key lock退化成间隙锁，因此最终加锁的范围是(5,10)。</p><p>所以插入（8，8，8）失败，而update10成功。</p><p>这里有一个疑问：为什么没有根据优化1，将（5，10]的next-key lock转变为行锁呢？</p><p>个人理解：虽然是唯一索引的等值操作，但是查询条件是id &#x3D; 7，而表中的值是id &#x3D; 5和 id &#x3D; 10这两条记录，并不相等，所以没有退化成行锁。</p><h1 id="非唯一索引等值锁"><a href="#非唯一索引等值锁" class="headerlink" title="非唯一索引等值锁"></a>非唯一索引等值锁</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416152814309.png" alt="image-20230416152814309"></p><p>这个例子中，由于数据是（0，0，0）（5，5，5）（10，10，10），而查询条件是c &#x3D; 5，所以会先在（0，5]之间加上next-key lock。</p><p>但是c是非唯一索引，所以需要遍历到不满足条件的为止，也就是说会访问到c &#x3D; 10这一行。所以还会给（5，10]加上锁，但是该锁最后一行c &#x3D; 10并不满足c &#x3D; 5的查询条件，所以会退化为间隙锁，也就是（5，10），并不锁c &#x3D; 10这一行。</p><p>而这个查询语走索引c，却只查询了id，恰好是覆盖索引，并不会回表，也就是说只锁了索引c，而没有锁索引id，那么意味着sessionB要操作的数据并没有加锁，所以B成功了，而C失败了。</p><h1 id="主键索引范围锁"><a href="#主键索引范围锁" class="headerlink" title="主键索引范围锁"></a>主键索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416154441303.png" alt="image-20230416154441303" style="zoom: 50%;" /><p>sessionA会先找到id &#x3D; 5这一行，然后是id &#x3D; 10这一行，所以会加（5，10]的next-key lock。但是id &#x3D; 10满足了查询条件，所以这个锁会退化为行锁，只锁id &#x3D; 10这一行。</p><p>但是查询还有第二个条件id  &lt;  11，则会继续往后走，查找到id &#x3D; 15这一行。所以会加（10，15]的next-key lock。由于查询条件id &lt; 11在id &#x3D; 15这一行不满足，所以无法退化成间隙锁，也即是说15这一行也会被锁住。就会导致如图的情况。</p><h1 id="非唯一索引范围锁"><a href="#非唯一索引范围锁" class="headerlink" title="非唯一索引范围锁"></a>非唯一索引范围锁</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416160330625.png" alt="image-20230416160330625" style="zoom:50%;" /><p>这个例子中，由于查询所有的值，所以走索引c需要回表。意味着不仅要锁索引c，也要锁id。</p><p>在第一次用c&#x3D;10定位记录的时候，索引c上加了(5,10]这个next-key lock后，由于索引c是非唯一索引，没有优化规则，也就是说不会变为行锁，因此最终sesion A加的锁是，索引c上的(5,10] 和(10,15] 这两个next-key lock。</p><p>所以插入8 和修改c &#x3D; 15也都会被阻塞。</p><h1 id="非唯一索引上存在”等值”的例子"><a href="#非唯一索引上存在”等值”的例子" class="headerlink" title="非唯一索引上存在”等值”的例子"></a>非唯一索引上存在”等值”的例子</h1><p>假如新插入了一行记录（30，10，30）那么索引c就会变为如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162231844.png" alt="image-20230416162231844" style="zoom: 67%;" /><p>那么如下操作：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416162440432.png" alt="image-20230416162440432"></p><p>这里会加5，10以及10，15的锁，然后不包括端点。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;InnoDB引擎为了解决幻读带来的问题，引入了间隙锁。而间隙锁和行锁组合起来叫做next-key lock，他是一个左开右闭的区间，代表锁住对应数据行以及数据行之间的间隙。&lt;/p&gt;
-&lt;p&gt;比如现在有两行数据，（5，5，5）和（10，10，10）。在可重复读得隔离级别下执行如</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="锁" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E9%94%81/"/>
-    
-    
-    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>运输层概述</title>
-    <link href="http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/"/>
-    <id>http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/</id>
-    <published>2023-04-16T03:04:45.000Z</published>
-    <updated>2023-04-18T01:42:32.199Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="概述"><a href="#概述" class="headerlink" title="概述"></a>概述</h1><p>运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。</p><p>在发送端，运输层将从发送应用程序进程接收到的报文转换成运输层分组，该分组称为<strong>运输层报文段</strong>（segment）。</p><p>转换的方法：</p><p>1、将应用报文划分为较小的块，并为每块加上一个运输层首部以生成运输层报文段。</p><p>2、然后，在发送端系统中，运输层将这些报文段传递给网络层，网路层将其封装成网络层分组（即数据报）并向目的地发送。</p><h1 id="运输层和网络层关系"><a href="#运输层和网络层关系" class="headerlink" title="运输层和网络层关系"></a>运输层和网络层关系</h1><p>运输层位于网络层之上。网络层提供主机到主机的逻辑通信，而运输层提供的是进程到进程的逻辑通信。</p><p>用书上的一个例子，场景是：假如现在有两个家庭A和B，每个家庭有4个孩子。而每个月两家孩子都会互相的写信。家庭A有一个孩子负责收集所有孩子的信件，然后送给邮局。家庭B同样有一个孩子来做这件事情。家庭A的孩子设为C，家庭B的孩子设为D。</p><p>在这个例子中，从这些孩子的角度来看，孩子C和孩子D就为他们提供了逻辑通信。因为其他孩子只需要把信交给孩子C和D，剩余事情都无需关心。邮局则提供了两个家庭间的逻辑通信，因为孩子C和D只需要把信交给邮局，其他的也无需关心。</p><p>所以可以做以下类比：</p><p>1、应用层报文 &#x3D; 信封上的字符</p><p>2、进程 &#x3D; 这群孩子 （他们是通信主体）</p><p>3、主机（端系统） &#x3D;  家庭  </p><p>4、运输层协议  &#x3D;  孩子C和D</p><p>5、网络层协议  &#x3D;  邮政服务</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;概述&quot;&gt;&lt;a href=&quot;#概述&quot; class=&quot;headerlink&quot; title=&quot;概述&quot;&gt;&lt;/a&gt;概述&lt;/h1&gt;&lt;p&gt;运输层协议为运行在不同端的应用进程提供逻辑上的通信，该协议是在端系统中实现，而不是在路由器中实现。&lt;/p&gt;
-&lt;p&gt;在发送端，运输层将从发送应</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>CDN</title>
-    <link href="http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CDN/"/>
-    <id>http://example.com/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/CDN/</id>
-    <published>2023-04-16T01:37:45.000Z</published>
-    <updated>2023-04-18T01:43:39.862Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="内容分发网络CDN"><a href="#内容分发网络CDN" class="headerlink" title="内容分发网络CDN"></a>内容分发网络CDN</h1><p>现阶段，很多视频公司没日需要给用户推送大量的视频，这些视频如果都从公司的主服务器推送出去，则会给主服务器造成压力，而且由于区域原因，还会带来很高的时延。</p><p>CDN就是为了解决上面的问题。CDN服务器可以分布在多个地区，它存储那些视频以及图片的副本，用于用户请求时将视频等内容响应给用户。可以减小主服务器带宽压力，而且根据用户地理位置，分配不同的CDN，可以减少时延。</p><p>CDN采用集群部署，如果用户请求的CDN集群没有用户的目标视频，则该CDN集群会从中心仓库或者另一个集群搜索该视频，然后一边给用户传输，一边缓存在本集群中。</p><h1 id="CDN操作"><a href="#CDN操作" class="headerlink" title="CDN操作"></a>CDN操作</h1><p>当用于从浏览器请求某视频时，CDN需要先截获用户请求，才能确定适合用户的CDN集群，以及将用户请求重定向到该集群中。</p><h2 id="如何截获和重定向"><a href="#如何截获和重定向" class="headerlink" title="如何截获和重定向"></a>如何截获和重定向</h2><p>截获请求和重定向需要依赖于DNS。假如公司A用了公司B提供的CDN服务，那么一个大概的流程如下：</p><p>1、用户访问公司A的网站，点击了一个视频，那么他会向对应的域名发起请求（例如请求<a href="https://www.bilibili.com/video/xxx%EF%BC%89%EF%BC%8C%E8%8E%B7%E5%8F%96%E8%AF%A5%E8%A7%86%E9%A2%91%E3%80%82">https://www.bilibili.com/video/xxx），获取该视频。</a></p><p>2、用户的本地DNS服务器会将请求转发到权威DNS服务器，权威DNS服务器发现了域名中的video，那么它并不会向用户返回一个IP地址，而是返回一个B公司的主机名。</p><p>3、然后，该请求就进入了B公司专用的DNS设施。然后用户本地DNS会发起第二个请求，此时就是直接向公司B发起的DNS请求，这个请求会得到一个指向B公司的ip地址，然后用户可以从这里获取到视频的信息。</p><p>从这里，用户发起向公司A的请求就被转变为向公司B的CDN服务器的请求。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230416102329355.png" alt="image-20230416102329355" style="zoom:67%;" /><h2 id="集群选择策略"><a href="#集群选择策略" class="headerlink" title="集群选择策略"></a>集群选择策略</h2><p>在上面的重定向过程中，公司B的CDN服务器是可以知道用户本地DNS地址，那么他就可以根据该ip来为用户分配最为临近的CDN集群。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络导论：自顶向下方法》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;内容分发网络CDN&quot;&gt;&lt;a href=&quot;#内容分发网络CDN&quot; class=&quot;headerlink&quot; title=&quot;内容分发网络CDN&quot;&gt;&lt;/a&gt;内容分发网络CDN&lt;/h1&gt;&lt;p&gt;现阶段，很多视频公司没日需要给用户推送大量的视频，这些视频如果都从公司的主服务器推送</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="应用层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%BA%94%E7%94%A8%E5%B1%82/"/>
-    
     
   </entry>
   

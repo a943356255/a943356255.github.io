@@ -1,0 +1,204 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>流水线可靠数据传输协议 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="rdt3.0虽然是一个正确的协议，但是很多人对于它的性能并不是很满意，因为它基于停等协议。而且是发送一个报文，就需要等待对方回复后才可以发送下一个，这很大程度上会影响性能。   对此最简单的解决办法是，发送一个报文段后并不等待回复，而是继续发送，累计N个报文段后再等待对方回复，这样效率就会提高。如下图所示：   这种技术也被称为流水线。有如下要求： 1、必须增加序号范围，而且每个分组有一个唯一的序">
+<meta property="og:type" content="article">
+<meta property="og:title" content="流水线可靠数据传输协议">
+<meta property="og:url" content="http://example.com/2023/04/24/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="rdt3.0虽然是一个正确的协议，但是很多人对于它的性能并不是很满意，因为它基于停等协议。而且是发送一个报文，就需要等待对方回复后才可以发送下一个，这很大程度上会影响性能。   对此最简单的解决办法是，发送一个报文段后并不等待回复，而是继续发送，累计N个报文段后再等待对方回复，这样效率就会提高。如下图所示：   这种技术也被称为流水线。有如下要求： 1、必须增加序号范围，而且每个分组有一个唯一的序">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-04-24T06:24:35.000Z">
+<meta property="article:modified_time" content="2023-04-24T08:11:32.420Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="运输层">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/04/24/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '流水线可靠数据传输协议',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-04-24 16:11:32'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">88</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">30</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">29</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">流水线可靠数据传输协议</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-04-24T06:24:35.000Z" title="Created 2023-04-24 14:24:35">2023-04-24</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-04-24T08:11:32.420Z" title="Updated 2023-04-24 16:11:32">2023-04-24</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/">计算机网络</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/">运输层</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="流水线可靠数据传输协议"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>rdt3.0虽然是一个正确的协议，但是很多人对于它的性能并不是很满意，因为它基于停等协议。而且是发送一个报文，就需要等待对方回复后才可以发送下一个，这很大程度上会影响性能。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424143036576.png" alt="image-20230424143036576" style="zoom:67%;" />
+
+<p>对此最简单的解决办法是，发送一个报文段后并不等待回复，而是继续发送，累计N个报文段后再等待对方回复，这样效率就会提高。如下图所示：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424143059781.png" alt="image-20230424143059781" style="zoom:67%;" />
+
+<p>这种技术也被称为流水线。有如下要求：</p>
+<p>1、必须增加序号范围，而且每个分组有一个唯一的序号，用于确认是否正确传输。</p>
+<p>2、协议的发送方和接收方都需要缓存多个分组，发送方需最低要缓存已经发送的但是对方还没确认的报文，用于重新发送。</p>
+<p>3、解决流水线的差错恢复有两种基本方法：回退N步和选择重传</p>
+<h1 id="回退N步（GBN）"><a href="#回退N步（GBN）" class="headerlink" title="回退N步（GBN）"></a>回退N步（GBN）</h1><p>该协议中，允许发送方发送N个分组而不需要等待确认。这里的N一般称为窗口长度，如果窗口里面的数据都没有被确认，则无法继续发送，如果有数据确认，则窗口向前移动，继续发送数据。如下图所示：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424144240644.png" alt="image-20230424144240644" style="zoom:80%;" />
+
+<p>该协议也被称为滑动窗口协议。该协议的发送方必须响应以下三类事件：</p>
+<p>1、上层的调用。当上层调用时，发送方先检查窗口是否已满，即是否有N个数据未确认。如果没满，就产生分组并且发送，并更新变量。如果满了，就告诉上层窗口已满，让它过一段时间重试。</p>
+<p>2、接受一个ACK。该协议中对序号为n的分组采用累计确认的方式，表明接收方已经接收到序号为n以前包括序号为n的所有分组。</p>
+<p>3、超时事件。如果发送的数据超过一定时间还未收到回复，那么就需要重传所有已经发送但是还未确认收到的数据。</p>
+<p>接收方也会有对应的要求：</p>
+<p>如果接受方正确接收到一个分组为n的分组（即上一次交给应用层的分组号是n - 1），则会给发送方回复一个ACK，并将分组交给上层，其他情况都会丢弃该分组。因为接收方发送序号为n的ACK，意味着n以及n以前的数据都正确接收。</p>
+<p>即接收方的逻辑如下图所示：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424145709764.png" alt="image-20230424145709764" style="zoom:67%;" />
+
+<h1 id="选择重传"><a href="#选择重传" class="headerlink" title="选择重传"></a>选择重传</h1><p>上述协议虽然提升了性能，但是也存在一些问题。比如，当窗口和带宽的时延比较大的时候，中间有一个分组的差错，就会导致大量的重传。</p>
+<p>而选择重传就是只重传错误的分组，而不是重传某一个错误分组以后的所有分组。该协议的实现需要接收方也缓存一部分的数据，而且也要有窗口。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424151809822.png" alt="image-20230424151809822" style="zoom:67%;" />
+
+<p>具体来说就是缓存那些乱序到达的数据，比如现在已经确认接收了需要为3的分组，而分组4丢失了，此时又接收到了分组5以及后续的数据。此时分组5以及以后的都会被缓存，直到接收到4后，才会从缓存中按序读取，然后交付给上层。具体过程如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424151833002.png" alt="image-20230424151833002"></p>
+<p>由上图可以看出，发送方和接收方的窗口内的数据并不总是一样的，这也就会导致以下问题：</p>
+<h2 id="如何判断一个分组是重传还是一个新的分组呢？"><a href="#如何判断一个分组是重传还是一个新的分组呢？" class="headerlink" title="如何判断一个分组是重传还是一个新的分组呢？"></a>如何判断一个分组是重传还是一个新的分组呢？</h2><p>考虑下面例子中可能发生的情况，该例有包括4个分组序号0、1、2、3的有限序号范围且窗口长度为3。假定发送了分组0至2,并在接收方被正确接收且确认了。此时，接收方窗口落在第4、5、6个分组上，其序号分别为3、0、1。</p>
+<p>现在考虑两种情况，第一种如下图：</p>
+<p>对前3个分组的ACK丢失，因此发送方重传这些分组，接收方下一步要接收序号为0的分组，而他期望的分组却是序号为3的，而且它无法发现这是重传的前三个已经接收的分组，而会当作是分组3丢失，等待重传3，而接收传送过来的0和1，将他们放在缓存当中。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424152342787.png" alt="image-20230424152342787" style="zoom:67%;" />
+
+<p>下图的情况是，对前3个分组的ACK都被正确交付。因此发送方向前移动窗口并发送第4、5、6个分组，其序号分别为3、0、10序号为3的分组丢失，但序号为0的分组到达（一个包含新数据的分组）。</p>
+<p>这时候接收方收到序号为0的分组时，他无法判断发送方是重发自己已经接收的序号0还是新发送的序号为0的分组。</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424152417252.png" alt="image-20230424152417252" style="zoom:67%;" />
+
+<p>显然，窗口长度比序号空间小1时协议无法工作。窗口长度必须小于或等于序号空间大小的一半。</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E8%BF%90%E8%BE%93%E5%B1%82/">运输层</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/04/24/MySQL/%E4%B8%B4%E6%97%B6%E8%A1%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E9%87%8D%E5%90%8D/" title="临时表为什么可以重名"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">临时表为什么可以重名</div></div></a></div><div class="next-post pull-right"><a href="/2023/04/23/MySQL/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/" title="MySQL读写分离存在的问题"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">MySQL读写分离存在的问题</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UDP/" title="UDP"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-20</div><div class="title">UDP</div></div></a></div><div><a href="/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8E%9F%E7%90%86/" title="可靠数据传输原理"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-20</div><div class="title">可靠数据传输原理</div></div></a></div><div><a href="/2023/04/17/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%A4%9A%E8%B7%AF%E5%88%86%E8%A7%A3%E4%B8%8E%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/" title="计网中的多路分解与多路复用"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-17</div><div class="title">计网中的多路分解与多路复用</div></div></a></div><div><a href="/2023/04/16/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82%E6%A6%82%E8%BF%B0/" title="运输层概述"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-04-16</div><div class="title">运输层概述</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">88</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">30</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">29</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%9B%9E%E9%80%80N%E6%AD%A5%EF%BC%88GBN%EF%BC%89"><span class="toc-number">1.</span> <span class="toc-text">回退N步（GBN）</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%80%89%E6%8B%A9%E9%87%8D%E4%BC%A0"><span class="toc-number">2.</span> <span class="toc-text">选择重传</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%88%A4%E6%96%AD%E4%B8%80%E4%B8%AA%E5%88%86%E7%BB%84%E6%98%AF%E9%87%8D%E4%BC%A0%E8%BF%98%E6%98%AF%E4%B8%80%E4%B8%AA%E6%96%B0%E7%9A%84%E5%88%86%E7%BB%84%E5%91%A2%EF%BC%9F"><span class="toc-number">2.1.</span> <span class="toc-text">如何判断一个分组是重传还是一个新的分组呢？</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/24/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E7%B3%BB%E7%BB%9F%E6%80%A7%E8%83%BD/" title="如何提高系统性能">如何提高系统性能</a><time datetime="2023-04-24T11:50:36.000Z" title="Created 2023-04-24 19:50:36">2023-04-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/24/MySQL/%E4%B8%B4%E6%97%B6%E8%A1%A8%E4%B8%BA%E4%BB%80%E4%B9%88%E5%8F%AF%E4%BB%A5%E9%87%8D%E5%90%8D/" title="临时表为什么可以重名">临时表为什么可以重名</a><time datetime="2023-04-24T08:26:40.000Z" title="Created 2023-04-24 16:26:40">2023-04-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/24/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%B5%81%E6%B0%B4%E7%BA%BF%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8D%8F%E8%AE%AE/" title="流水线可靠数据传输协议">流水线可靠数据传输协议</a><time datetime="2023-04-24T06:24:35.000Z" title="Created 2023-04-24 14:24:35">2023-04-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/23/MySQL/MySQL%E8%AF%BB%E5%86%99%E5%88%86%E7%A6%BB%E5%AD%98%E5%9C%A8%E7%9A%84%E9%97%AE%E9%A2%98/" title="MySQL读写分离存在的问题">MySQL读写分离存在的问题</a><time datetime="2023-04-23T02:49:01.000Z" title="Created 2023-04-23 10:49:01">2023-04-23</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/04/22/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E7%9A%84%E9%80%9A%E7%94%A8%E8%AE%BE%E8%AE%A1%E6%96%B9%E6%A1%88/" title="高并发系统的通用设计方案">高并发系统的通用设计方案</a><time datetime="2023-04-22T10:07:31.000Z" title="Created 2023-04-22 18:07:31">2023-04-22</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
