@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-24T12:24:03.314Z</updated>
+  <updated>2023-04-26T07:32:52.245Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,64 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>池化技术</title>
+    <link href="http://example.com/2023/04/26/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
+    <id>http://example.com/2023/04/26/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</id>
+    <published>2023-04-26T06:40:53.000Z</published>
+    <updated>2023-04-26T07:32:52.245Z</updated>
+    
+    <content type="html"><![CDATA[<p>在后端代码操作MySQL时，需要先与MySQL建立连接， 这个连接需要使用TCP的三次握手，比较的耗时，如果在正常的系统中，每一次执行sql，都要建立连接，连接使用完毕后断开连接，那么就会带来严重的性能影响。因此，池化技术就这样诞生了。</p><h1 id="连接池基本配置"><a href="#连接池基本配置" class="headerlink" title="连接池基本配置"></a>连接池基本配置</h1><p>MySQL连接池有两个重要配置，<strong>最小连接数</strong>和<strong>最大连接数</strong>。</p><p>如果连接池中有空闲的连接，则直接使用这些已经建立好的连接，如果已有的连接数超过最小连接数，但是没有超过最大连接数，来了新的连接请求，则创建新的连接处理请求。如果当前连接数大于等于最大连接数，则让新的请求排队，如果超时则抛出错误。</p><p>还有一种情况是，当前连接池中的连接数小于最小连接数，那么新到的连接请求会直接创建新的连接，而不会使用池子中的连接。</p><p>针对于连接池中的连接，我们可以启动一个线程定期检测连接池是否可用，如果不可用就关闭该连接。</p><h1 id="用线程池预先创建线程"><a href="#用线程池预先创建线程" class="headerlink" title="用线程池预先创建线程"></a>用线程池预先创建线程</h1><p>jdk1.5中就提供了池化技术。ThreadPoolExecutor 就是其中的一种，它有两个参数coreThreadCount 和 maxThreadCount。</p><ul><li><p>如果线程池中的线程数少于 coreThreadCount 时，处理新的任务时会创建新的线程；</p></li><li><p>如果线程数大于 coreThreadCount 则把任务丢到一个队列里面，由当前空闲的线程执行；</p></li><li><p>当队列中的任务堆积满了的时候，则继续创建线程，直到达到 maxThreadCount；</p></li><li><p>当线程数达到 maxTheadCount 时还有新的任务提交，那么我们就不得不将它们丢弃了。</p></li></ul><p>流程如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230426152317089.png" alt="image-20230426152317089" style="zoom:67%;" /><p>注意：JDK原生的线程池会优先把任务放进队列，而不是优先创建线程，这种就比较适合CPU密集型的任务。</p><p>因为CPU密集型的任务，如果创建过多的线程去执行任务，那么这些任务会争抢线程，导致频繁的上下文切换，造成性能的损失。</p><p>但是我们平时开发的web项目，其实属于I&#x2F;O密集型的任务，因为牵扯到数据库，所以Tomcat就没有采用JDK自带的，而是做了改进，优先创建线程去处理请求。因为I&#x2F;O密集型的大多时间都花费在去磁盘取数据，这段时间并不需要CPU，所以可以创建更多的线程去处理请求。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计 40 问》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在后端代码操作MySQL时，需要先与MySQL建立连接， 这个连接需要使用TCP的三次握手，比较的耗时，如果在正常的系统中，每一次执行sql，都要建立连接，连接使用完毕后断开连接，那么就会带来严重的性能影响。因此，池化技术就这样诞生了。&lt;/p&gt;
+&lt;h1 id=&quot;连接池基本配</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="数据库篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AF%87/"/>
+    
+    
+    <category term="连接池" scheme="http://example.com/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>TCP</title>
+    <link href="http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/"/>
+    <id>http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/</id>
+    <published>2023-04-25T02:12:15.000Z</published>
+    <updated>2023-04-25T05:37:07.951Z</updated>
+    
+    <content type="html"><![CDATA[<p>TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。</p><h1 id="建立连接的过程"><a href="#建立连接的过程" class="headerlink" title="建立连接的过程"></a>建立连接的过程</h1><p>客户首先发送一个特殊的TCP报文段，服务器用另一个特殊的TCP报文段来响应，最后，客户再用第三个特殊报文段作为响应。</p><p>前两个报文段不承载“有效载荷” ，也就是不包含应用层数据；而第三个报文段可以承载有效载荷。</p><h1 id="数据传输"><a href="#数据传输" class="headerlink" title="数据传输"></a>数据传输</h1><p>一旦建立了连接之后，就需要传输数据。当应用层数据通过套接字以后，数据就交由TCP控制。TCP将这些数据引导到该连接的发送缓存里，然后不时的从发送缓存里取出一块数据，并将数据传递到网络层。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230425102632021.png" alt="image-20230425102632021" style="zoom:67%;" /><h1 id="TCP报文段结构"><a href="#TCP报文段结构" class="headerlink" title="TCP报文段结构"></a>TCP报文段结构</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230425102923389.png" alt="image-20230425102923389" style="zoom:67%;" /><p>其中，32比特的序号字段和32比特的确认号字段被TCP发送方和接收方用来实现可靠数据传输服务。</p><p>接收窗口字段用来实现流量控制。</p><p>TCP被称为累计确认是因为它的确认号也是按组确认的。比如说收到了0-500的报文段，那么它发送给发送方的确认号就是501，如果收到0-500，和600-900，而没有收到501-599，那么确认号还是501。</p><p>TCP的发送方，也使用了流水线。</p><h1 id="可靠数据传输"><a href="#可靠数据传输" class="headerlink" title="可靠数据传输"></a>可靠数据传输</h1><p>由于网络层提供的服务（IP服务）是不可靠的，无法保证数据按序交付，也无法保证完整性。而TCP则是建立在IP提供的网络服务之上，它创建了一种可靠数据传输服务。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。&lt;/p&gt;
+&lt;h1 id=&quot;建立连接的过程&quot;&gt;&lt;a href=&quot;#建立连接的过程&quot; class=&quot;hea</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+  </entry>
   
   <entry>
     <title>如何提高系统性能</title>
@@ -526,65 +584,6 @@
 &lt;p&gt;1、如果请求内存，就需要指定请求内存的大小，而释放该内存则不用指定大小。&lt;/p&gt;
 &lt;p&gt;2、只考虑外部碎片，不考虑因分配空间稍微大于请求内存而造成的内部碎片。&lt;/p&gt;
 &lt;p&gt;3、内存一旦被分配给用户，那么它就不可能被重定位。即这块</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分段</title>
-    <link href="http://example.com/2023/04/17/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E6%AE%B5/"/>
-    <id>http://example.com/2023/04/17/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E6%AE%B5/</id>
-    <published>2023-04-17T05:35:17.000Z</published>
-    <updated>2023-04-17T07:48:36.505Z</updated>
-    
-    <content type="html"><![CDATA[<p> 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230417134359838.png" alt="image-20230417134359838" style="zoom: 67%;" /><p>但是由于进程的地址空间被加载到了内存中，那么就意味着这些虚拟的地址空间都会被分配对应的物理地址，虽然这些地址没有被该进程写入内容，但是他们已经不能再分配给其他进程使用。</p><p>为了解决这个问题，引入了分段的概念。有了分段的概念后，就不是给每个地址空间一个寄存器，而是让地址空间内的每个段都有自己的基址寄存器和界限寄存器。<strong>一个段是地址空间中连续的定长区域。</strong></p><p>这样设计，就可以把进程的单个段加载到内存中，而不是将整个地址空间都加载到内存中，这样就能确保被加载到物理内存空间中的内容都是正在使用的，或者说最小程度的浪费一些空间。</p><p>在经典的地址空间中，有三个逻辑不同的段：代码，栈和堆。分段之后，我们可以把这三个部分分别加载到物理内存对应的位置，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230417141138659.png" alt="image-20230417141138659" style="zoom: 67%;" /><p>而不需要像之前那样，必须把整个地址空间全部加载到内存当中。</p><h1 id="分段存在的问题"><a href="#分段存在的问题" class="headerlink" title="分段存在的问题"></a>分段存在的问题</h1><p>分段的出现会导致内存中零散的分布很多的段，如果现在有不连续的24k空间，现在有一个20k大小的段，则会导致该段进入内存失败。</p><p>即分段会造成一定的外部碎片。</p><h1 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h1><p>这篇笔记是在学习操作系统导论时写的，该书采用的是层层递进的方式，由最初的设计，存在什么问题，一步一步解决问题，更改设计，得到一个现代的操作设计方案。所以本文中有些内容可能并非目前操作系统正确的设计。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 在分段之前，操作系统会直接把进程的地址空间完整的加载到内存当中，但是栈和堆中间却有很大一块空间没有使用，如下图：&lt;/p&gt;
-&lt;img src=&quot;C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-2023</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>地址转换</title>
-    <link href="http://example.com/2023/04/16/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
-    <id>http://example.com/2023/04/16/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
-    <published>2023-04-16T09:35:58.000Z</published>
-    <updated>2023-04-18T01:43:09.564Z</updated>
-    
-    <content type="html"><![CDATA[<p>地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。</p><p>但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。</p><p>这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。</p><h1 id="动态重定位"><a href="#动态重定位" class="headerlink" title="动态重定位"></a>动态重定位</h1><p>每个CPU需要两个硬件寄存器：基址寄存器和界限寄存器。这两个寄存器能够让我们将地址空间放在物理内存的任何位置，同时又保证程序只访问自己的地址空间。</p><p>采用这种硬件的地址转换方式，进程中的内存引用都是虚拟地址，而虚拟地址加上基址寄存器中的内容，可以算出来真实的物理地址，再发送给内存系统。</p><p>由于这个由虚拟内存转换为具体的物理内存的过程是在运行时发生的，所以又叫做动态重定位。</p><p>这里面的界限寄存器，就是用来保证进程只访问自己范围内的空间，如果越界，则cpu会触发异常，进程会被终止。</p><h1 id="操作系统要做什么"><a href="#操作系统要做什么" class="headerlink" title="操作系统要做什么"></a>操作系统要做什么</h1><p>1、进程创建时，操作系统要为进程的地址空间找到内存空间。这就需要操作系统来维护哪些空间是可用的，哪些是已经被使用了的。</p><p>2、当进程运行结束时，操作系统要负责回收它的内存，供其他进程使用。当进程结束时，操作系统会把这些内存放入空闲列表。</p><p>3、每个cpu只有一个界限寄存器和基址寄存器，但对于每个运行的程序，他们要存入的值都是不同的。所以在发生上下文切换时，操作系统需要保存当前正在运行进程的界限寄存器和基址寄存器的值，以便后续恢复该进程时使用。</p><p>4、操作系统需要提供异常处理。比如当一个程序要越界访问时，cpu会触发异常，而操作系统需要终止该程序。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;地址转换：硬件对每次的内存访问进行处理，将指令的虚拟地址转换为数据实际的物理地址。&lt;/p&gt;
-&lt;p&gt;但是仅仅靠硬件无法解决，它只能提高效率。还需要操作系统的帮助。&lt;/p&gt;
-&lt;p&gt;这使得每个程序好像拥有了自己私有的内存空间，存放着自己的代码和数据。但实际上是多个程序共用内存。&lt;</summary>
       
     
     
