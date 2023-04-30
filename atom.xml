@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-28T07:09:42.199Z</updated>
+  <updated>2023-04-30T11:49:07.162Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,61 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>如何正确的选择缓存读写策略</title>
+    <link href="http://example.com/2023/04/30/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/"/>
+    <id>http://example.com/2023/04/30/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/</id>
+    <published>2023-04-30T11:26:41.000Z</published>
+    <updated>2023-04-30T11:49:07.162Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Cache-Aside（旁路缓存）策略"><a href="#Cache-Aside（旁路缓存）策略" class="headerlink" title="Cache Aside（旁路缓存）策略"></a>Cache Aside（旁路缓存）策略</h1><p>读策略为：</p><ul><li>从缓存中读取数据，命中则直接返回</li><li>缓存未命中，则从数据库查询，然后写入缓存，并返回给用户</li></ul><p>写策略为：</p><ul><li>更新数据库中的数据</li><li>删除缓存的数据</li></ul><p>先删除缓存再删数据或者先删数据库再删除缓存都会导致一定的问题，分析比较简单，不做具体说明。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>如果新注册了一个用户，然后立刻发起了查询（此时缓存无法命中），如果查询走的是从库，而且存在一定的时延，那么会有可能查询不到个人信息。</p><p>解决办法就是在特定的场景下，我们可以修改后将修改的信息写入缓存当中，而不是删除。</p><p>而且该策略对于频繁的修改会导致缓存中的数据被频繁的清理，造成缓存命中率低。</p><p>两种解决办法：</p><ol><li><p>一种做法是在更新数据时也更新缓存，只是在更新缓存前先加一个分布式锁，因为这样在同一时间只允许一个线程更新缓存，就不会产生并发问题了。当然这么做对于写入的性能会有一些影响；</p></li><li><p>另一种做法同样也是在更新数据时更新缓存，只是给缓存加一个较短的过期时间，这样即使出现缓存不一致的情况，缓存的数据也会很快过期，对业务的影响也是可以接受。</p></li></ol><h1 id="Read-x2F-Write-Through（读穿-x2F-写穿）策略"><a href="#Read-x2F-Write-Through（读穿-x2F-写穿）策略" class="headerlink" title="Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略"></a>Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略</h1><p>这个策略的核心原则是用户只与缓存打交道，由缓存和数据库通信，写入或者读取数据。</p><p><strong>Write Through 的策略</strong>是这样的：先查询要写入的数据在缓存中是否已经存在，如果已经存在，则更新缓存中的数据，并且由缓存组件同步更新到数据库中，如果缓存中数据不存在，我们把这种情况叫做“Write Miss（写失效）”。</p><p>如果发生写失效，则解决办法有以下两种：</p><ul><li>Write Allocate（按写分配）：写入缓存相应位置，再由缓存组件同步更新到数据库中；</li><li>No-write allocate（不按写分配）：不写入缓存中，而是直接更新到数据库中。</li></ul><p><strong>Read Through 策略</strong>就简单一些，它的步骤是这样的：先查询缓存中数据是否存在，如果存在则直接返回，如果不存在，则由缓存组件负责从数据库中同步加载数据。</p><h1 id="Write-Back（写回）策略"><a href="#Write-Back（写回）策略" class="headerlink" title="Write Back（写回）策略"></a>Write Back（写回）策略</h1><p>这个策略的核心思想是在写入数据时只写入缓存，并且把缓存块儿标记为“脏”的。而脏块儿只有被再次使用时才会将其中的数据写入到后端存储中。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430194034299.png" alt="image-20230430194034299" style="zoom:67%;" /><p><strong>如果使用 Write Back 策略的话，读的策略也有一些变化了。</strong></p><p>我们在读取缓存时如果发现缓存命中则直接返回缓存数据。</p><p>如果缓存不命中则寻找一个可用的缓存块儿，如果这个缓存块儿是“脏”的，就把缓存块儿中之前的数据写入到后端存储中，并且从后端存储加载数据到缓存块儿。</p><p>如果不是脏的，则由缓存组件将后端存储中的数据加载到缓存中，最后我们将缓存设置为不是脏的，返回数据就好了。</p><p>这个策略一般不直接在生产环境中使用，往往是计算机结构中使用，比如说操作系统层面的 Page Cache，日志的异步刷盘，消息队列中消息的异步写入磁盘等。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Cache-Aside（旁路缓存）策略&quot;&gt;&lt;a href=&quot;#Cache-Aside（旁路缓存）策略&quot; class=&quot;headerlink&quot; title=&quot;Cache Aside（旁路缓存）策略&quot;&gt;&lt;/a&gt;Cache Aside（旁路缓存）策略&lt;/h1&gt;&lt;p&gt;读策</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="缓存篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E7%AF%87/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>TCP连接的管理</title>
+    <link href="http://example.com/2023/04/30/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/"/>
+    <id>http://example.com/2023/04/30/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/</id>
+    <published>2023-04-30T02:49:26.000Z</published>
+    <updated>2023-04-30T03:32:19.901Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="建立连接过程"><a href="#建立连接过程" class="headerlink" title="建立连接过程"></a>建立连接过程</h1><p>TCP建立连接的过程如下：</p><p><strong>第一步</strong>：客户端的TCP首先向服务器端的TCP发送一个特殊的TCP报文段。该报文段中不包含应用层数据。该报文段会将首部中的SYN置为1，这个特殊报文段被称为SYN报文段。</p><p>客户会随机地选择一个初始序号（client_isn）,并将此编号放置于该起始的TCP SYN报文段的序号字段中。该报文段会被封装在一个IP数据报中，并发送给服务器。</p><p><strong>第二步</strong>：一旦包含TCP SYN报文段的IP数据报到达服务器主机，服务器会从该数据报中提取出TCP SYN报文段，为该TCP连接分配TCP缓存和变量，并向该客户TCP发送允许连接的报文段。这个允许连接的报文段也不包含应用层数据。</p><p>在报文段的首部包含3个重要的信息。首先，SYN比特被置为1。其次，该TCP报文段首部的确认号字段被置为client _ isn + 1。最后，服务器选择自己的初始序号（server_isn）,并将其放置到TCP报文段首部的序号字段中。</p><p>这个允许连接的报文段实际上表明了： “我收到了你发起建立连接的SYN分组，该分组带有初始序号client_isn。我同意建立该连接。我自己的初始序号是server_isn。该允许连接的报文段被称为SYNACK报文段（SYNACK segment）。</p><p><strong>第三步</strong>：在收到SYNACK报文段后，客户也要给该连接分配缓存和变量。客户主机则向服务器发送另外一个报文段；这最后一个报文段对服务器的允许连接的报文段进行了确认（该客户通过将值server_isn + 1放置到TCP报文段首部的确认字段中来完成此项工作）。</p><p>该三次握手的第三个阶段可以在报文段负载中携带客户到服务器的数据。 </p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430112825050.png" alt="image-20230430112825050" style="zoom:67%;" /><h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>也就是说，第一步客户端先发起一个报文段请求，用于表明我想要建立连接，不携带数据。</p><p>第二步，服务器收到请求，允许建立连接，分配缓存，然后给客户端通知该消息，也不携带数据。</p><p>第三步，客户端收到服务端同意建立连接的请求，然后给服务端回应，我收到了你的同意建立连接。第三步其实是一个确认的消息，只不过可以携带一部分数据。</p><h1 id="终止连接的过程"><a href="#终止连接的过程" class="headerlink" title="终止连接的过程"></a>终止连接的过程</h1><p>当连接结束后,主机中的“资源”（即缓存和变量）将被释放。</p><p>当客户想要关闭连接，它会向服务端发送一个特殊的报文，服务端收到后会给他一个ACK响应。然后服务端发送自己的终止报文段，客户端收到后会给该终止报文段一个确认。之后，两台主机上用于该连接的所有资源都被释放。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430113216637.png" alt="image-20230430113216637" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下方法》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;建立连接过程&quot;&gt;&lt;a href=&quot;#建立连接过程&quot; class=&quot;headerlink&quot; title=&quot;建立连接过程&quot;&gt;&lt;/a&gt;建立连接过程&lt;/h1&gt;&lt;p&gt;TCP建立连接的过程如下：&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;第一步&lt;/strong&gt;：客户端的TCP首先向服务</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+    <category term="-运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+  </entry>
   
   <entry>
     <title>消息模型：主题和队列区别</title>
@@ -134,9 +189,9 @@
     <link href="http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/"/>
     <id>http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/</id>
     <published>2023-04-25T02:12:15.000Z</published>
-    <updated>2023-04-29T06:51:41.937Z</updated>
+    <updated>2023-04-30T03:01:24.414Z</updated>
     
-    <content type="html"><![CDATA[<p>TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。</p><h1 id="建立连接的过程"><a href="#建立连接的过程" class="headerlink" title="建立连接的过程"></a>建立连接的过程</h1><p>客户首先发送一个特殊的TCP报文段，服务器用另一个特殊的TCP报文段来响应，最后，客户再用第三个特殊报文段作为响应。</p><p>前两个报文段不承载“有效载荷” ，也就是不包含应用层数据；而第三个报文段可以承载有效载荷。</p><h1 id="数据传输"><a href="#数据传输" class="headerlink" title="数据传输"></a>数据传输</h1><p>一旦建立了连接之后，就需要传输数据。当应用层数据通过套接字以后，数据就交由TCP控制。TCP将这些数据引导到该连接的发送缓存里，然后不时的从发送缓存里取出一块数据，并将数据传递到网络层。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230425102632021.png" alt="image-20230425102632021" style="zoom:67%;" /><h1 id="TCP报文段结构"><a href="#TCP报文段结构" class="headerlink" title="TCP报文段结构"></a>TCP报文段结构</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230425102923389.png" alt="image-20230425102923389" style="zoom:67%;" /><p>其中，32比特的序号字段和32比特的确认号字段被TCP发送方和接收方用来实现可靠数据传输服务。</p><p>接收窗口字段用来实现流量控制。</p><p>TCP被称为累计确认是因为它的确认号也是按组确认的。比如说收到了0-500的报文段，那么它发送给发送方的确认号就是501，如果收到0-500，和600-900，而没有收到501-599，那么确认号还是501。</p><p>TCP的发送方，也使用了流水线。</p><h1 id="可靠数据传输"><a href="#可靠数据传输" class="headerlink" title="可靠数据传输"></a>可靠数据传输</h1><p>由于网络层提供的服务（IP服务）是不可靠的，无法保证数据按序交付，也无法保证完整性。而TCP则是建立在IP提供的网络服务之上，它创建了一种可靠数据传输服务。</p><h2 id="快速重传"><a href="#快速重传" class="headerlink" title="快速重传"></a>快速重传</h2><p>TCP有一种机制，就是延长超时时间，比如说第一个字数据经过50ms，被却认为丢失，然后重发，那么第二个就会将超时时间设置为100ms，以此类推。但是这会导致超时的时间越来越长，增加了端到端的时延。</p><p>解决办法是引入了快速重传，即通过冗余的ACK确认，来得知是数据错误，而不需要等待超时时间到达。</p><p>冗余的ACK就是再次确认已经收到的某个报文段的ACK，而发送方之前也已经收到该报文段的ACK。</p><p>一个具体的例子就是，比如说ACK &#x3D; 3是一个数据的确认，而且发送方也已经接收到了ACK &#x3D; 3的确认帧，而接收方收到了数据5和6，没有收到4，此时接收方就会重传ACK &#x3D; 3的确认帧，如果重传超过3次，则TCP就启动快速重传，立即重传3之后的数据。</p><h2 id="选择重传"><a href="#选择重传" class="headerlink" title="选择重传"></a>选择重传</h2><p>回退N帧协议，假设分组n的确认报文丢失，那么它会重传n以及n以后的所有报文，尽管只丢失了n，其他的全部已经正确接收。</p><p>而TCP则是允许接收方有选择的确认失序报文段，而不是累计的确认正确的接收最后一个。当启用重传时，它就会跳过重传那些已经被接收方选择性确认过的报文段。</p>]]></content>
+    <content type="html"><![CDATA[<p>TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。</p><h1 id="建立连接的过程"><a href="#建立连接的过程" class="headerlink" title="建立连接的过程"></a>建立连接的过程</h1><p>客户首先发送一个特殊的TCP报文段，服务器用另一个特殊的TCP报文段来响应，最后，客户再用第三个特殊报文段作为响应。</p><p>前两个报文段不承载“有效载荷” ，也就是不包含应用层数据；而第三个报文段可以承载有效载荷。</p><h1 id="数据传输"><a href="#数据传输" class="headerlink" title="数据传输"></a>数据传输</h1><p>一旦建立了连接之后，就需要传输数据。当应用层数据通过套接字以后，数据就交由TCP控制。TCP将这些数据引导到该连接的发送缓存里，然后不时的从发送缓存里取出一块数据，并将数据传递到网络层。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230425102632021.png" alt="image-20230425102632021" style="zoom:67%;" /><h1 id="TCP报文段结构"><a href="#TCP报文段结构" class="headerlink" title="TCP报文段结构"></a>TCP报文段结构</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230425102923389.png" alt="image-20230425102923389" style="zoom:67%;" /><p>其中，32比特的序号字段和32比特的确认号字段被TCP发送方和接收方用来实现可靠数据传输服务。</p><p>接收窗口字段用来实现流量控制。</p><p>TCP被称为累计确认是因为它的确认号也是按组确认的。比如说收到了0-500的报文段，那么它发送给发送方的确认号就是501，如果收到0-500，和600-900，而没有收到501-599，那么确认号还是501。</p><p>TCP的发送方，也使用了流水线。</p><h1 id="可靠数据传输"><a href="#可靠数据传输" class="headerlink" title="可靠数据传输"></a>可靠数据传输</h1><p>由于网络层提供的服务（IP服务）是不可靠的，无法保证数据按序交付，也无法保证完整性。而TCP则是建立在IP提供的网络服务之上，它创建了一种可靠数据传输服务。</p><h2 id="快速重传"><a href="#快速重传" class="headerlink" title="快速重传"></a>快速重传</h2><p>TCP有一种机制，就是延长超时时间，比如说第一个字数据经过50ms，被却认为丢失，然后重发，那么第二个就会将超时时间设置为100ms，以此类推。但是这会导致超时的时间越来越长，增加了端到端的时延。</p><p>解决办法是引入了快速重传，即通过冗余的ACK确认，来得知是数据错误，而不需要等待超时时间到达。</p><p>冗余的ACK就是再次确认已经收到的某个报文段的ACK，而发送方之前也已经收到该报文段的ACK。</p><p>一个具体的例子就是，比如说ACK &#x3D; 3是一个数据的确认，而且发送方也已经接收到了ACK &#x3D; 3的确认帧，而接收方收到了数据5和6，没有收到4，此时接收方就会重传ACK &#x3D; 3的确认帧，如果重传超过3次，则TCP就启动快速重传，立即重传3之后的数据。</p><h2 id="选择重传"><a href="#选择重传" class="headerlink" title="选择重传"></a>选择重传</h2><p>回退N帧协议，假设分组n的确认报文丢失，那么它会重传n以及n以后的所有报文，尽管只丢失了n，其他的全部已经正确接收。</p><p>而TCP则是允许接收方有选择的确认失序报文段，而不是累计的确认正确的接收最后一个。当启用重传时，它就会跳过重传那些已经被接收方选择性确认过的报文段。</p><h1 id="流量控制"><a href="#流量控制" class="headerlink" title="流量控制"></a>流量控制</h1><p>TCP连接的每一侧都为该连接设置了接收缓存。没当TCP接收到正确，按序的字节后，就会将这些数据放入接收缓存，相关的应用就会从接收缓存中读取数据。但是如果应用读取的比较慢，而发送方发送的比较快，则会导致缓存溢出。</p><p>所以TCP提供了流量控制服务，以消除发送方发送过快导致接收方缓存溢出的可能。</p><p>TCP通过让发送方维护一个接收窗口的变量来实现流量控制。接收窗口用于给发送方指示，表明现在接收方还有多少可用的缓存空间。因为TCP是全双工通信的，所以说连接两端都会维护一个接收窗口。</p><p>这样一来，发送方只需要根据对应接收方的窗口大小来确定此时可以发送多少数据，就能保证不溢出。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下方法》</p>]]></content>
     
     
       
@@ -154,7 +209,7 @@
     <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
     
     
-    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    <category term="-运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
     
   </entry>
   
@@ -535,64 +590,6 @@
     
     
     <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL怎么保证数据不丢失</title>
-    <link href="http://example.com/2023/04/18/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
-    <id>http://example.com/2023/04/18/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E6%95%B0%E6%8D%AE%E4%B8%8D%E4%B8%A2%E5%A4%B1/</id>
-    <published>2023-04-18T06:11:22.000Z</published>
-    <updated>2023-04-18T07:57:57.479Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="binlog的写入机制"><a href="#binlog的写入机制" class="headerlink" title="binlog的写入机制"></a>binlog的写入机制</h1><p>总的流程：先把日志写到binlog cache，事务提交的时候，再把binlog cache写到binlog文件中。</p><p>但是需要注意，一个事务的binlog无论多大，都需要一次性写入，这就涉及到binlog cache的保存。</p><p>每一个线程都会有一个binlog cache，可以设置其大小。如果超过大小限制，就要暂存在磁盘当中。但是所有的线程共享一个binlog file，也就是说，每个线程的binlog cache，都会存入到同一个文件。</p><p>一个具体的例子如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418143649904.png" alt="image-20230418143649904" style="zoom:67%;" /><p>上图中的write操作，其实只是把binlog cache的内容写入文件系统的缓存，并没有直接同步到磁盘，而fsync才是真正的将文件系统缓存的内容写入到磁盘上。</p><p>write 和fsync的时机，是由参数sync_binlog控制的：</p><ol><li>sync_binlog&#x3D;0的时候，表示每次提交事务都只write，不fsync；</li><li>sync_binlog&#x3D;1的时候，表示每次提交事务都会执行fsync；</li><li>sync_binlog&#x3D;N(N&gt;1)的时候，表示每次提交事务都write，但累积N个事务后才fsync。</li></ol><h1 id="redo-log的写入机制"><a href="#redo-log的写入机制" class="headerlink" title="redo log的写入机制"></a>redo log的写入机制</h1><p>redo log 每次写入时，生成的redo log会先写入redo log buffer，而redo log buffer里面的内容并不需要每次写完后都同步到磁盘。</p><p>因为事务还没提交时，数据库异常重启，这部分日志会丢失，但是因为事务没提交，所以不会对数据一致性造成影响。因为事务只有在提交时，事务内所作的修改才真正起作用。</p><p><strong>但是事务还没提交时，redo log buffer里面的内容也会有刷入磁盘的情况。</strong></p><h2 id="redo-log可能存在的三种状态"><a href="#redo-log可能存在的三种状态" class="headerlink" title="redo log可能存在的三种状态"></a>redo log可能存在的三种状态</h2><p>1、存在于redo log buffer中，也就是还在MySQL进程中。</p><p>2、写入了文件系统的缓存当中。</p><p>3、写入了磁盘当中。</p><h2 id="redo-log的写入策略"><a href="#redo-log的写入策略" class="headerlink" title="redo log的写入策略"></a>redo log的写入策略</h2><p>为了控制redo log的写入策略，InnoDB提供了innodb_flush_log_at_trx_commit参数，控制写入策略：</p><ol><li>设置为0的时候，表示每次事务提交时都只是把redo log留在redo log buffer中;</li><li>设置为1的时候，表示每次事务提交时都将redo log直接持久化到磁盘；</li><li>设置为2的时候，表示每次事务提交时都只是把redo log写到page cache。</li></ol><p>InnoDB有一个后台线程，每隔1秒，就会把redo log buffer中的日志，调用write写到文件系统的page cache，然后调用fsync持久化到磁盘。</p><p>这也就解释了为什么会有没提交事务的redo log也被写入了磁盘当中。因为事务执行时，日志就会先写入redo log buffer中，后台线程会在事务没提交时，将数据刷入磁盘当中。</p><p>另外两种会导致事务没提交时，redo log 被写入磁盘：</p><p><strong>一种是，redo log buffer占用的空间即将达到 innodb_log_buffer_size一半的时候，后台线程会主动写盘。</strong>但这里只是写入文件系统的缓存中，不是写入磁盘。</p><p><strong>另一种是，并行的事务提交的时候，顺带将这个事务的redo log buffer持久化到磁盘。</strong>比如说事务A执行了一半，它已经写入了一部分日志到redo log buffer中。如果此时另一个事务提交了，而且innodb_flush_log_at_trx_commit参数设置的是1，那么它就会直接将redo log buffer中的内容直接写入磁盘，这样事务A的一部分日志就被写入了磁盘当中。</p><h1 id="双一配置"><a href="#双一配置" class="headerlink" title="双一配置"></a>双一配置</h1><p>两阶段提交的流程是：时序上redo log先prepare， 再写binlog，最后再把redo log commit。</p><p>将innodb_flush_log_at_trx_commit设置为1时，redo log在处于prepare阶段时，就会刷新到磁盘当中。</p><p>通常我们说MySQL的“双1”配置，指的就是sync_binlog和innodb_flush_log_at_trx_commit都设置成 1。也就是说，一个事务完整提交前，需要等待两次刷盘，一次是redo log（prepare 阶段），一次是binlog。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;binlog的写入机制&quot;&gt;&lt;a href=&quot;#binlog的写入机制&quot; class=&quot;headerlink&quot; title=&quot;binlog的写入机制&quot;&gt;&lt;/a&gt;binlog的写入机制&lt;/h1&gt;&lt;p&gt;总的流程：先把日志写到binlog cache，事务提交的时候，再把</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="日志" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E6%97%A5%E5%BF%97/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分页</title>
-    <link href="http://example.com/2023/04/18/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5/"/>
-    <id>http://example.com/2023/04/18/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5/</id>
-    <published>2023-04-18T06:03:04.000Z</published>
-    <updated>2023-04-19T09:10:06.629Z</updated>
-    
-    <content type="html"><![CDATA[<p>因为分段采用的是将空间划分为大小不同的部分，这样的话会导致整个空间比较零碎，会给内存维护带来一定的困难。</p><p>为了解决这个问题，我们可以把内存空间分割成大小一样的片段，这种思想称为分页。</p><p>分页不是将一个进程的地址空间分割成几个不同长度的逻辑段（即代码、堆、段），而是分割成固定大小的单元，每个单元称为一页。</p><p>我们把物理内存看成是定长的一个分割过的槽，叫作页帧（page frame）。每个这样的页帧包含一个虚拟内存页。如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418170854468.png" alt="image-20230418170854468" style="zoom:67%;" /><p>当分页出现以后，一个进程地址空间被引入内存就变为下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230418171040236.png" alt="image-20230418171040236" style="zoom:67%;" /><p>为了记录地址空间的每个虚拟页放在物理内存中的位置，操作系统通常为每个进程保存一个数据结构，称为页表（page table）。</p><p>页表的主要作用是为地址空间的每个虚拟页面保存地址转换（address translation），从而让我们知道每个页在物理内存中的位置。</p><h1 id="页表中有什么"><a href="#页表中有什么" class="headerlink" title="页表中有什么"></a>页表中有什么</h1><p>页表中有一个有效位的标识符。该标识符用于标记对应的地址空间是否使用，如果尝试访问标记为未使用的地址空间，那么程序可能会被终止。</p><p>通过有效位，我们可以只对标识为已经使用了的地址空间进行分配物理内存，这样就节省了大量内存。</p><p>还有一个存在位，用于标识该页是在内存中还是被换出到了磁盘。</p><p>参考位用于标记该页是否被访问。</p><h1 id="分页带来的问题"><a href="#分页带来的问题" class="headerlink" title="分页带来的问题"></a>分页带来的问题</h1><p>引入分页后，我们每次想要找到具体的物理地址时，系统需要先从进程的页表中取到对应的页表项，然后才能进行具体的地址空间到物理地址的转换。</p><p>在分段的设计下，我们可以直接从进程的基址寄存器中找到对应的物理位置。</p><p>而引入分页后，我们需要先从内存中取出页表，然后在页表中去找对应的地址空间到物理地址的转换。相当于多了一次取页表的操作。</p><p>而且页表需要占用物理内存。</p><p>要注意，每一个进程都会对应一个页表。每次都要从内存中找到该进程对应的页表，然后从页表中取地址的映射。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;因为分段采用的是将空间划分为大小不同的部分，这样的话会导致整个空间比较零碎，会给内存维护带来一定的困难。&lt;/p&gt;
-&lt;p&gt;为了解决这个问题，我们可以把内存空间分割成大小一样的片段，这种思想称为分页。&lt;/p&gt;
-&lt;p&gt;分页不是将一个进程的地址空间分割成几个不同长度的逻辑段（即代码</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
     
   </entry>
   
