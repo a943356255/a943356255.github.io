@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-04-30T11:49:07.162Z</updated>
+  <updated>2023-05-02T03:13:12.941Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,11 +17,93 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>拥塞控制原理</title>
+    <link href="http://example.com/2023/05/02/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/"/>
+    <id>http://example.com/2023/05/02/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/</id>
+    <published>2023-05-02T02:17:31.000Z</published>
+    <updated>2023-05-02T03:13:12.941Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="拥塞原因与代价"><a href="#拥塞原因与代价" class="headerlink" title="拥塞原因与代价"></a>拥塞原因与代价</h1><h2 id="情况1：两个发送方和一台具有无穷大缓存的路由器"><a href="#情况1：两个发送方和一台具有无穷大缓存的路由器" class="headerlink" title="情况1：两个发送方和一台具有无穷大缓存的路由器"></a>情况1：两个发送方和一台具有无穷大缓存的路由器</h2><p>两台主机（A和B）都有一条连接，且这两条连接共享源与目的地之间的单跳路由，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502102410352.png" alt="image-20230502102410352" style="zoom:67%;" /><p>由于路由器的缓存是无限制的，那么发送方的发送速率达到一定程度，路由器中的平均排队分组数就会无限增长，源与目的地之间的平均时延也会变成无穷大。</p><h2 id="情况2：两个发送方和一台具有有限缓存的路由器"><a href="#情况2：两个发送方和一台具有有限缓存的路由器" class="headerlink" title="情况2：两个发送方和一台具有有限缓存的路由器"></a>情况2：两个发送方和一台具有有限缓存的路由器</h2><p>这里对情况1稍微做一些修改，假定路由器的缓存容量是有限的。这种假设的结果是，当分组到达一个已满的缓存时会被丢弃。然后我们假设连接可靠，即分组在路由器中被丢弃时，会重发。</p><p>假设发送方知道路由中缓存容量，只有在路由未满时才发送，那么就不会导致分组丢失。</p><p>但一种更为真实的情况是，发送方并不知道，那么在缓存满时发送分组，带来的代价就是需要重新发送。而且存在一种情况，分组发出但是未丢失，还在排队当中，发送方因超时重新发送了分组，那么就会导致接收方需要丢弃一个重传分组，带来了不必要的开销。</p><p>这里就看出拥塞的两个代价，发送方需要重传丢失的分组，而且发送方可能重传不必要的分组。</p><h2 id="情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径"><a href="#情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径" class="headerlink" title="情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径"></a>情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径</h2><p>考虑下图的情况：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502104741965.png" alt="image-20230502104741965" style="zoom:67%;" /><p>由于路由器R2的缓存容量是有限的 ，那么当A-C通信，B-D通信时，这两者势必会争抢缓存，一种极端的情况是A-C占据了所有的缓存，导致B-D流量几乎为0，导致分组丢失。</p><p>还会导致资源浪费的一个点是，如果R2丢弃B-D的分组，那么R3所做的转发也就成了无用功，导致资源浪费。</p><h1 id="拥塞控制方法"><a href="#拥塞控制方法" class="headerlink" title="拥塞控制方法"></a>拥塞控制方法</h1><h2 id="端到端拥寒控制"><a href="#端到端拥寒控制" class="headerlink" title="端到端拥寒控制"></a>端到端拥寒控制</h2><p>在端到端拥塞控制方法中，网络层没有为运输层拥塞控制提供显式支持。即使网络中存在拥塞，端系统也必须通过对网络行为的观察（如分组丢失与时延）来推断。</p><p>TCP采用端到端的方法解决拥塞控制，因为IP层不会向端系统提供有关网络拥塞的反馈信息。TCP报文段的丢失（通过超时或3次冗余确认而得知）被认为是网络拥塞的一个迹象，TCP会相应地减小其窗口长度。</p><h2 id="网络辅助的拥塞控制"><a href="#网络辅助的拥塞控制" class="headerlink" title="网络辅助的拥塞控制"></a>网络辅助的拥塞控制</h2><p>在网络辅助的拥塞控制中，路由器向发送方提供关于网络中拥塞状态的显式反馈信息。这种反馈可以简单地用一个比特来指示链路中的拥塞情况。</p><p>对于网络辅助的拥塞控制，拥塞信息从网络反馈到发送方通常有两种方式，如下图</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502110906990.png" alt="image-20230502110906990" style="zoom:67%;" /><p>直接反馈信息可以由网络路由器发给发送方。这种方式的通知通常采用了一种阻塞分组(choke packet) 的形式（主要是说： “我拥塞了！”）。</p><p>更为通用的第二种形式的通知是，路由器标记或更新从发送方流向接收方的分组中的某个字段来指示拥塞的产生口 一旦收到一个标记的分组后，接收方就会向发送方通知该网络拥塞指示。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;拥塞原因与代价&quot;&gt;&lt;a href=&quot;#拥塞原因与代价&quot; class=&quot;headerlink&quot; title=&quot;拥塞原因与代价&quot;&gt;&lt;/a&gt;拥塞原因与代价&lt;/h1&gt;&lt;h2 id=&quot;情况1：两个发送方和一台具有无穷大缓存的路由器&quot;&gt;&lt;a href=&quot;#情况1：两个发送方和</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>如何利用事务消息实现分布式事务</title>
+    <link href="http://example.com/2023/05/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/"/>
+    <id>http://example.com/2023/05/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/</id>
+    <published>2023-05-01T10:19:37.000Z</published>
+    <updated>2023-05-01T10:48:42.119Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="什么是分布式事务？"><a href="#什么是分布式事务？" class="headerlink" title="什么是分布式事务？"></a>什么是分布式事务？</h1><p>首先事务是要保证我们对一系列数据进行一些操作，这些操作要么都成功，要么都失败。一个严格意义的事务实现，应该具有 4 个属性：原子性、一致性、隔离性、持久性。</p><p>但是，对于分布式系统来说，严格的实现 ACID 这四个特性几乎是不可能的。一般会采用一些“妥协”的方案，比如说顺序一致性或者最终一致性。</p><h1 id="消息队列是如何实现分布式事务的？"><a href="#消息队列是如何实现分布式事务的？" class="headerlink" title="消息队列是如何实现分布式事务的？"></a>消息队列是如何实现分布式事务的？</h1><p>一个订单和购物车的模型如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230501183227849.png" alt="image-20230501183227849"></p><p>这里的半消息，并不是只发送数据信息的一半，而是说发送全部的数据，但是在事务提交之前，消费者是无法看到这条数据的。</p><p>这里，发送半消息后，就可以继续执行创建订单，如果订单创建成功，则提交事务，那么消费者，也就是购物车模块可以看到这条消息，然后从购物车删除对应订单的物品。如果订单创建失败，则消费者无法看到消息，也就不会导致创建订单失败，但是购物车删除物品这种情况。</p><p>但是还存在一个问题：如果提交事务消息失败时，还是会存在一定的问题，针对这个问题，Kafka 和 RocketMQ给出了不同的解决办法。Kafka 的解决方案比较简单粗暴，直接抛出异常，让用户自行处理。我们可以在业务代码中反复重试提交，直到提交成功，或者删除之前创建的订单进行补偿。RocketMQ 则给出了另外一种解决方案。</p><h1 id="RocketMQ-中的分布式事务实现"><a href="#RocketMQ-中的分布式事务实现" class="headerlink" title="RocketMQ 中的分布式事务实现"></a>RocketMQ 中的分布式事务实现</h1><p>在 RocketMQ 中的事务实现中，增加了事务反查的机制来解决事务消息提交失败的问题。如果 Producer 也就是订单系统，在提交或者回滚事务消息时发生网络异常，RocketMQ 的 Broker 没有收到提交或者回滚的请求，Broker 会定期去 Producer 上反查这个事务对应的本地事务的状态，然后根据反查结果决定提交或者回滚这个事务。</p><p>为了支撑这个事务反查机制，我们的业务代码需要实现一个反查本地事务状态的接口，告知 RocketMQ 本地事务是成功还是失败。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230501184354506.png" alt="image-20230501184354506" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;什么是分布式事务？&quot;&gt;&lt;a href=&quot;#什么是分布式事务？&quot; class=&quot;headerlink&quot; title=&quot;什么是分布式事务？&quot;&gt;&lt;/a&gt;什么是分布式事务？&lt;/h1&gt;&lt;p&gt;首先事务是要保证我们对一系列数据进行一些操作，这些操作要么都成功，要么都失败。一个严</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+    
+    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>缓存如何做到高可用</title>
+    <link href="http://example.com/2023/05/01/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E5%A6%82%E4%BD%95%E5%81%9A%E5%88%B0%E9%AB%98%E5%8F%AF%E7%94%A8/"/>
+    <id>http://example.com/2023/05/01/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E5%A6%82%E4%BD%95%E5%81%9A%E5%88%B0%E9%AB%98%E5%8F%AF%E7%94%A8/</id>
+    <published>2023-05-01T07:13:40.000Z</published>
+    <updated>2023-05-01T07:48:35.474Z</updated>
+    
+    <content type="html"><![CDATA[<p> 分布式缓存的高可用方案有以下三类：</p><p>1、<strong>客户端方案</strong>：在客户端配置多个缓存的节点，通过缓存写入和读取算法策略来实现分布式，从而提高缓存的可用性。</p><p>2、<strong>中间代理层方案</strong>：在应用代码和缓存节点之间增加代理层，客户端所有的写入和读取的请求都通过代理层，而代理层中会内置高可用策略，帮助提升缓存系统的高可用。</p><p>3、<strong>服务端方案</strong>：Redis 2.4 版本后提出的 Redis Sentinel 。</p><h1 id="客户端方案"><a href="#客户端方案" class="headerlink" title="客户端方案"></a>客户端方案</h1><p>在该方案中，需要注意缓存的读写。写需要将数据分片，而读可以用多组缓存做容错，提升系统的可用性。</p><h2 id="缓存数据分片"><a href="#缓存数据分片" class="headerlink" title="缓存数据分片"></a>缓存数据分片</h2><p>当单一机器无法存储所有的数据时，我们就需要将缓存分配到不同的机器上，每个节点上存储部分数据。</p><p><strong>一般来讲，分片算法常见的就是 Hash 分片算法和一致性 Hash 分片算法两种。</strong></p><h3 id="1、Hash分片"><a href="#1、Hash分片" class="headerlink" title="1、Hash分片"></a>1、Hash分片</h3><p>Hash分片就是对key做哈希计算，然后对总的缓存节点取余。该算法优点是简单，缺点是当增加或者减少分片节点数量时，计算的方式也要发生变化。该方案适合缓存命中率下降不敏感的业务。</p><h3 id="2、一致性Hash"><a href="#2、一致性Hash" class="headerlink" title="2、一致性Hash"></a>2、一致性Hash</h3><p><strong>一致性 Hash 算法可以很好地解决增加和删减节点时，命中率下降的问题</strong>。</p><p>该算法中，我们将整个Hash值空间组织成一个虚拟的圆环，然后将每一个分片节点的ip或者主机名做hash后放在该圆环上。当需要确定某一个key在哪个节点上时，先对key做hash，确定在换上的位置（注意，这一步做完hash后，不一定会直接落到某一个节点的下标处，所以需要顺时针往下走），然后往下走，找到第一个是节点的位置，就将数据存储在该节点中。</p><p>在该算法中，删除节点会导致节点上的数据漂移到下一个节点上，对于hash命中率并不会造成特别大的影响。</p><p>存在的问题：</p><p>1、缓存节点在圆环上分布不均匀，会造成部分节点压力很大，而且当一个节点失效，会将数据全部转移到下一个节点。</p><p>2、一致性 Hash 算法的脏数据问题。</p><p>针对于第一个问题，在某个节点出问题时，要将节点平均分配到其他的几个节点上，而不能将它全部移交到下一个节点上。</p><p>对于第二个问题，如果节点3中有一个数据，现在要修改该数据，但是节点3此时无法连接，那么修改操作就会发生到节点4，那么当节点3恢复后，客户端就会从节点3中读取到脏数据。解决办法就是增加过期时间。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 分布式缓存的高可用方案有以下三类：&lt;/p&gt;
+&lt;p&gt;1、&lt;strong&gt;客户端方案&lt;/strong&gt;：在客户端配置多个缓存的节点，通过缓存写入和读取算法策略来实现分布式，从而提高缓存的可用性。&lt;/p&gt;
+&lt;p&gt;2、&lt;strong&gt;中间代理层方案&lt;/strong&gt;：在应用代码和</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="缓存篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E7%AF%87/"/>
+    
+    
+    <category term="缓存" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98/"/>
+    
+  </entry>
+  
+  <entry>
     <title>如何正确的选择缓存读写策略</title>
-    <link href="http://example.com/2023/04/30/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/"/>
-    <id>http://example.com/2023/04/30/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/</id>
+    <link href="http://example.com/2023/04/30/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/"/>
+    <id>http://example.com/2023/04/30/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/</id>
     <published>2023-04-30T11:26:41.000Z</published>
-    <updated>2023-04-30T11:49:07.162Z</updated>
+    <updated>2023-05-01T07:14:01.524Z</updated>
     
     <content type="html"><![CDATA[<h1 id="Cache-Aside（旁路缓存）策略"><a href="#Cache-Aside（旁路缓存）策略" class="headerlink" title="Cache Aside（旁路缓存）策略"></a>Cache Aside（旁路缓存）策略</h1><p>读策略为：</p><ul><li>从缓存中读取数据，命中则直接返回</li><li>缓存未命中，则从数据库查询，然后写入缓存，并返回给用户</li></ul><p>写策略为：</p><ul><li>更新数据库中的数据</li><li>删除缓存的数据</li></ul><p>先删除缓存再删数据或者先删数据库再删除缓存都会导致一定的问题，分析比较简单，不做具体说明。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>如果新注册了一个用户，然后立刻发起了查询（此时缓存无法命中），如果查询走的是从库，而且存在一定的时延，那么会有可能查询不到个人信息。</p><p>解决办法就是在特定的场景下，我们可以修改后将修改的信息写入缓存当中，而不是删除。</p><p>而且该策略对于频繁的修改会导致缓存中的数据被频繁的清理，造成缓存命中率低。</p><p>两种解决办法：</p><ol><li><p>一种做法是在更新数据时也更新缓存，只是在更新缓存前先加一个分布式锁，因为这样在同一时间只允许一个线程更新缓存，就不会产生并发问题了。当然这么做对于写入的性能会有一些影响；</p></li><li><p>另一种做法同样也是在更新数据时更新缓存，只是给缓存加一个较短的过期时间，这样即使出现缓存不一致的情况，缓存的数据也会很快过期，对业务的影响也是可以接受。</p></li></ol><h1 id="Read-x2F-Write-Through（读穿-x2F-写穿）策略"><a href="#Read-x2F-Write-Through（读穿-x2F-写穿）策略" class="headerlink" title="Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略"></a>Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略</h1><p>这个策略的核心原则是用户只与缓存打交道，由缓存和数据库通信，写入或者读取数据。</p><p><strong>Write Through 的策略</strong>是这样的：先查询要写入的数据在缓存中是否已经存在，如果已经存在，则更新缓存中的数据，并且由缓存组件同步更新到数据库中，如果缓存中数据不存在，我们把这种情况叫做“Write Miss（写失效）”。</p><p>如果发生写失效，则解决办法有以下两种：</p><ul><li>Write Allocate（按写分配）：写入缓存相应位置，再由缓存组件同步更新到数据库中；</li><li>No-write allocate（不按写分配）：不写入缓存中，而是直接更新到数据库中。</li></ul><p><strong>Read Through 策略</strong>就简单一些，它的步骤是这样的：先查询缓存中数据是否存在，如果存在则直接返回，如果不存在，则由缓存组件负责从数据库中同步加载数据。</p><h1 id="Write-Back（写回）策略"><a href="#Write-Back（写回）策略" class="headerlink" title="Write Back（写回）策略"></a>Write Back（写回）策略</h1><p>这个策略的核心思想是在写入数据时只写入缓存，并且把缓存块儿标记为“脏”的。而脏块儿只有被再次使用时才会将其中的数据写入到后端存储中。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430194034299.png" alt="image-20230430194034299" style="zoom:67%;" /><p><strong>如果使用 Write Back 策略的话，读的策略也有一些变化了。</strong></p><p>我们在读取缓存时如果发现缓存命中则直接返回缓存数据。</p><p>如果缓存不命中则寻找一个可用的缓存块儿，如果这个缓存块儿是“脏”的，就把缓存块儿中之前的数据写入到后端存储中，并且从后端存储加载数据到缓存块儿。</p><p>如果不是脏的，则由缓存组件将后端存储中的数据加载到缓存中，最后我们将缓存设置为不是脏的，返回数据就好了。</p><p>这个策略一般不直接在生产环境中使用，往往是计算机结构中使用，比如说操作系统层面的 Page Cache，日志的异步刷盘，消息队列中消息的异步写入磁盘等。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计》</p>]]></content>
     
@@ -40,12 +122,14 @@
     <category term="缓存篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E7%AF%87/"/>
     
     
+    <category term="缓存" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98/"/>
+    
   </entry>
   
   <entry>
     <title>TCP连接的管理</title>
-    <link href="http://example.com/2023/04/30/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/"/>
-    <id>http://example.com/2023/04/30/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/</id>
+    <link href="http://example.com/2023/04/30/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/"/>
+    <id>http://example.com/2023/04/30/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/</id>
     <published>2023-04-30T02:49:26.000Z</published>
     <updated>2023-04-30T03:32:19.901Z</updated>
     
@@ -76,9 +160,9 @@
     <link href="http://example.com/2023/04/28/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E6%A8%A1%E5%9E%8B%EF%BC%9A%E4%B8%BB%E9%A2%98%E5%92%8C%E9%98%9F%E5%88%97%E5%8C%BA%E5%88%AB/"/>
     <id>http://example.com/2023/04/28/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E6%A8%A1%E5%9E%8B%EF%BC%9A%E4%B8%BB%E9%A2%98%E5%92%8C%E9%98%9F%E5%88%97%E5%8C%BA%E5%88%AB/</id>
     <published>2023-04-28T06:51:06.000Z</published>
-    <updated>2023-04-28T07:09:42.199Z</updated>
+    <updated>2023-05-01T10:20:14.060Z</updated>
     
-    <content type="html"><![CDATA[<p><strong>早期的消息队列，就是按照“队列”的数据结构来设计的。</strong>我们一起看下这个图，生产者（Producer）发消息就是入队操作，消费者（Consumer）收消息就是出队也就是删除操作，服务端存放消息的容器自然就称为“队列”。</p><p>以下是最初的一种消息模型：队列模型</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145326054.png" alt="image-20230428145326054" style="zoom:67%;" /><p>这种模型中，消费者之间是竞争关系，每个消息只能被一个消费者消费。</p><p>但是如果想要一个消息被多个消费者消费，比如说对于一个订单消息，风控系统，分析系统，支付系统都需要得到该订单的信息，那么采用这种模型的话就需要为每一个消费者创建一个队列，但是这样做就需要提前知道有多少个消费者，违背了解耦。</p><p>为了解决这个问题，演化出了另外一种消息模型：“<strong>发布 - 订阅模型（Publish-Subscribe Pattern）</strong>”。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145647672.png" alt="image-20230428145647672" style="zoom:67%;" /><p>以上两种模型的区别就是，<strong>一份消息数据能不能被消费多次的问题。</strong></p><h1 id="RabbitMQ-的消息模型"><a href="#RabbitMQ-的消息模型" class="headerlink" title="RabbitMQ 的消息模型"></a>RabbitMQ 的消息模型</h1><p>rabbitmq采用队列模型，它用了一个交换机来解决多个消费者消费同一条消息的问题。</p><p>生产者不关心消息发送给哪个消费者，它只需要发送给交换机，由交换机决定发送给哪个消费者。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145907388.png" alt="image-20230428145907388" style="zoom:67%;" /><h1 id="RocketMQ-的消息模型"><a href="#RocketMQ-的消息模型" class="headerlink" title="RocketMQ 的消息模型"></a>RocketMQ 的消息模型</h1><p>RocketMQ 使用的消息模型是标准的发布 - 订阅模型。但是它也有队列的概念。</p><p>几乎所有的消息队列都采用<strong>请求-确认机制</strong>，即生产者将消息发送给服务端，服务端收到并写入队列后，会给生产者发送确认响应。而消费端，消费者收到消息并处理完后，也会给服务端发送消息，服务端在收到确认消息后，才会判定消息被消费成功。上面两种，如果没收到确认消息，会重试。</p><p>但是这样也存在一个问题，即还没收到一个消息的确认信息时，只能等待，而不能去执行第二条消息，这样是为了保证消息的顺序性。</p><p>为了解决这个问题，RocketMQ引入了队列的概念。</p><p><strong>每个主题包含多个队列，通过多个队列来实现多实例并行生产和消费。</strong>RocketMQ 只在队列上保证消息的有序性，主题层面是无法保证消息的严格顺序的。</p><p>RocketMQ 中，订阅者的概念是通过消费组（Consumer Group）来体现的。每个消费组都消费主题中一份完整的消息，不同消费组之间消费进度彼此不受影响，也就是说，一条消息被 Consumer Group1 消费过，也会再给 Consumer Group2 消费。</p><p>一个消费组中的消费者是竞争关系，一条消息只会被消费组中的一个消费者消费。</p><p>由于每一条消息需要被多个消费组消费，所以消费完的消息并不会立即被删除，这就需要 RocketMQ 为每个消费组在每个队列上维护一个消费位置（Consumer Offset），这个位置之前的消息都被消费过，之后的消息都没有被消费过，每成功消费一条消息，消费位置就加一。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428150934219.png" alt="image-20230428150934219"></p>]]></content>
+    <content type="html"><![CDATA[<p><strong>早期的消息队列，就是按照“队列”的数据结构来设计的。</strong>我们一起看下这个图，生产者（Producer）发消息就是入队操作，消费者（Consumer）收消息就是出队也就是删除操作，服务端存放消息的容器自然就称为“队列”。</p><p>以下是最初的一种消息模型：队列模型</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145326054.png" alt="image-20230428145326054" style="zoom:67%;" /><p>这种模型中，消费者之间是竞争关系，每个消息只能被一个消费者消费。</p><p>但是如果想要一个消息被多个消费者消费，比如说对于一个订单消息，风控系统，分析系统，支付系统都需要得到该订单的信息，那么采用这种模型的话就需要为每一个消费者创建一个队列，但是这样做就需要提前知道有多少个消费者，违背了解耦。</p><p>为了解决这个问题，演化出了另外一种消息模型：“<strong>发布 - 订阅模型（Publish-Subscribe Pattern）</strong>”。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145647672.png" alt="image-20230428145647672" style="zoom:67%;" /><p>以上两种模型的区别就是，<strong>一份消息数据能不能被消费多次的问题。</strong></p><h1 id="RabbitMQ-的消息模型"><a href="#RabbitMQ-的消息模型" class="headerlink" title="RabbitMQ 的消息模型"></a>RabbitMQ 的消息模型</h1><p>rabbitmq采用队列模型，它用了一个交换机来解决多个消费者消费同一条消息的问题。</p><p>生产者不关心消息发送给哪个消费者，它只需要发送给交换机，由交换机决定发送给哪个消费者。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145907388.png" alt="image-20230428145907388" style="zoom:67%;" /><h1 id="RocketMQ-的消息模型"><a href="#RocketMQ-的消息模型" class="headerlink" title="RocketMQ 的消息模型"></a>RocketMQ 的消息模型</h1><p>RocketMQ 使用的消息模型是标准的发布 - 订阅模型。但是它也有队列的概念。</p><p>几乎所有的消息队列都采用<strong>请求-确认机制</strong>，即生产者将消息发送给服务端，服务端收到并写入队列后，会给生产者发送确认响应。而消费端，消费者收到消息并处理完后，也会给服务端发送消息，服务端在收到确认消息后，才会判定消息被消费成功。上面两种，如果没收到确认消息，会重试。</p><p>但是这样也存在一个问题，即还没收到一个消息的确认信息时，只能等待，而不能去执行第二条消息，这样是为了保证消息的顺序性。</p><p>为了解决这个问题，RocketMQ引入了队列的概念。</p><p><strong>每个主题包含多个队列，通过多个队列来实现多实例并行生产和消费。</strong>RocketMQ 只在队列上保证消息的有序性，主题层面是无法保证消息的严格顺序的。</p><p>RocketMQ 中，订阅者的概念是通过消费组（Consumer Group）来体现的。每个消费组都消费主题中一份完整的消息，不同消费组之间消费进度彼此不受影响，也就是说，一条消息被 Consumer Group1 消费过，也会再给 Consumer Group2 消费。</p><p>一个消费组中的消费者是竞争关系，一条消息只会被消费组中的一个消费者消费。</p><p>由于每一条消息需要被多个消费组消费，所以消费完的消息并不会立即被删除，这就需要 RocketMQ 为每个消费组在每个队列上维护一个消费位置（Consumer Offset），这个位置之前的消息都被消费过，之后的消息都没有被消费过，每成功消费一条消息，消费位置就加一。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428150934219.png" alt="image-20230428150934219"></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
     
     
       
@@ -100,8 +184,8 @@
   
   <entry>
     <title>分库分表时如何保证id唯一</title>
-    <link href="http://example.com/2023/04/27/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/"/>
-    <id>http://example.com/2023/04/27/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/</id>
+    <link href="http://example.com/2023/04/27/MySQL/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/"/>
+    <id>http://example.com/2023/04/27/MySQL/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/</id>
     <published>2023-04-27T13:38:43.000Z</published>
     <updated>2023-04-28T07:19:05.089Z</updated>
     
@@ -502,94 +586,6 @@
     
     
     <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分页：较小的表</title>
-    <link href="http://example.com/2023/04/19/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5%EF%BC%9A%E8%BE%83%E5%B0%8F%E7%9A%84%E8%A1%A8/"/>
-    <id>http://example.com/2023/04/19/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5%EF%BC%9A%E8%BE%83%E5%B0%8F%E7%9A%84%E8%A1%A8/</id>
-    <published>2023-04-19T11:42:21.000Z</published>
-    <updated>2023-04-19T14:35:36.346Z</updated>
-    
-    <content type="html"><![CDATA[<p>由于一个地址空间可能会对应很多页，从而导致每一个页表比较大。而每一个进程都有一个页表，则会给内存带来很大的压力。这里就是为了解决这个问题，如何让页表变得更小。</p><h1 id="更大的页"><a href="#更大的页" class="headerlink" title="更大的页"></a>更大的页</h1><p>我们可以让每一个页更大，如果每一个页可以对应更多的地址空间，那么页表需要存储的映射将会变少。这也意味着每一个页表会变得更小。</p><p>这种解决办法会带来新的问题，如果每个页太大，则会导致每个页所分配的内存用不完，导致内部碎片。</p><h1 id="分页和分段混合"><a href="#分页和分段混合" class="headerlink" title="分页和分段混合"></a>分页和分段混合</h1><p>在单独采用页表时，一个进程的地址空间映射可能如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230419213904915.png" alt="image-20230419213904915" style="zoom:67%;" /><p>在上图中，一个地址空间会分为多个页，它单独对应一个页表。但是真正使用的空间却只有上图那些白色区域，而灰色区域是没有使用的，但是他们也被映射了具体的物理地址，而且这些映射还存在页表当中。</p><p>所以我们可以采用分段时的思想，不再将进程的整个空间分配单个页表，而是为进程的每个逻辑分段提供一个页表。</p><p>在上图的例子中，我们可以给代码段一个页表，给堆和栈分别一个页表。</p><p>在分段中，一个基址寄存器告诉我们每个段对应的物理地址，还有界限寄存器告诉我们段的大小。而在分段和分页混合的方案中，我们的基址寄存器存储的是该段的页表的物理地址。界限寄存器用于指示页表有有多少有效页。</p><p><strong>存在的问题</strong>：</p><p>如果存在一个大而稀疏的堆，那么还是要为他分配对应的物理空间，这些映射都要存储在页表当中，也会造成页表的浪费。</p><p>其次，这种杂合的方式会导致外部碎片产生。</p><h1 id="多级页表"><a href="#多级页表" class="headerlink" title="多级页表"></a>多级页表</h1><p>多级页表将线性页表变成了类似于树的东西。而且也是为了解决页表中存在着没有用的映射。</p><p>它的设计是，将页表分成页大小的单元。如果整个页的页表项都是无效的，就不为该页分配页表。为了追踪页表的页是否有效，以及有效页对应物理内存的位置，使用了一种页目录的新结构。</p><p>之前的页表与多级页表的对比如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230419222341075.png" alt="image-20230419222341075" style="zoom:67%;" /><p>上图左边，页表中存储了203以及204这两页对应的虚拟地址到物理地址的映射，但是这两页却没有存储任何内容。</p><p>而在右图，内存中存储了页目录，页目录标记了哪些页是使用过的，而此时的页表中也有多个页，我们只需要加载页表中两个页即可。这两个页存储了使用了的页的映射。</p><p>存在的问题：</p><p>如果TLB未命中，那么我们就需要从内存中访问两次，才可以找到虚拟地址到物理地址的映射。第一次用于访问页目录，从页目录中找到对应页表，第二次用于从页表中找到对应虚拟地址到物理地址的映射。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;由于一个地址空间可能会对应很多页，从而导致每一个页表比较大。而每一个进程都有一个页表，则会给内存带来很大的压力。这里就是为了解决这个问题，如何让页表变得更小。&lt;/p&gt;
-&lt;h1 id=&quot;更大的页&quot;&gt;&lt;a href=&quot;#更大的页&quot; class=&quot;headerlink&quot; titl</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分页：快速地址转换</title>
-    <link href="http://example.com/2023/04/19/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/"/>
-    <id>http://example.com/2023/04/19/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%88%86%E9%A1%B5%EF%BC%9A%E5%BF%AB%E9%80%9F%E5%9C%B0%E5%9D%80%E8%BD%AC%E6%8D%A2/</id>
-    <published>2023-04-19T08:12:14.000Z</published>
-    <updated>2023-04-19T08:59:23.485Z</updated>
-    
-    <content type="html"><![CDATA[<p>为了解决分页带来的额外内存访问，又引入了地址转换旁路缓冲存储器，又称TLB。它是一个硬件缓存，它记录了频繁发生的虚拟地址到物理地址的转换。</p><p>引入该缓存后，每次需要访问内存时，硬件会先检查TLB中是否有期望的映射，如果有就直接转换。</p><h1 id="TLB的基本算法"><a href="#TLB的基本算法" class="headerlink" title="TLB的基本算法"></a>TLB的基本算法</h1><p>硬件会先从虚拟地址中提取页号，然后检查TLB中是否有该页号（在引入TLB之前，这里需要直接访问一次内存，去读取页表），如果有，则可以根据TLB的值，经过计算得到正确的物理地址。</p><p>如果没有找到，那么硬件需要去内存访问页表，然后将映射更新到TLB当中，前提是该虚拟地址有效，而且我们有权限访问。</p><h1 id="上下文切换时对TLB的处理"><a href="#上下文切换时对TLB的处理" class="headerlink" title="上下文切换时对TLB的处理"></a>上下文切换时对TLB的处理</h1><p>引入TLB之后，我们在发生上下文切换时，要对TLB进行特殊的处理。因为TLB记录的是某一个进程的地址空间到物理地址的转换，如果切换进程，那么当前的TLB对于另一个进程是不可用的。</p><p>一种解决方案：</p><p>在发生上下文切换时，直接清空TLB，那么就不会有进程读到错误的TLB。但是也存在问题，每个进程刚运行时，都会发生TLB未命中。</p><p>第二种解决方案：</p><p>增加一个地址空间标识符，也可以看作是进程标识符，用于标识存储的内容是那个进程的映射。这样一来，TLB可以同时缓存多个进程的地址映射。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《操作系统导论》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;为了解决分页带来的额外内存访问，又引入了地址转换旁路缓冲存储器，又称TLB。它是一个硬件缓存，它记录了频繁发生的虚拟地址到物理地址的转换。&lt;/p&gt;
-&lt;p&gt;引入该缓存后，每次需要访问内存时，硬件会先检查TLB中是否有期望的映射，如果有就直接转换。&lt;/p&gt;
-&lt;h1 id=&quot;TL</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL怎么保证主备一致</title>
-    <link href="http://example.com/2023/04/19/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/"/>
-    <id>http://example.com/2023/04/19/MySQL/MySQL%E6%80%8E%E4%B9%88%E4%BF%9D%E8%AF%81%E4%B8%BB%E5%A4%87%E4%B8%80%E8%87%B4/</id>
-    <published>2023-04-19T06:59:51.000Z</published>
-    <updated>2023-04-19T07:20:53.857Z</updated>
-    
-    <content type="html"><![CDATA[<p>MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。</p><h1 id="binlog的三种格式"><a href="#binlog的三种格式" class="headerlink" title="binlog的三种格式"></a>binlog的三种格式</h1><p>binlog有三种格式，分别是statement，row和mixed。其中第三种是前两种的混合方式。</p><h2 id="这三种日志的区别"><a href="#这三种日志的区别" class="headerlink" title="这三种日志的区别"></a>这三种日志的区别</h2><p>假如说执行如下sql语句：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">delete from t where a &gt;= 4 and t_modified &lt;= &#x27;2018-11-10&#x27; limit 1;</span><br></pre></td></tr></table></figure><p>如果说binlog的格式为statement，那么binlog中会记录一个事务，事务中会执行这个sql。也就是说，该设置下，相当于把该条sql语句直接拿到从库中去执行。</p><p>如果说格式为row，那么binglog中会记录很多的内容，但是总的来说，它能够根据这些内容，去从库中直接定位到主库删除的那一条记录。就比如说，主库删除主键是1的那一行，如果记录为row格式，那么从库一定可以定位到从库中主键是1的那一行。</p><p>为什么说要定位到从库主键是1的这一行呢？</p><p>因为如果格式为statement，那么直接在从库中执行上述语句，可能会导致一些主备不一致的情况。</p><p>上述语句，如果走索引a，那么会找到第一条a &gt;&#x3D; 4的记录后，就直接删除。而走索引t_modified，则会找到第一条满足t_modified &lt;&#x3D; ‘2018-11-10’的后，就直接删除。这样的话，如果主备的索引不一致，那么就会导致删除不同的行，导致主备不一致。</p><p>而mixed就是结合了两者的优点。因为row格式需要记录 太多的内容，会占用大量的空间。比如我删除10万行数据，row格式就需要10万条记录。而statement格式只需要记录一条sql，但有可能会导致主备不一致，所以采用结合的方式。由系统判断该sql是否会产生主备不一致的可能，如果会就用row记录，否则用statement。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《MySQL45讲》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;MySQL在进行主备同步时，主库会直接把binlog拿到从库中去执行。这里就涉及到binlog的一些内容。&lt;/p&gt;
-&lt;h1 id=&quot;binlog的三种格式&quot;&gt;&lt;a href=&quot;#binlog的三种格式&quot; class=&quot;headerlink&quot; title=&quot;binlog的三种</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="日志" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E6%97%A5%E5%BF%97/"/>
-    
-    
-    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
     
   </entry>
   
