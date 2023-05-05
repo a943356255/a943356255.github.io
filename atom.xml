@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-05-02T03:13:12.941Z</updated>
+  <updated>2023-05-05T05:13:30.587Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,11 +17,116 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Kafka如何实现高性能I/O</title>
+    <link href="http://example.com/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/Kafka%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BDI-O/"/>
+    <id>http://example.com/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/Kafka%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BDI-O/</id>
+    <published>2023-05-05T04:58:33.000Z</published>
+    <updated>2023-05-05T05:13:30.587Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="使用批量消息提升服务端处理能力"><a href="#使用批量消息提升服务端处理能力" class="headerlink" title="使用批量消息提升服务端处理能力"></a>使用批量消息提升服务端处理能力</h1><p>Kafka提供了单词发送一条消息的send方法，但实际上，Kafka的客户端在实现消息发送时，采用了异步批量发送的机制。也就是说，当你调用send时，它并不会立即将消息发出去，而是放在缓存当中，到合适的时机把缓存中消息组成一批一次性发送给Broker。</p><p>而接收端，Kafka不会把一批消息还原成多条，而是每条消息都当作批消息来处理，在Broker整个处理流程中，这些被组合在一起的消息始终都是一个整体，不会被拆开。</p><h1 id="使用顺序读写提升磁盘-I-x2F-O性能"><a href="#使用顺序读写提升磁盘-I-x2F-O性能" class="headerlink" title="使用顺序读写提升磁盘 I&#x2F;O性能"></a>使用顺序读写提升磁盘 I&#x2F;O性能</h1><p>对于磁盘来说，它有一个特性，就是顺序读写的性能要远远好于随机读写。因为操作系统每次从磁盘读写数据的时候，需要先寻址，也就是先要找到数据在磁盘上的物理位置，然后再进行数据读写。所以随机读写会花费大量时间在寻址上，而顺序读写只需要找到第一个位置，接着往下写久可以了。</p><p>Kafka存储设计非常简单，对于每个分区，它把从Producer 收到的消息，顺序地写入对应的 log 文件中，一个文件写满了，就开启一个新的文件这样顺序写下去。消费的时候，也是从某个全局的位置开始，也就是某一个 log 文件中的某个位置开始，顺序地把消息读出来。</p><h1 id="利用PageCache-加速消息读写"><a href="#利用PageCache-加速消息读写" class="headerlink" title="利用PageCache 加速消息读写"></a>利用PageCache 加速消息读写</h1><p>PageCache 就是操作系统在内存中给磁盘上的文件建立的缓存。无论我们使用什么语言编写的程序，在调用系统的 API 读写文件的时候，并不会直接去读写磁盘上的文件，应用程序实际操作的都是 PageCache，也就是文件在内存中缓存的副本。</p><p>Kafka 在读写消息文件的时候，充分利用了 PageCache 的特性。一般来说，消息刚刚写入到服务端就会被消费，按照 LRU 的“优先清除最近最少使用的页”这种策略，读取的时候，对于这种刚刚写入的 PageCache，命中的几率会非常高。</p><h1 id="ZeroCopy：零拷贝技术"><a href="#ZeroCopy：零拷贝技术" class="headerlink" title="ZeroCopy：零拷贝技术"></a>ZeroCopy：零拷贝技术</h1><p>服务端处理消费的逻辑大致如下：</p><p>1、找到消息所在的文件，然后读入内存当中。</p><p>2、把消息通过网络发送给客户端。</p><p>这个过程中，数据实际上做了 2 次或者 3 次复制：</p><p>1、如果PageCache中没有，则需要将消息从文件复制到PageCache。</p><p>2、从PageCache读取到应用程序的内存空间中。</p><p>3、从应用程序复制到Socket的缓冲区。</p><p>而Kafka采用的是直接从PageCache复制到Socket中，这样可以省略一次复制。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;使用批量消息提升服务端处理能力&quot;&gt;&lt;a href=&quot;#使用批量消息提升服务端处理能力&quot; class=&quot;headerlink&quot; title=&quot;使用批量消息提升服务端处理能力&quot;&gt;&lt;/a&gt;使用批量消息提升服务端处理能力&lt;/h1&gt;&lt;p&gt;Kafka提供了单词发送一条消息的s</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+    
+    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>消息队列问题答疑</title>
+    <link href="http://example.com/2023/05/03/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E9%97%AE%E9%A2%98%E7%AD%94%E7%96%91/"/>
+    <id>http://example.com/2023/05/03/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E9%97%AE%E9%A2%98%E7%AD%94%E7%96%91/</id>
+    <published>2023-05-03T07:58:21.000Z</published>
+    <updated>2023-05-03T08:30:43.588Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="网关如何接收服务端的秒杀结果"><a href="#网关如何接收服务端的秒杀结果" class="headerlink" title="网关如何接收服务端的秒杀结果"></a>网关如何接收服务端的秒杀结果</h1><p>这里只是一个很简单的例子，省去了很多的细节，不同的系统也有不同的设计，思路仅供参考。</p><p>网关在收到 APP 的秒杀请求后，直接给消息队列发消息。如果发送消息失败，可以直接给 APP 返回秒杀失败结果，成功发送消息之后，线程就阻塞等待秒杀结果。这里不会无限等待，会设置一个超时事件。等待结束之后，去存放秒杀结果的 Map 中查询是否有返回的秒杀结果，如果有就构建Response，给 APP 返回秒杀结果，如果没有，按秒杀失败处理。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503160946737.png" alt="image-20230503160946737"></p><h1 id="RocketMQ-和-Kafka-的消息模型"><a href="#RocketMQ-和-Kafka-的消息模型" class="headerlink" title="RocketMQ 和 Kafka 的消息模型"></a>RocketMQ 和 Kafka 的消息模型</h1><p>现在，假如有一个主题 MyTopic，我们为主题创建 5 个队列，分布到 2 个 Broker 中。有三个生产者Produer0，Produer1 和Producer2。</p><p>这三个生产者与2个Broker可以随便对应，也就是说可以轮询发消息，或者说一个生产者的消息全部发送到一个Broker中。</p><p>至于消费端，有消费组、消费者和队列这几个概念。</p><p>每个消费组就是一份订阅，它要消费主题 MyTopic 下，所有队列的全部消息。这里要注意，消费了的消息并不会从队列中删除，只是从队列中读取了消息。</p><p>多个消费组在消费同一个主题时，消费组之间是互不影响的。比如我们有 2 个消费组：G0和 G1。G0 消费了哪些消息，G1 是不知道的，也不用知道。G0 消费过的消息，G1 还可以消费。即使 G0 积压了很多消息，对 G1 来说也没有任何影响。</p><p>而一个消费组中可以包含多个消费者的实例。比如说消费组G1，包含了 2 个消费者 C0 和 C1。这里有一个原则，即同一个消费组里面，每个队列只能被一个消费者实例占用。我们可以让消费者 C0 消费 Q0，Q1 和 Q2，C1 消费Q3 和 Q4，如果 C0 宕机了，会触发重新分配，这时候 C1 同时消费全部 5 个队列。</p><p>队列占用只是针对消费组内部来说的，对于其他的消费组来说是没有影响的。比如队列 Q2 被消费组 G1 的消费者 C1 占用了，对于消费组 G2 来说，是完全没有影响的，G2 也可以分配它的消费者来占用和消费队列 Q2。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503162810577.png" alt="image-20230503162810577"></p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503162822904.png" alt="image-20230503162822904"></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;网关如何接收服务端的秒杀结果&quot;&gt;&lt;a href=&quot;#网关如何接收服务端的秒杀结果&quot; class=&quot;headerlink&quot; title=&quot;网关如何接收服务端的秒杀结果&quot;&gt;&lt;/a&gt;网关如何接收服务端的秒杀结果&lt;/h1&gt;&lt;p&gt;这里只是一个很简单的例子，省去了很多的细节，</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+    
+    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>如何处理消息积压</title>
+    <link href="http://example.com/2023/05/03/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B/"/>
+    <id>http://example.com/2023/05/03/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%A4%84%E7%90%86%E6%B6%88%E6%81%AF%E7%A7%AF%E5%8E%8B/</id>
+    <published>2023-05-03T06:55:44.000Z</published>
+    <updated>2023-05-03T07:58:05.053Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="优化性能来避免消息积压"><a href="#优化性能来避免消息积压" class="headerlink" title="优化性能来避免消息积压"></a>优化性能来避免消息积压</h1><p>在使用消息队列时，我们主要考虑消息的发送方和接收方这两部分的处理，而不需要关注消息队列的处理能力，因为业务逻辑往往复杂于消息队列的处理，而且这两者并不是一个量级。</p><p>所以，对于消息队列的性能优化，我们更关注的是，<strong>在消息的收发两端，我们的业务代码怎么和消息队列配合，达到一个最佳的性能</strong>。</p><h2 id="1-发送端性能优化"><a href="#1-发送端性能优化" class="headerlink" title="1. 发送端性能优化"></a><strong>1.</strong> 发送端性能优化</h2><p>发送端可能存在发送速率没有设置好，从而导致消息处理太慢。这里的一个解决办法就是并发的进行消息发送，或者说批量的进行发送，都可以提高发送端的性能。</p><h2 id="2-消费端性能优化"><a href="#2-消费端性能优化" class="headerlink" title="2. 消费端性能优化"></a>2. 消费端性能优化</h2><p>当消费端的处理能力长时间低于发送端的发送能力时，就会导致消息积压。会导致两种结果，消息队列填满，无法对外服务，或者消息丢失，这都是比较严重的事故。</p><p>消费端的优化，除了优化业务逻辑外，还可以水平扩容，增加消费端的并发数来提升总体的消费性能。特别需要注意的一点是，<strong>在扩容 Consumer 的实例数量的同时，必须同步扩容主题中的分区（也叫队列）数量，确保 Consumer 的实例数和分区数量是相等的。</strong>如果 Consumer 的实例数量超过分区数量，这样的扩容实际上是没有效果的。因为对于消费者来说，在每个分区上实际上只能支持单线程消费。</p><h1 id="消息积压了该如何处理"><a href="#消息积压了该如何处理" class="headerlink" title="消息积压了该如何处理"></a>消息积压了该如何处理</h1><p>这里需要注意一种情况，如果通过监控系统发现消息的发送方和处理方的速度都没什么变化，但还是出现了消息积压，就要考虑是否是一个消息处理失败，被反复执行，导致后续的消息无法处理。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;优化性能来避免消息积压&quot;&gt;&lt;a href=&quot;#优化性能来避免消息积压&quot; class=&quot;headerlink&quot; title=&quot;优化性能来避免消息积压&quot;&gt;&lt;/a&gt;优化性能来避免消息积压&lt;/h1&gt;&lt;p&gt;在使用消息队列时，我们主要考虑消息的发送方和接收方这两部分的处理，而</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+    
+    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>TCP拥塞控制</title>
+    <link href="http://example.com/2023/05/03/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6/"/>
+    <id>http://example.com/2023/05/03/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6/</id>
+    <published>2023-05-03T02:15:56.000Z</published>
+    <updated>2023-05-03T03:28:18.060Z</updated>
+    
+    <content type="html"><![CDATA[<p>TCP必须使用端到端拥塞控制而不是使网络辅助的拥塞控制，因为IP层不向端系统提供显式的网络拥塞反馈。TCP所采用的方法是让每一个发送方根据所感知到的网络拥塞程度来限制其能向连接发送流量的速率。如果感觉到没什么拥堵，就加快发送速度，如果有拥堵，就减少。</p><p><strong>怎么限制发送速率</strong>：TCP发送方的拥塞控制需要一个额外的变量，拥塞窗口。发送方中已发送但是未被确认的数据量不会超过拥塞窗口（cwnd）和rwnd的最小值。该约束限制了发送方中未被确认的数据量，因此间接地限制了发送方的发送速率。</p><p><strong>如何感知拥堵</strong>：TCP发送方的丢包事件定义是，要么超时，要么收到接收方3个冗余的ACK。当出现过度拥堵时，路径上的一台或多台路由器缓存会溢出，引起数据包被丢弃，然后发送方会得知丢包事件，然后就会认为出现了拥塞。</p><p>简单来说，当正确收到接收方的ACK时，会认为网络没有拥堵，慢慢调大拥塞窗口，增加发送速率。当出现丢包时，就认为网络拥堵，减小拥塞窗口，减小发送速率。</p><p><strong>TCP拥塞控制算法</strong>包括三部分：</p><ul><li>慢启动</li><li>拥塞避免</li><li>快速恢复</li></ul><h1 id="慢启动"><a href="#慢启动" class="headerlink" title="慢启动"></a>慢启动</h1><p>在刚开始建立连接时，拥塞窗口的大小比较小，而每当正确接收到ACK确认时，就增加拥塞窗口的大小。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503104756403.png" alt="image-20230503104756403" style="zoom: 80%;" /><p>何时结束这种指数增长：</p><p>1、在此过程中，如果出现拥堵，即出现丢包，那就重新开始慢启动，把拥塞窗口置为1。此时阈值会被设置为出现拥堵时窗口大小的一半。比如说出现拥堵时窗口大小为50，那么就将阈值设置为25。</p><p>2、一切正常时，当拥塞窗口大小到达拥塞窗口阈值时，结束慢启动并转移到拥塞避免模式。</p><p>3、如果检测到3个冗余ACK，这时TCP执行一种快速重传，并进入快速恢复状态。</p><h1 id="拥塞避免"><a href="#拥塞避免" class="headerlink" title="拥塞避免"></a>拥塞避免</h1><p>一旦进入拥塞避免状态，拥塞窗口的值大约是上次遇到拥塞时的值的一半，而且在增加拥塞窗口大小时，它并不会像启动那样一次翻一倍，而是每次增加1。</p><p>合适结束这种线性增长：</p><p>1、当出现超时丢包时，就将阈值设置为拥塞窗口的一半。</p><p>2、当出现3个冗余ACK所确认的丢包时，TCP将拥塞窗口的值减半，然后将阈值设置为拥塞窗口的一半。此时拥塞窗口和阈值大小一样，将不会再增加。</p><p>之后就进入快速恢复阶段。</p><h1 id="快速恢复"><a href="#快速恢复" class="headerlink" title="快速恢复"></a>快速恢复</h1><p>总结：出现 网络拥塞 之后 , 拥塞窗口 不降为 1 , 而是降低到 慢开始门限值 , 即当前的 拥塞窗口大小的 1&#x2F;2 , 然后线性增加 拥塞窗口 ;</p><p>如下图：没有快速恢复时，出现拥堵窗口会将为1，然后开始增长，到达阈值每次增加1。</p><p>有快速恢复时，出现拥堵窗口大小降为之前的阈值，然后每次增加1。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503112334911.png" alt="image-20230503112334911"></p><h1 id="三个过程的转换"><a href="#三个过程的转换" class="headerlink" title="三个过程的转换"></a>三个过程的转换</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230503110841488.png" alt="image-20230503110841488"></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;TCP必须使用端到端拥塞控制而不是使网络辅助的拥塞控制，因为IP层不向端系统提供显式的网络拥塞反馈。TCP所采用的方法是让每一个发送方根据所感知到的网络拥塞程度来限制其能向连接发送流量的速率。如果感觉到没什么拥堵，就加快发送速度，如果有拥堵，就减少。&lt;/p&gt;
+&lt;p&gt;&lt;str</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
+    
+    
+  </entry>
+  
+  <entry>
     <title>拥塞控制原理</title>
-    <link href="http://example.com/2023/05/02/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/"/>
-    <id>http://example.com/2023/05/02/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/</id>
+    <link href="http://example.com/2023/05/02/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/"/>
+    <id>http://example.com/2023/05/02/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/</id>
     <published>2023-05-02T02:17:31.000Z</published>
-    <updated>2023-05-02T03:13:12.941Z</updated>
+    <updated>2023-05-03T02:16:20.247Z</updated>
     
     <content type="html"><![CDATA[<h1 id="拥塞原因与代价"><a href="#拥塞原因与代价" class="headerlink" title="拥塞原因与代价"></a>拥塞原因与代价</h1><h2 id="情况1：两个发送方和一台具有无穷大缓存的路由器"><a href="#情况1：两个发送方和一台具有无穷大缓存的路由器" class="headerlink" title="情况1：两个发送方和一台具有无穷大缓存的路由器"></a>情况1：两个发送方和一台具有无穷大缓存的路由器</h2><p>两台主机（A和B）都有一条连接，且这两条连接共享源与目的地之间的单跳路由，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502102410352.png" alt="image-20230502102410352" style="zoom:67%;" /><p>由于路由器的缓存是无限制的，那么发送方的发送速率达到一定程度，路由器中的平均排队分组数就会无限增长，源与目的地之间的平均时延也会变成无穷大。</p><h2 id="情况2：两个发送方和一台具有有限缓存的路由器"><a href="#情况2：两个发送方和一台具有有限缓存的路由器" class="headerlink" title="情况2：两个发送方和一台具有有限缓存的路由器"></a>情况2：两个发送方和一台具有有限缓存的路由器</h2><p>这里对情况1稍微做一些修改，假定路由器的缓存容量是有限的。这种假设的结果是，当分组到达一个已满的缓存时会被丢弃。然后我们假设连接可靠，即分组在路由器中被丢弃时，会重发。</p><p>假设发送方知道路由中缓存容量，只有在路由未满时才发送，那么就不会导致分组丢失。</p><p>但一种更为真实的情况是，发送方并不知道，那么在缓存满时发送分组，带来的代价就是需要重新发送。而且存在一种情况，分组发出但是未丢失，还在排队当中，发送方因超时重新发送了分组，那么就会导致接收方需要丢弃一个重传分组，带来了不必要的开销。</p><p>这里就看出拥塞的两个代价，发送方需要重传丢失的分组，而且发送方可能重传不必要的分组。</p><h2 id="情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径"><a href="#情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径" class="headerlink" title="情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径"></a>情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径</h2><p>考虑下图的情况：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502104741965.png" alt="image-20230502104741965" style="zoom:67%;" /><p>由于路由器R2的缓存容量是有限的 ，那么当A-C通信，B-D通信时，这两者势必会争抢缓存，一种极端的情况是A-C占据了所有的缓存，导致B-D流量几乎为0，导致分组丢失。</p><p>还会导致资源浪费的一个点是，如果R2丢弃B-D的分组，那么R3所做的转发也就成了无用功，导致资源浪费。</p><h1 id="拥塞控制方法"><a href="#拥塞控制方法" class="headerlink" title="拥塞控制方法"></a>拥塞控制方法</h1><h2 id="端到端拥寒控制"><a href="#端到端拥寒控制" class="headerlink" title="端到端拥寒控制"></a>端到端拥寒控制</h2><p>在端到端拥塞控制方法中，网络层没有为运输层拥塞控制提供显式支持。即使网络中存在拥塞，端系统也必须通过对网络行为的观察（如分组丢失与时延）来推断。</p><p>TCP采用端到端的方法解决拥塞控制，因为IP层不会向端系统提供有关网络拥塞的反馈信息。TCP报文段的丢失（通过超时或3次冗余确认而得知）被认为是网络拥塞的一个迹象，TCP会相应地减小其窗口长度。</p><h2 id="网络辅助的拥塞控制"><a href="#网络辅助的拥塞控制" class="headerlink" title="网络辅助的拥塞控制"></a>网络辅助的拥塞控制</h2><p>在网络辅助的拥塞控制中，路由器向发送方提供关于网络中拥塞状态的显式反馈信息。这种反馈可以简单地用一个比特来指示链路中的拥塞情况。</p><p>对于网络辅助的拥塞控制，拥塞信息从网络反馈到发送方通常有两种方式，如下图</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502110906990.png" alt="image-20230502110906990" style="zoom:67%;" /><p>直接反馈信息可以由网络路由器发给发送方。这种方式的通知通常采用了一种阻塞分组(choke packet) 的形式（主要是说： “我拥塞了！”）。</p><p>更为通用的第二种形式的通知是，路由器标记或更新从发送方流向接收方的分组中的某个字段来指示拥塞的产生口 一旦收到一个标记的分组后，接收方就会向发送方通知该网络拥塞指示。</p>]]></content>
     
@@ -470,122 +575,6 @@
     
     
     <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>超越物理内存的机制</title>
-    <link href="http://example.com/2023/04/20/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E6%9C%BA%E5%88%B6/"/>
-    <id>http://example.com/2023/04/20/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E8%B6%85%E8%B6%8A%E7%89%A9%E7%90%86%E5%86%85%E5%AD%98%E7%9A%84%E6%9C%BA%E5%88%B6/</id>
-    <published>2023-04-20T14:04:38.000Z</published>
-    <updated>2023-04-20T14:40:46.917Z</updated>
-    
-    <content type="html"><![CDATA[<p> 在本章之前，我们所做的假设都是将进程的所有页都可以放入内存当中，但实际情况是，物理内存无法存储这么多的页。而且，为了更大的地址空间，我们也需要更大的物理内存来存储更大的页表。</p><p>这里的一个解决办法就是，利用磁盘空间，也就是说将页表取出一部分，放入磁盘当中。而操作系统需要知道这些被换出的页存在于磁盘的哪个位置，以便后续将他们加载到内存当中。</p><h1 id="交换空间"><a href="#交换空间" class="headerlink" title="交换空间"></a>交换空间</h1><p>在磁盘上开辟一块空间，用于物理页的移入和移出，这些空间就称为交换空间。而交换空间的大小，决定了系统在某一时刻能够使用的最大内存页数。而且操作系统需要记得给定页的硬件地址。</p><h1 id="存在位"><a href="#存在位" class="headerlink" title="存在位"></a>存在位</h1><p>按照之前的设定，一个虚拟地址转换为物理地址，会先检查TLB（快速地址转换），如果命中，则直接从中获取到映射，速度很快。</p><p>如果未命中，则需要先去内存中去找页目录，然后从页目录中找到对应页表页（页表被分为了很多个页），然后从页表中找到对应的映射，之后再把它加入TLB中。</p><p>如果添加了交换空间，这里边就需要考虑页是否在内存中的情况，则需要多一个标记位，即存在位，用于标记该页是否在内存当中。</p><h1 id="页错误"><a href="#页错误" class="headerlink" title="页错误"></a>页错误</h1><p>如果访问的页不在内存当中，就会发生页错误。</p><p>发生页错误，可能是因为该页被换出磁盘，那么系统就需要从对应的磁盘当中去加载内存页，这也就要求操作系统需要知道被换出的页的存储位置。操作系统可以使用PTE（页表项）的某些位来存储硬盘地址。</p><p>当将该页加载到内存后，操作系统会更新页表，将该页标记为存在内存当中，并且更新页表项中对应位置，它之前是记录了在硬盘的地址，现在把他改为在内存中的地址。</p><h1 id="何时交换页"><a href="#何时交换页" class="headerlink" title="何时交换页"></a>何时交换页</h1><p>操作系统都会设置一个高水位线，也就是说并不会等到内存满了才执行换出，而是会预留一部分内存。当内存的使用情况超过高水位线时，就会从内存中清除页。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 在本章之前，我们所做的假设都是将进程的所有页都可以放入内存当中，但实际情况是，物理内存无法存储这么多的页。而且，为了更大的地址空间，我们也需要更大的物理内存来存储更大的页表。&lt;/p&gt;
-&lt;p&gt;这里的一个解决办法就是，利用磁盘空间，也就是说将页表取出一部分，放入磁盘当中。而操</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    <category term="内存虚拟化" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/%E5%86%85%E5%AD%98%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-    
-    <category term="虚拟化" scheme="http://example.com/tags/%E8%99%9A%E6%8B%9F%E5%8C%96/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Synchronized的使用</title>
-    <link href="http://example.com/2023/04/20/Java/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/"/>
-    <id>http://example.com/2023/04/20/Java/Synchronized%E7%9A%84%E4%BD%BF%E7%94%A8/</id>
-    <published>2023-04-20T07:27:09.000Z</published>
-    <updated>2023-04-20T13:15:25.945Z</updated>
-    
-    <content type="html"><![CDATA[<p> 考虑如下代码</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SyncTest</span> <span class="keyword">implements</span> <span class="title class_">Runnable</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="type">int</span> <span class="variable">count</span> <span class="operator">=</span> <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            System.out.println(Thread.currentThread().getName() + <span class="string">&quot;:&quot;</span> + count++);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line">        <span class="type">SyncTest</span> <span class="variable">syncTest1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SyncTest</span>();</span><br><span class="line"></span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest, <span class="string">&quot;thread1&quot;</span>);</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(syncTest1, <span class="string">&quot;thread2&quot;</span>);</span><br><span class="line"></span><br><span class="line">        thread.start();</span><br><span class="line">        thread2.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>我们在run方法上加了synchronized，也就意味着锁住的是该对象，也就是synchronized（this），当我们实例化两个对象时，他们是互相不影响的，所以打印结果如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230420161141896.png" alt="image-20230420161141896" style="zoom: 80%;" /><p>另一段代码：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">      <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">      target.balance += amt;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这样写，在转账的场景中并不能解决问题。</p><p>因为synchronized锁的是当前对象，它并不能锁住传进来的target，也就是说，如果此时实例化的对象是A，然后调用A.transfer(B, 100),它只能锁住A的balance，并不能锁住B的balance还会存在另一个线程修改B的balance的问题。</p><p>一开始看到这里有一个疑问，为什么不直接在接口中锁主呢，像如下写法：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@RequestMapping(&quot;/test&quot;)</span></span><br><span class="line"><span class="keyword">public</span> JSONObject <span class="title function_">testInterface</span><span class="params">(<span class="meta">@RequestBody</span> Map&lt;String, Object&gt; map)</span> <span class="keyword">throws</span> IOException &#123;</span><br><span class="line">    <span class="keyword">synchronized</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> crudServiceImpl.getCrudValue(map);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种写法会导致另外一个问题，也就是说我在A给B转账时，会进行加锁，导致C给D转账的时候，也无法进行。也就是说这种写法会导致锁的粒度太大，在实际场景中是无法使用的。</p><p>第一个优化版本：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">  <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line">  <span class="comment">// 转账</span></span><br><span class="line">  <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span>&#123;</span><br><span class="line">    <span class="comment">// 锁定转出账户</span></span><br><span class="line">    <span class="keyword">synchronized</span>(<span class="built_in">this</span>)&#123;</span><br><span class="line">      <span class="comment">// 锁定转入账户</span></span><br><span class="line">      <span class="keyword">synchronized</span>(target)&#123;</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">          <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">          target.balance += amt;</span><br><span class="line">        &#125;</span><br><span class="line">      &#125;</span><br><span class="line">    &#125;</span><br><span class="line">  &#125; </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这样写可以保证this 和target都被锁住，达到我们预期地效果。但是也存在问题，如果A给B转账地同时，B也要给A转账，那么就会出现死锁。两者同时锁this，也就是对象A和对象B都被锁住，然后往下执行时，发现请求资源已经被锁，导致死锁。</p><p>第二个优化版本，防止死锁：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Allocator</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;Object&gt; als = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 一次性申请所有资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="type">boolean</span> <span class="title function_">apply</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        <span class="keyword">if</span> (als.contains(from) || als.contains(to)) &#123;</span><br><span class="line">            <span class="keyword">return</span> <span class="literal">false</span>;</span><br><span class="line">        &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">            als.add(from);</span><br><span class="line">            als.add(to);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> <span class="literal">true</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 归还资源</span></span><br><span class="line">    <span class="keyword">synchronized</span> <span class="keyword">void</span> <span class="title function_">free</span><span class="params">(Object from, Object to)</span> &#123;</span><br><span class="line">        als.remove(from);</span><br><span class="line">        als.remove(to);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Account</span> &#123;</span><br><span class="line">    <span class="comment">// actr应该为单例</span></span><br><span class="line">    <span class="keyword">private</span> Allocator actr;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> balance;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 转账</span></span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">transfer</span><span class="params">(Account target, <span class="type">int</span> amt)</span> &#123;</span><br><span class="line">        <span class="comment">// 一次性申请转出账户和转入账户，直到成功</span></span><br><span class="line">        <span class="keyword">while</span> (!actr.apply(<span class="built_in">this</span>, target));</span><br><span class="line">        <span class="keyword">try</span> &#123;</span><br><span class="line">            <span class="comment">// 锁定转出账户</span></span><br><span class="line">            <span class="keyword">synchronized</span>(<span class="built_in">this</span>) &#123;</span><br><span class="line">                <span class="comment">// 锁定转入账户</span></span><br><span class="line">                <span class="keyword">synchronized</span>(target) &#123;</span><br><span class="line">                    <span class="keyword">if</span> (<span class="built_in">this</span>.balance &gt; amt) &#123;</span><br><span class="line">                        <span class="built_in">this</span>.balance -= amt;</span><br><span class="line">                        target.balance += amt;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">            actr.free(<span class="built_in">this</span>, target);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这个版本中，Allocator是一个单例，也就意味着只有一个，然后在加锁之前，先判断是否可以同时获取两个对象的锁，如果可以，再进行加锁。</p><h2 id="注意"><a href="#注意" class="headerlink" title="注意"></a>注意</h2><p>上述代码都忽略了在两个线程中new 出来的对象不是同一个的问题。也就是说，transfer里传入的对象，在另一个线程中也是这两个。仅作为演示破会死锁。</p><p>而事实情况是，如果这段代码放在两个不同的线程中运行，线程A实例化account C和D，线程B实例化account C和D，在线程A执行transfer（C，D），在线程B执行transfer（D，C）还是有可能会发生死锁。</p><p>而上述代码的逻辑是建立在线程A 实例化的C和D 与线程B实例化的C和D是同一个对象。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 考虑如下代码&lt;/p&gt;
-&lt;figure class=&quot;highlight java&quot;&gt;&lt;table&gt;&lt;tr&gt;&lt;td class=&quot;gutter&quot;&gt;&lt;pre&gt;&lt;span class=&quot;line&quot;&gt;1&lt;/span&gt;&lt;br&gt;&lt;span class=&quot;line&quot;&gt;2&lt;/span&gt;&lt;</summary>
-      
-    
-    
-    
-    <category term="个人心得" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/"/>
-    
-    <category term="并发" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/Java/%E5%B9%B6%E5%8F%91/"/>
-    
-    
-    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>可靠数据传输原理</title>
-    <link href="http://example.com/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8E%9F%E7%90%86/"/>
-    <id>http://example.com/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E5%8F%AF%E9%9D%A0%E6%95%B0%E6%8D%AE%E4%BC%A0%E8%BE%93%E5%8E%9F%E7%90%86/</id>
-    <published>2023-04-20T02:51:07.000Z</published>
-    <updated>2023-04-21T03:01:09.568Z</updated>
-    
-    <content type="html"><![CDATA[<p>实现可靠传输是靠<strong>可靠数据传输协议</strong>来完成的，而该协议却建立在不可靠的下层协议上。就好比TCP提供可靠传输，而TCP却是建立在IP协议这个不可靠协议的基础上。</p><p>以下的讨论都是单向数据传输，而且暂且只考虑损坏比特或者整个报文段丢失的情况，而不考虑乱序到达的情况。</p><h1 id="rdt1-0：经完全可靠信道传输"><a href="#rdt1-0：经完全可靠信道传输" class="headerlink" title="rdt1.0：经完全可靠信道传输"></a>rdt1.0：经完全可靠信道传输</h1><p>该协议只考虑最简单的情况，即底层信道完全可信。</p><p>因为默认信道传输可信，那么它的发送端只等待来自上层的调用，接受端只等待来自下层的调用，发送端将数据发送出去之后，就不需要再管，默认一定会到达接收端。</p><p>而且这里也假定了接收方的接受速率和发送方的一致。</p><h1 id="rdt2-0：具有比特差错信道的可靠数据传输"><a href="#rdt2-0：具有比特差错信道的可靠数据传输" class="headerlink" title="rdt2.0：具有比特差错信道的可靠数据传输"></a>rdt2.0：具有比特差错信道的可靠数据传输</h1><p>在该协议中，我们只假定发送的比特可能会受损，而不考虑它们可能存在乱序到达或者丢失的情况。</p><p>这里可以类比打电话，我们说一句，对方听到后就会对其进行响应，如果没听清，一般会说让我们再说一边。</p><p>在该协议中，使用了肯定确认和否定确认，发送方收到肯定确认意味着接收方成功收到了数据，而否定确认意味着接收方收到的比特有误，需要重传。基于这种机制的协议叫做<strong>自动重传请求协议</strong>。</p><p>它最主要的是三点：</p><p>1、差错检测。它需要能够检测出传送的比特流是否有误。</p><p>2、接受方反馈。接收方收到比特后，如果有误，需要给发送方反馈。</p><p>3、重传。发送方收到接收方的否定确认后，需要重新传送刚刚发送的比特。</p><p>一个更具体地例子，发送方发送数据后，需要等待接收方返回一个确认分组。该分组可以是ACK或者NAK。收到ACK说明接收方正确收到分组，而受到NAK则说明有误，需要重传。而发送方发送数据后，只能等待接受对方响应的分组，这种设计也叫做<strong>停等协议</strong>。</p><p><strong>致命缺点：没有考虑ACK或者NAK分组受损的情况。</strong></p><p>简单的解决办法：发送方将发送的数据分组编号，接收方只需要根据序号就可以确定该数据分组是否被重发。这样一来，发送方接受到的AKC或者NAK由于受损而表意不明确时，直接重新发送即可。</p><h1 id="rdt3-0：具有比特差错的丢包信道的可靠传输"><a href="#rdt3-0：具有比特差错的丢包信道的可靠传输" class="headerlink" title="rdt3.0：具有比特差错的丢包信道的可靠传输"></a>rdt3.0：具有比特差错的丢包信道的可靠传输</h1><p>到这里，就不仅要考虑比特受损的情况，还要考虑比特丢失的情况。</p><p>在该协议下，我们让发送方负责检测和恢复丢包工作。假如发送方发送的数据分组丢了，那么接收方就无法响应该分组的ACK确认（因为发送的数据分组都有序号），发送方在未收到ACK时，不论是ACK丢失还是数据分组丢失，直接重传数据即可。</p><p>但是这个等待的时间也有要求，最低为一个数据分组从发送方到接收方以及从接收方返回发送方的时间和。这里就需要引入一个计时器，超过时间需要重传。</p><p>这里还要求发送方和接收方信道中引入<strong>冗余数据分组</strong>，这里面要存储已经发送了但是还没收到确认帧的数据。</p><p>该协议解决问题的核心点在于：</p><p>1、差错检测</p><p>2、数据分组增加编号</p><p>3、接收方的响应</p><p>4、一个计时器</p><p>5、冗余数据分组</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;实现可靠传输是靠&lt;strong&gt;可靠数据传输协议&lt;/strong&gt;来完成的，而该协议却建立在不可靠的下层协议上。就好比TCP提供可靠传输，而TCP却是建立在IP协议这个不可靠协议的基础上。&lt;/p&gt;
-&lt;p&gt;以下的讨论都是单向数据传输，而且暂且只考虑损坏比特或者整个报文段丢失的</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>UDP</title>
-    <link href="http://example.com/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UDP/"/>
-    <id>http://example.com/2023/04/20/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/UDP/</id>
-    <published>2023-04-20T01:53:33.000Z</published>
-    <updated>2023-04-20T02:50:43.706Z</updated>
-    
-    <content type="html"><![CDATA[<p>UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。</p><p>UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢复，只能选择丢弃，或者交给应用程序，并发出警告。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;UDP是面向无连接的，它没有拥塞控制。但是这里面存在一个问题，如果大量的UDP进行传输并且不经过控制，那么会导致整个网络的拥堵，造成大量UDP报文溢出，而且还会挤占TCP的通道，影响TCP通信。&lt;/p&gt;
-&lt;p&gt;UDP可以提供差错的检测，但是对于错误的报文段，却无法对其进行恢</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-    <category term="运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
     
   </entry>
   
