@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-05-08T14:41:19.068Z</updated>
+  <updated>2023-05-10T14:40:28.264Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,9 +17,66 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>微服务后系统要如何改造</title>
+    <link href="http://example.com/2023/05/10/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/"/>
+    <id>http://example.com/2023/05/10/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/</id>
+    <published>2023-05-10T14:20:11.000Z</published>
+    <updated>2023-05-10T14:40:28.264Z</updated>
+    
+    <content type="html"><![CDATA[<p> 微服务化后，一个项目的架构图如下所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230510222409851.png" alt="image-20230510222409851" style="zoom: 80%;" /><h1 id="微服务拆分的原则"><a href="#微服务拆分的原则" class="headerlink" title="微服务拆分的原则"></a>微服务拆分的原则</h1><p>单体化的项目就像一个大的蜘蛛网，不同模块交织在一起，调用比较复杂，一个问题出bug可能会导致连锁的问题。所以要对架构进行拆分。而进行拆分则需要遵循以下原则：</p><h2 id="1、做到单一服务内部功能的高内聚和低耦合"><a href="#1、做到单一服务内部功能的高内聚和低耦合" class="headerlink" title="1、做到单一服务内部功能的高内聚和低耦合"></a>1、做到单一服务内部功能的高内聚和低耦合</h2><p>也就是说每个服务只完成自己职责之内的任务，对于不是自己职责的功能交给其它服务来完成。</p><h2 id="2、需要关注服务拆分的粒度，先粗略拆分再逐渐细化"><a href="#2、需要关注服务拆分的粒度，先粗略拆分再逐渐细化" class="headerlink" title="2、需要关注服务拆分的粒度，先粗略拆分再逐渐细化"></a>2、需要关注服务拆分的粒度，先粗略拆分再逐渐细化</h2><p>拆分初期可以把服务粒度拆得粗一些，后面随着团队对于业务和微服务理解的加深，再考虑把服务粒度细化。</p><h2 id="3、拆分的过程，要尽量避免影响产品的日常功能迭代"><a href="#3、拆分的过程，要尽量避免影响产品的日常功能迭代" class="headerlink" title="3、拆分的过程，要尽量避免影响产品的日常功能迭代"></a>3、拆分的过程，要尽量避免影响产品的日常功能迭代</h2><p>要一边做产品功能迭代，一边完成服务化拆分。拆分只能在现有一体化系统的基础上不断剥离业务独立部署，<strong>剥离的顺序你可以参考以下几点：</strong></p><ol><li><p>优先剥离比较独立的边界服务（比如短信服务、地理位置服务），从非核心的服务出发减少拆分对现有业务的影响</p></li><li><p>当两个服务存在依赖关系时优先拆分被依赖的服务。比如内容服务依赖于用户服务获取用户的基本信息，那么如果先把内容服务拆分出来，内容服务就会依赖于一体化架构中的用户模块，这样还是无法保证内容服务的快速部署能力。</p></li></ol><h2 id="4、服务接口的定义要具备可扩展性"><a href="#4、服务接口的定义要具备可扩展性" class="headerlink" title="4、服务接口的定义要具备可扩展性"></a>4、服务接口的定义要具备可扩展性</h2><p>服务拆分之后，由于服务是以独立进程的方式部署，所以服务之间通信就不再是进程内部的方法调用而是跨进程的网络通信了。在这种通信模型下服务接口的定义要具备可扩展性，否则在服务变更时会造成意想不到的错误。</p><h1 id="微服务化带来的问题和解决思路"><a href="#微服务化带来的问题和解决思路" class="headerlink" title="微服务化带来的问题和解决思路"></a>微服务化带来的问题和解决思路</h1><p>微服务会引入一定的复杂度：</p><p>1、服务接口调用不再是同一进程内的方法调用，而是跨进程的网络调用，这会增加时延，同时接口调用方需要知道服务部署在哪些机器的哪个端口上，这些信息需要存储在一个分布式一致性的存储中，<strong>于是就需要引入服务注册中心</strong>。</p><p>2、多个服务之间有着错综复杂的依赖关系。一个服务会依赖多个其它服务也会被多个服务所依赖，那么一旦被依赖的服务的性能出现问题产生大量的慢请求，就会导致依赖服务的工作线程池中的线程被占满，依赖的服务也会出现性能问题，有可能会导致整个服务崩溃。</p><p>为了避免发生这种情况，我们需要引入服务治理体系针对出问题的服务采用熔断、降级、限流、超时控制的方法，使问题被限制在单一服务中，保护服务网络中的其它服务不受影响。</p><p>3、服务拆分到多个进程后，一条请求的调用链路上涉及多个服务，那么一旦这个请求的响应时间增长或者是出现错误，我们就很难知道是哪一个服务出现的问题。</p><p>另外，整体系统一旦出现故障，很可能外在的表现是所有服务在同一时间都出现了问题，你在问题定位时很难确认哪一个服务是源头，<strong>这就需要引入分布式追踪工具，以及更细致的服务端监控报表。</strong></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 微服务化后，一个项目的架构图如下所示：&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230510222409851.png&quot; alt=&quot;image-2023051</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>网络层概述</title>
+    <link href="http://example.com/2023/05/09/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/"/>
+    <id>http://example.com/2023/05/09/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/</id>
+    <published>2023-05-09T01:38:36.000Z</published>
+    <updated>2023-05-10T14:18:26.597Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="转发和路由选择：数据平面和控制平面"><a href="#转发和路由选择：数据平面和控制平面" class="headerlink" title="转发和路由选择：数据平面和控制平面"></a>转发和路由选择：数据平面和控制平面</h1><p><strong>转发</strong>：当一个分组到达某路由器的一条输入链路时，该路由器必须将该分组移动到适当的输出链路。如果分组来自一个已知的恶意注意，那么它会被路由器阻挡。</p><p><strong>路由选择</strong>：当分组从发送方流向接收方时，网络层必须决定这些分组所采用的路由或路径。计算这些路径的算法被称为路由选择算法。</p><p>每台路由器中都有一个转发表。路由器检査到达分组首部的一个或多个字段值，这些值对应存储在转发表项中的值，指出了该分组将被转发的路由器的输出链路接口。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230509111658565.png" alt="image-20230509111658565" style="zoom:67%;" /><p>说白了，就是通过这个路由表，找到应该将数据发送到哪一个出口。</p><h1 id="网络服务模型"><a href="#网络服务模型" class="headerlink" title="网络服务模型"></a>网络服务模型</h1><p>网络层能提供的某些可能的服务：</p><ul><li>确保交付。该服务确保分组将最终到达目的地。</li><li>具有时延上界的确保交付。该服务不仅确保分组的交付，而且在特定的主机到主机时延上界内（例如在100ms内）交付。</li><li>有序分组交付。该服务确保分组以它们发送的顺序到达目的地。</li><li>确保最小带宽。这种网络层服务模仿在发送和接收主机之间一条特定比特率（例如1 Mbps）的传输链路的行为。只要发送主机以低于特定比特率的速率传输比特（作为分组的组成部分），则所有分组最终会交付到目的主机。</li><li>安全性。网络层能够在源加密所有数据报并在目的地解密这些分组，从而对所有运输层报文段提供机密性。</li></ul><p>因特网实际提供的：</p><p>因特网的网络层提供了单一的服务，称为尽力而为服务（best effort service）。使用尽力而为服务，传送的分组既不能保证以它们发送的顺序被接收，也不能保证它们最终交付；既不能保证端到端时延，也不能保证有最小的带宽。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;转发和路由选择：数据平面和控制平面&quot;&gt;&lt;a href=&quot;#转发和路由选择：数据平面和控制平面&quot; class=&quot;headerlink&quot; title=&quot;转发和路由选择：数据平面和控制平面&quot;&gt;&lt;/a&gt;转发和路由选择：数据平面和控制平面&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;转发</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="网络层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E7%BD%91%E7%BB%9C%E5%B1%82/"/>
+    
+    
+    <category term="网络层" scheme="http://example.com/tags/%E7%BD%91%E7%BB%9C%E5%B1%82/"/>
+    
+  </entry>
+  
+  <entry>
     <title>如何实现一个完备的缓存</title>
-    <link href="http://example.com/2023/05/08/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%AE%8C%E5%A4%87%E7%9A%84%E7%BC%93%E5%AD%98/"/>
-    <id>http://example.com/2023/05/08/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%AE%8C%E5%A4%87%E7%9A%84%E7%BC%93%E5%AD%98/</id>
+    <link href="http://example.com/2023/05/08/Java/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%AE%8C%E5%A4%87%E7%9A%84%E7%BC%93%E5%AD%98/"/>
+    <id>http://example.com/2023/05/08/Java/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E4%B8%80%E4%B8%AA%E5%AE%8C%E5%A4%87%E7%9A%84%E7%BC%93%E5%AD%98/</id>
     <published>2023-05-08T13:23:50.000Z</published>
     <updated>2023-05-08T14:41:19.068Z</updated>
     
@@ -48,8 +105,8 @@
   
   <entry>
     <title>数据该如何迁移</title>
-    <link href="http://example.com/2023/05/07/%E6%95%B0%E6%8D%AE%E8%AF%A5%E5%A6%82%E4%BD%95%E8%BF%81%E7%A7%BB/"/>
-    <id>http://example.com/2023/05/07/%E6%95%B0%E6%8D%AE%E8%AF%A5%E5%A6%82%E4%BD%95%E8%BF%81%E7%A7%BB/</id>
+    <link href="http://example.com/2023/05/07/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E8%AF%A5%E5%A6%82%E4%BD%95%E8%BF%81%E7%A7%BB/"/>
+    <id>http://example.com/2023/05/07/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E8%AF%A5%E5%A6%82%E4%BD%95%E8%BF%81%E7%A7%BB/</id>
     <published>2023-05-07T08:23:49.000Z</published>
     <updated>2023-05-07T09:14:26.518Z</updated>
     
@@ -524,62 +581,6 @@
     
     
     <category term="连接池" scheme="http://example.com/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>TCP</title>
-    <link href="http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/"/>
-    <id>http://example.com/2023/04/25/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP/</id>
-    <published>2023-04-25T02:12:15.000Z</published>
-    <updated>2023-04-30T03:01:24.414Z</updated>
-    
-    <content type="html"><![CDATA[<p>TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。</p><h1 id="建立连接的过程"><a href="#建立连接的过程" class="headerlink" title="建立连接的过程"></a>建立连接的过程</h1><p>客户首先发送一个特殊的TCP报文段，服务器用另一个特殊的TCP报文段来响应，最后，客户再用第三个特殊报文段作为响应。</p><p>前两个报文段不承载“有效载荷” ，也就是不包含应用层数据；而第三个报文段可以承载有效载荷。</p><h1 id="数据传输"><a href="#数据传输" class="headerlink" title="数据传输"></a>数据传输</h1><p>一旦建立了连接之后，就需要传输数据。当应用层数据通过套接字以后，数据就交由TCP控制。TCP将这些数据引导到该连接的发送缓存里，然后不时的从发送缓存里取出一块数据，并将数据传递到网络层。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20230425102632021.png" alt="image-20230425102632021" style="zoom:67%;" /><h1 id="TCP报文段结构"><a href="#TCP报文段结构" class="headerlink" title="TCP报文段结构"></a>TCP报文段结构</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230425102923389.png" alt="image-20230425102923389" style="zoom:67%;" /><p>其中，32比特的序号字段和32比特的确认号字段被TCP发送方和接收方用来实现可靠数据传输服务。</p><p>接收窗口字段用来实现流量控制。</p><p>TCP被称为累计确认是因为它的确认号也是按组确认的。比如说收到了0-500的报文段，那么它发送给发送方的确认号就是501，如果收到0-500，和600-900，而没有收到501-599，那么确认号还是501。</p><p>TCP的发送方，也使用了流水线。</p><h1 id="可靠数据传输"><a href="#可靠数据传输" class="headerlink" title="可靠数据传输"></a>可靠数据传输</h1><p>由于网络层提供的服务（IP服务）是不可靠的，无法保证数据按序交付，也无法保证完整性。而TCP则是建立在IP提供的网络服务之上，它创建了一种可靠数据传输服务。</p><h2 id="快速重传"><a href="#快速重传" class="headerlink" title="快速重传"></a>快速重传</h2><p>TCP有一种机制，就是延长超时时间，比如说第一个字数据经过50ms，被却认为丢失，然后重发，那么第二个就会将超时时间设置为100ms，以此类推。但是这会导致超时的时间越来越长，增加了端到端的时延。</p><p>解决办法是引入了快速重传，即通过冗余的ACK确认，来得知是数据错误，而不需要等待超时时间到达。</p><p>冗余的ACK就是再次确认已经收到的某个报文段的ACK，而发送方之前也已经收到该报文段的ACK。</p><p>一个具体的例子就是，比如说ACK &#x3D; 3是一个数据的确认，而且发送方也已经接收到了ACK &#x3D; 3的确认帧，而接收方收到了数据5和6，没有收到4，此时接收方就会重传ACK &#x3D; 3的确认帧，如果重传超过3次，则TCP就启动快速重传，立即重传3之后的数据。</p><h2 id="选择重传"><a href="#选择重传" class="headerlink" title="选择重传"></a>选择重传</h2><p>回退N帧协议，假设分组n的确认报文丢失，那么它会重传n以及n以后的所有报文，尽管只丢失了n，其他的全部已经正确接收。</p><p>而TCP则是允许接收方有选择的确认失序报文段，而不是累计的确认正确的接收最后一个。当启用重传时，它就会跳过重传那些已经被接收方选择性确认过的报文段。</p><h1 id="流量控制"><a href="#流量控制" class="headerlink" title="流量控制"></a>流量控制</h1><p>TCP连接的每一侧都为该连接设置了接收缓存。没当TCP接收到正确，按序的字节后，就会将这些数据放入接收缓存，相关的应用就会从接收缓存中读取数据。但是如果应用读取的比较慢，而发送方发送的比较快，则会导致缓存溢出。</p><p>所以TCP提供了流量控制服务，以消除发送方发送过快导致接收方缓存溢出的可能。</p><p>TCP通过让发送方维护一个接收窗口的变量来实现流量控制。接收窗口用于给发送方指示，表明现在接收方还有多少可用的缓存空间。因为TCP是全双工通信的，所以说连接两端都会维护一个接收窗口。</p><p>这样一来，发送方只需要根据对应接收方的窗口大小来确定此时可以发送多少数据，就能保证不溢出。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下方法》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;TCP是面向连接的。而且提供的是全双工服务，即如果两台主机A和B相连，那么A可以给B发数据，B也可以给A发数据。TCP连接是点对点的，即在单个发送方与单个接收方之间的连接。&lt;/p&gt;
-&lt;h1 id=&quot;建立连接的过程&quot;&gt;&lt;a href=&quot;#建立连接的过程&quot; class=&quot;hea</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-    <category term="-运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何提高系统性能</title>
-    <link href="http://example.com/2023/04/24/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E7%B3%BB%E7%BB%9F%E6%80%A7%E8%83%BD/"/>
-    <id>http://example.com/2023/04/24/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E7%B3%BB%E7%BB%9F%E6%80%A7%E8%83%BD/</id>
-    <published>2023-04-24T11:50:36.000Z</published>
-    <updated>2023-04-24T12:24:03.314Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="性能的度量指标"><a href="#性能的度量指标" class="headerlink" title="性能的度量指标"></a>性能的度量指标</h1><p>1、平均值</p><p>平均值是把这段时间所有请求的响应时间数据相加，再除以总请求数。但是它存在一定的问题，可能这段时间有10000个请求，只有100个响应时间为100ms，其他都是1s，这样算下来平均值不太大，但是系统是有问题的。</p><p>2、最大值</p><p>即找到一段时间请求的响应时间的最大值。但是又过于敏感，如果只有一个请求响应是100ms，那么最大值就是100。</p><p>3、分位值</p><p>分位值有很多种，比如 90 分位、95 分位、75 分位。以 90 分位为例，我们把这段时间请求的响应时间从小到大排序，假如一共有 100 个请求，那么排在第 90 位的响应时间就是 90 分位值。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424200201337.png" alt="image-20230424200201337"></p><h1 id="高并发下的性能优化"><a href="#高并发下的性能优化" class="headerlink" title="高并发下的性能优化"></a>高并发下的性能优化</h1><p>加入说现在的系统中只有一个处理核心，执行的响应时间都在10ms以内，我们该如何优化呢？</p><h2 id="1-提高系统的处理核心数"><a href="#1-提高系统的处理核心数" class="headerlink" title="1. 提高系统的处理核心数"></a>1. 提高系统的处理核心数</h2><p>当提高了系统的处理核心数，那么我们就可以开更多的线程来同时处理请求。那么系统的吞吐量会变得大一点。但是并不意味着无限制的增加处理核心数可以一直的提高性能。随着并发进程数的增加，并行的任务对于系统资源的争抢也会愈发严重。在某一个临界点上继续增加并发进程数，反而会造成系统性能的下降。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230424201739627.png" alt="image-20230424201739627" style="zoom: 67%;" /><h2 id="2、减少单次任务响应时间"><a href="#2、减少单次任务响应时间" class="headerlink" title="2、减少单次任务响应时间"></a>2、减少单次任务响应时间</h2><p>想要减少任务的响应时间，首先要看你的系统是 CPU 密集型还是 IO 密集型的。不同类型的系统性能优化方式不尽相同。</p><p>CPU 密集型系统中，需要处理大量的 CPU 运算，那么选用更高效的算法或者减少运算次数就是这类系统重要的优化手段。</p><p>IO 密集型系统指的是系统的大部分操作是在等待 IO 完成，这里 IO 指的是磁盘 IO 和网络 IO。我们熟知的系统大部分都属于 IO 密集型，比如数据库系统、缓存系统、Web 系统。</p><p>比方说，如果是数据库访问慢，那么就要看是不是有锁表的情况、是不是有全表扫描、索引加的是否合适、是否有 JOIN 操作、需不需要加缓存，等等；如果是网络的问题，就要看网络的参数是否有优化的空间，抓包来看是否有大量的超时重传，网卡是否有大量丢包等。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计40问》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;性能的度量指标&quot;&gt;&lt;a href=&quot;#性能的度量指标&quot; class=&quot;headerlink&quot; title=&quot;性能的度量指标&quot;&gt;&lt;/a&gt;性能的度量指标&lt;/h1&gt;&lt;p&gt;1、平均值&lt;/p&gt;
-&lt;p&gt;平均值是把这段时间所有请求的响应时间数据相加，再除以总请求数。但是它存在一</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    
-    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
