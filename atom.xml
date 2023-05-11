@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-05-10T14:40:28.264Z</updated>
+  <updated>2023-05-11T13:52:45.058Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,9 +17,96 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>Redis的I/O多路复用</title>
+    <link href="http://example.com/2023/05/12/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/"/>
+    <id>http://example.com/2023/05/12/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</id>
+    <published>2023-05-12T12:36:26.000Z</published>
+    <updated>2023-05-11T13:52:45.058Z</updated>
+    
+    <content type="html"><![CDATA[<p>在Redis6.0之前，它的网络I&#x2F;O模型是单线程的，那么它是怎么处理多个客户端的连接的呢？这里就涉及到Redis的I&#x2F;O模型，基于多路复用的高性能 I&#x2F;O 模型。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511204107493.png" alt="image-20230511204107493"></p><p>我个人对它的理解如下：</p><p>它的模型需要用到操作系统的epoll机制，也就是说需要内核来监控Redis建立的多个Socket，这也就是为什么Windows操作系统发挥不了Redis的最大性能，因为它只支持Select模式，不支持epoll模式。</p><p>Redis的一个线程只需要来处理客户端的请求，为它建立一个Socket。epoll机制允许内核一次监听多个socket，每当这些socket变得可读或者可写，就通知Redis的线程，然后Redis的线程会为对应的Socket注册对应的事件，之后将他们放入事件处理队列。这是事件在出队后，会调用对应事件绑定的函数，来处理对应的事件。</p><p>比如说，现在有两个客户端，这两个客户端都发起了请求，分别对应accept事件和read事件。Redis 分别对这两个事件注册 accept 和 get 回调函数。当 Linux 内核监听到有连接请求或读数据请求时，就会触发 Accept 事件和 Read 事件，此时，内核就会回调 Redis 相应的 accept 和 get 函数进行处理。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在Redis6.0之前，它的网络I&amp;#x2F;O模型是单线程的，那么它是怎么处理多个客户端的连接的呢？这里就涉及到Redis的I&amp;#x2F;O模型，基于多路复用的高性能 I&amp;#x2F;O 模型。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://image-13142383</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Redis" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Redis/"/>
+    
+    <category term="设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Redis/%E8%AE%BE%E8%AE%A1/"/>
+    
+    
+    <category term="Redis设计与实现" scheme="http://example.com/tags/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>如何提高服务调用速度</title>
+    <link href="http://example.com/2023/05/11/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E6%9C%8D%E5%8A%A1%E8%B0%83%E7%94%A8%E9%80%9F%E5%BA%A6/"/>
+    <id>http://example.com/2023/05/11/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%8F%90%E9%AB%98%E6%9C%8D%E5%8A%A1%E8%B0%83%E7%94%A8%E9%80%9F%E5%BA%A6/</id>
+    <published>2023-05-11T03:35:59.000Z</published>
+    <updated>2023-05-11T11:09:32.190Z</updated>
+    
+    <content type="html"><![CDATA[<p>假如电商系统的 QPS 已经达到了每秒 2 万次，在做了服务化拆分之后，由于我们把业务逻辑都拆分到了单独部署的服务中，那么假设你在完成一次完整的请求时需要调用 4～5 次服务，计算下来，RPC 服务需要承载大概每秒 10 万次的请求。</p><p>所以RPC框架的选型要：</p><p>1、选择合适的网络模型，有针对性地调整网络参数优化网络传输性能；</p><p>2、选择合适的序列化方式，以提升封包、解包的性能。</p><h1 id="什么是RPC"><a href="#什么是RPC" class="headerlink" title="什么是RPC"></a>什么是RPC</h1><p>RPC指的是通过网络调用另一台计算机上部署服务的技术。而 RPC 框架就封装了网络调用的细节，让你像调用本地服务一样调用远程部署的服务。</p><h1 id="在引入RPC框架后会出现的问题"><a href="#在引入RPC框架后会出现的问题" class="headerlink" title="在引入RPC框架后会出现的问题"></a>在引入RPC框架后会出现的问题</h1><p>假设一个电商系统的商品详情页面需要商品数据、评论数据还有店铺数据。如果是一体化的项目，只需要从商品库、评论库和店铺库获取数据就可以了，不考虑缓存的情况下有三次网络请求。</p><p>但是如果独立出商品服务、评论服务和店铺服务之后，那么就需要分别调用这三个服务，而这三个服务又会分别调用各自的数据库，这就是六次网络请求。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511184337555.png" alt="image-20230511184337555"></p><p>想要优化RPC调用，那么就要了解RPC调用的步骤都有哪些：</p><ul><li>客户端首先会将调用的类名、方法名、参数名、参数值等信息，序列化成二进制流；</li><li>然后客户端将二进制流通过网络发送给服务端；</li><li>服务端接收到二进制流之后将它反序列化，得到需要调用的类名、方法名、参数名和参数值，再通过动态代理的方式调用对应的方法得到返回值；</li><li>服务端将返回值序列化，再通过网络发送给客户端；</li><li>客户端对结果反序列化之后，就可以得到调用的结果了。</li></ul><p>如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511184610250.png" alt="image-20230511184610250"></p><p>不难看出，想要优化RPC调用，需要从<strong>网络传输和序列化</strong>入手。</p><h2 id="如何提升网络传输性能"><a href="#如何提升网络传输性能" class="headerlink" title="如何提升网络传输性能"></a>如何提升网络传输性能</h2><p>在网络传输优化中，首先要做的是选择一种高性能的 I&#x2F;O 模型，即我们处理I&#x2F;O的方式。而单次I&#x2F;O请求会分为两个节点。</p><p><strong>首先，I&#x2F;O 会经历一个等待资源的阶段，</strong>比方说，等待网络传输数据可用。这里有两种处理方式：</p><ul><li><p>阻塞。指的是在数据不可用时 I&#x2F;O 请求一直阻塞，直到数据返回；</p></li><li><p>非阻塞。指的是数据不可用时 I&#x2F;O 请求立即返回，直到被通知资源可用为止。</p></li></ul><p><strong>然后是使用资源的阶段，</strong>比如说从网络上接收到数据，并且拷贝到应用程序的缓冲区里面。也有两种处理方式：</p><ul><li><p>同步处理。指的是 I&#x2F;O 请求在读取或者写入数据时会阻塞，直到读取或者写入数据完成；</p></li><li><p>异步处理。指的是 I&#x2F;O 请求在读取或者写入数据时立即返回，当操作系统处理完成 I&#x2F;O 请求并且将数据拷贝到用户提供的缓冲区后，再通知应用 I&#x2F;O 请求执行完成。</p></li></ul><p>将这两个阶段的四种处理方式做一些排列组合，再做一些补充，就得到了我们常见的五种 I&#x2F;O 模型：</p><ul><li><p>同步阻塞 I&#x2F;O；</p></li><li><p>同步非阻塞 I&#x2F;O；</p></li><li><p>同步多路 I&#x2F;O 复用；</p></li><li><p>信号驱动 I&#x2F;O；</p></li><li><p>异步 I&#x2F;O。</p></li></ul><h2 id="选择合适的序列化方式"><a href="#选择合适的序列化方式" class="headerlink" title="选择合适的序列化方式"></a>选择合适的序列化方式</h2><p><strong>在对网络数据传输完成调优之后，另外一个需要关注的点就是数据的序列化和反序列化。</strong></p><p>这里要考虑序列化和反序列化的速度，以及序列化完成后的大小，因为要在网络上传输。</p><p>可以有以下几种方案：</p><ul><li>JSON，性能要求不高可以选</li><li><strong>Thrift</strong> 是 Facebook 开源的高性能的序列化协议</li><li><strong>Protobuf</strong> 是谷歌开源的序列化协议。</li></ul><p>如果性能要求比较高，Thrift 或者 Protobuf 都可以。</p><p>一些存储的场景下，比如说缓存中存储的数据占用空间较大，那么你可以考虑使用 Protobuf。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;假如电商系统的 QPS 已经达到了每秒 2 万次，在做了服务化拆分之后，由于我们把业务逻辑都拆分到了单独部署的服务中，那么假设你在完成一次完整的请求时需要调用 4～5 次服务，计算下来，RPC 服务需要承载大概每秒 10 万次的请求。&lt;/p&gt;
+&lt;p&gt;所以RPC框架的选型要：</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>路由器结构</title>
+    <link href="http://example.com/2023/05/11/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/"/>
+    <id>http://example.com/2023/05/11/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/</id>
+    <published>2023-05-11T02:05:50.000Z</published>
+    <updated>2023-05-11T03:19:10.170Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="路由器结构"><a href="#路由器结构" class="headerlink" title="路由器结构"></a>路由器结构</h1><p>一个路由器的体系结构如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511101229903.png" alt="image-20230511101229903" style="zoom:80%;" /><p><strong>输入端口作用</strong>：</p><p>1、接收数据链路层的数据。</p><p>2、查询转发表，决定数据的输出端口。到达的分组通过路由器的交换结构转发到输出端口。</p><p><strong>交换结构</strong>：交换结构将路由器的输入端口连接到它的输岀端口。这种交换结构完全包含在路由器之中，即它是一个网络路由器中的网络!</p><p><strong>输出端口：</strong>输出端口存储从交换结构接收的分组，并通过执行必要的链路层和物理层功能在输出链路上传输这些分组。</p><p><strong>路由选择处理器</strong>：路由选择处理器执行<strong>控制平面</strong>功能。</p><p>在传统的路由器中，它执行路由选择协议，维护路由选择表与关联链路状态信息，并为该路由器计算转发表。</p><p>在SDN路由器中，路由选择处理器（在其他活动中）负责与远程控制器通信，目的是接收由远程控制器计算的转发表项，并在该路由器的输入端口安装这些表项。路由选择处理器还执行网络管理功能。</p><p>以上仅仅是每个部分大致功能的描述，后续会有更为详细的介绍。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络自顶向下》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;路由器结构&quot;&gt;&lt;a href=&quot;#路由器结构&quot; class=&quot;headerlink&quot; title=&quot;路由器结构&quot;&gt;&lt;/a&gt;路由器结构&lt;/h1&gt;&lt;p&gt;一个路由器的体系结构如下图：&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
+    
+    <category term="网络层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E7%BD%91%E7%BB%9C%E5%B1%82/"/>
+    
+    
+    <category term="网络层" scheme="http://example.com/tags/%E7%BD%91%E7%BB%9C%E5%B1%82/"/>
+    
+  </entry>
+  
+  <entry>
     <title>微服务后系统要如何改造</title>
-    <link href="http://example.com/2023/05/10/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/"/>
-    <id>http://example.com/2023/05/10/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/</id>
+    <link href="http://example.com/2023/05/10/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/"/>
+    <id>http://example.com/2023/05/10/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E5%90%8E%E7%B3%BB%E7%BB%9F%E8%A6%81%E5%A6%82%E4%BD%95%E6%94%B9%E9%80%A0/</id>
     <published>2023-05-10T14:20:11.000Z</published>
     <updated>2023-05-10T14:40:28.264Z</updated>
     
@@ -47,8 +134,8 @@
   
   <entry>
     <title>网络层概述</title>
-    <link href="http://example.com/2023/05/09/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/"/>
-    <id>http://example.com/2023/05/09/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/</id>
+    <link href="http://example.com/2023/05/09/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/"/>
+    <id>http://example.com/2023/05/09/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E7%BD%91%E7%BB%9C%E5%B1%82%E6%A6%82%E8%BF%B0/</id>
     <published>2023-05-09T01:38:36.000Z</published>
     <updated>2023-05-10T14:18:26.597Z</updated>
     
@@ -250,6 +337,34 @@
     
     
     <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>StampedLock</title>
+    <link href="http://example.com/2023/05/04/StampedLock/"/>
+    <id>http://example.com/2023/05/04/StampedLock/</id>
+    <published>2023-05-04T13:53:20.000Z</published>
+    <updated>2023-05-11T14:37:55.106Z</updated>
+    
+    <content type="html"><![CDATA[<h2 id="StampedLock-支持的三种锁模式"><a href="#StampedLock-支持的三种锁模式" class="headerlink" title="StampedLock 支持的三种锁模式"></a>StampedLock 支持的三种锁模式</h2><p>StampedLock 支持三种模式，分别是：<strong>写锁</strong>、<strong>悲观读锁</strong>和<strong>乐观读</strong>。其中，写锁、悲观读锁的语义和 ReadWriteLock 的写锁、读锁的语义非常类似，<strong>允许多个线程同时获取悲观读锁，但是只允许一个线程获取写锁，写锁和悲观读锁是互斥的</strong>。</p><p>不同的是：StampedLock 里的写锁和悲观读锁加锁成功之后，都会返回一个 stamp；然后解锁的时候，需要传入这个 stamp。示例如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">final</span> <span class="type">StampedLock</span> <span class="variable">sl</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StampedLock</span>();</span><br><span class="line">  </span><br><span class="line"><span class="comment">// 获取/释放悲观读锁示意代码</span></span><br><span class="line"><span class="type">long</span> <span class="variable">stamp</span> <span class="operator">=</span> sl.readLock();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="comment">//省略业务相关代码</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">  sl.unlockRead(stamp);</span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 获取/释放写锁示意代码</span></span><br><span class="line"><span class="type">long</span> <span class="variable">stamp</span> <span class="operator">=</span> sl.writeLock();</span><br><span class="line"><span class="keyword">try</span> &#123;</span><br><span class="line">  <span class="comment">//省略业务相关代码</span></span><br><span class="line">&#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">  sl.unlockWrite(stamp);</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p>StampedLock 的性能之所以比 ReadWriteLock 还要好，其关键是 StampedLock 支持乐观读的方式。ReadWriteLock 支持多个线程同时读，但是当多个线程同时读的时候，所有的写操作会被阻塞；而 StampedLock 提供的乐观读，是<strong>允许一个线程获取写锁</strong>的，也就是说不是所有的写操作都被阻塞。一个使用乐观读的示例如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Point</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> <span class="type">int</span> x, y;</span><br><span class="line">    <span class="keyword">final</span> <span class="type">StampedLock</span> <span class="variable">sl</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">StampedLock</span>();</span><br><span class="line">    <span class="comment">//计算到原点的距离  </span></span><br><span class="line">    <span class="type">int</span> <span class="title function_">distanceFromOrigin</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// 乐观读</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">stamp</span> <span class="operator">=</span> sl.tryOptimisticRead();</span><br><span class="line">        <span class="comment">// 读入局部变量，</span></span><br><span class="line">        <span class="comment">// 读的过程数据可能被修改</span></span><br><span class="line">        <span class="type">int</span> <span class="variable">curX</span> <span class="operator">=</span> x, curY = y;</span><br><span class="line">        <span class="comment">// 判断执行读操作期间，</span></span><br><span class="line">        <span class="comment">// 是否存在写操作，如果存在，</span></span><br><span class="line">        <span class="comment">// 则sl.validate返回false</span></span><br><span class="line">        <span class="keyword">if</span> (!sl.validate(stamp))&#123;</span><br><span class="line">            <span class="comment">// 升级为悲观读锁</span></span><br><span class="line">            stamp = sl.readLock();</span><br><span class="line">            <span class="keyword">try</span> &#123;</span><br><span class="line">                curX = x;</span><br><span class="line">                curY = y;</span><br><span class="line">            &#125; <span class="keyword">finally</span> &#123;</span><br><span class="line">                <span class="comment">//释放悲观读锁</span></span><br><span class="line">                sl.unlockRead(stamp);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> Math.sqrt(</span><br><span class="line">            curX * curX + curY * curY);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>现尝试读取x和y，读取完后判断是否被修改了，如果被修改就升级为悲观读锁，否则直接计算。</p><h2 id="StampedLock-使用注意事项"><a href="#StampedLock-使用注意事项" class="headerlink" title="StampedLock 使用注意事项"></a>StampedLock 使用注意事项</h2><p><strong>StampedLock 不支持重入</strong>。StampedLock 的悲观读锁、写锁都不支持条件变量。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h2 id=&quot;StampedLock-支持的三种锁模式&quot;&gt;&lt;a href=&quot;#StampedLock-支持的三种锁模式&quot; class=&quot;headerlink&quot; title=&quot;StampedLock 支持的三种锁模式&quot;&gt;&lt;/a&gt;StampedLock 支持的三种锁模式&lt;/h2&gt;&lt;</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
+    
+    
+    <category term="锁" scheme="http://example.com/tags/%E9%94%81/"/>
     
   </entry>
   
@@ -468,119 +583,6 @@
     
     
     <category term="-运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>消息模型：主题和队列区别</title>
-    <link href="http://example.com/2023/04/28/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E6%A8%A1%E5%9E%8B%EF%BC%9A%E4%B8%BB%E9%A2%98%E5%92%8C%E9%98%9F%E5%88%97%E5%8C%BA%E5%88%AB/"/>
-    <id>http://example.com/2023/04/28/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E6%A8%A1%E5%9E%8B%EF%BC%9A%E4%B8%BB%E9%A2%98%E5%92%8C%E9%98%9F%E5%88%97%E5%8C%BA%E5%88%AB/</id>
-    <published>2023-04-28T06:51:06.000Z</published>
-    <updated>2023-05-01T10:20:14.060Z</updated>
-    
-    <content type="html"><![CDATA[<p><strong>早期的消息队列，就是按照“队列”的数据结构来设计的。</strong>我们一起看下这个图，生产者（Producer）发消息就是入队操作，消费者（Consumer）收消息就是出队也就是删除操作，服务端存放消息的容器自然就称为“队列”。</p><p>以下是最初的一种消息模型：队列模型</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145326054.png" alt="image-20230428145326054" style="zoom:67%;" /><p>这种模型中，消费者之间是竞争关系，每个消息只能被一个消费者消费。</p><p>但是如果想要一个消息被多个消费者消费，比如说对于一个订单消息，风控系统，分析系统，支付系统都需要得到该订单的信息，那么采用这种模型的话就需要为每一个消费者创建一个队列，但是这样做就需要提前知道有多少个消费者，违背了解耦。</p><p>为了解决这个问题，演化出了另外一种消息模型：“<strong>发布 - 订阅模型（Publish-Subscribe Pattern）</strong>”。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145647672.png" alt="image-20230428145647672" style="zoom:67%;" /><p>以上两种模型的区别就是，<strong>一份消息数据能不能被消费多次的问题。</strong></p><h1 id="RabbitMQ-的消息模型"><a href="#RabbitMQ-的消息模型" class="headerlink" title="RabbitMQ 的消息模型"></a>RabbitMQ 的消息模型</h1><p>rabbitmq采用队列模型，它用了一个交换机来解决多个消费者消费同一条消息的问题。</p><p>生产者不关心消息发送给哪个消费者，它只需要发送给交换机，由交换机决定发送给哪个消费者。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428145907388.png" alt="image-20230428145907388" style="zoom:67%;" /><h1 id="RocketMQ-的消息模型"><a href="#RocketMQ-的消息模型" class="headerlink" title="RocketMQ 的消息模型"></a>RocketMQ 的消息模型</h1><p>RocketMQ 使用的消息模型是标准的发布 - 订阅模型。但是它也有队列的概念。</p><p>几乎所有的消息队列都采用<strong>请求-确认机制</strong>，即生产者将消息发送给服务端，服务端收到并写入队列后，会给生产者发送确认响应。而消费端，消费者收到消息并处理完后，也会给服务端发送消息，服务端在收到确认消息后，才会判定消息被消费成功。上面两种，如果没收到确认消息，会重试。</p><p>但是这样也存在一个问题，即还没收到一个消息的确认信息时，只能等待，而不能去执行第二条消息，这样是为了保证消息的顺序性。</p><p>为了解决这个问题，RocketMQ引入了队列的概念。</p><p><strong>每个主题包含多个队列，通过多个队列来实现多实例并行生产和消费。</strong>RocketMQ 只在队列上保证消息的有序性，主题层面是无法保证消息的严格顺序的。</p><p>RocketMQ 中，订阅者的概念是通过消费组（Consumer Group）来体现的。每个消费组都消费主题中一份完整的消息，不同消费组之间消费进度彼此不受影响，也就是说，一条消息被 Consumer Group1 消费过，也会再给 Consumer Group2 消费。</p><p>一个消费组中的消费者是竞争关系，一条消息只会被消费组中的一个消费者消费。</p><p>由于每一条消息需要被多个消费组消费，所以消费完的消息并不会立即被删除，这就需要 RocketMQ 为每个消费组在每个队列上维护一个消费位置（Consumer Offset），这个位置之前的消息都被消费过，之后的消息都没有被消费过，每成功消费一条消息，消费位置就加一。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230428150934219.png" alt="image-20230428150934219"></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;&lt;strong&gt;早期的消息队列，就是按照“队列”的数据结构来设计的。&lt;/strong&gt;我们一起看下这个图，生产者（Producer）发消息就是入队操作，消费者（Consumer）收消息就是出队也就是删除操作，服务端存放消息的容器自然就称为“队列”。&lt;/p&gt;
-&lt;p&gt;以下是最初</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
-    
-    
-    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分库分表时如何保证id唯一</title>
-    <link href="http://example.com/2023/04/27/MySQL/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/"/>
-    <id>http://example.com/2023/04/27/MySQL/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8%E6%97%B6%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81id%E5%94%AF%E4%B8%80/</id>
-    <published>2023-04-27T13:38:43.000Z</published>
-    <updated>2023-04-28T07:19:05.089Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="主键如何选择"><a href="#主键如何选择" class="headerlink" title="主键如何选择"></a>主键如何选择</h1><p>1、使用业务字段作为主键，比如说对于用户表来说，可以使用手机号，email 或者身份证号作为主键。</p><p>2、使用生成的唯一 ID 作为主键。</p><p>但是第一种并不是每一张表都可以使用的，一些特殊的字段可以使用，比如说身份证，邮箱，手机号，但是这些字段可能存在变更的情况，就比较麻烦，所以最好采取第二种方案。</p><p>第二种方案在单表时，可以采用简单的自增id来实现，但是在分库分表的情况下却并不能这样，因为不同库和不同表的自增id会重复。我们需要采取一些其他的办法来实现。</p><h1 id="基于-Snowflake-算法搭建发号器"><a href="#基于-Snowflake-算法搭建发号器" class="headerlink" title="基于 Snowflake 算法搭建发号器"></a>基于 Snowflake 算法搭建发号器</h1><p>首先一点是，为什么不采用uuid来当作主键 ？</p><p>1、id最好是有序的，某些场景会需要排序，如果按照id则效率高一点，而且id有序分区也会简单。</p><p>2、id有序时，将其作为主键，插入数据时效率也会高，如果采用无序的插入，可能会频繁的导致页分裂。</p><p>3、uuid作为主键可能会占用大量的空间。</p><p>4、uuid并不具备业务含义。</p><h2 id="Snowflake-算法"><a href="#Snowflake-算法" class="headerlink" title="Snowflake 算法"></a>Snowflake 算法</h2><p>Snowflake 的核心思想是将 64bit 的二进制数字分成若干部分，每一部分都存储有特定含义的数据，比如说时间戳、机器 ID、序列号等等，最终生成全局唯一的有序 ID。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230427220731511.png" alt="image-20230427220731511"></p><p>其中机器ID可以用来标识在不同的机房，12位序列号代表着每个节点每毫秒最多可以生成 4096 的 ID。也可以根据不同的业务来规定每一部分的长度。</p><h2 id="具体实现方式"><a href="#具体实现方式" class="headerlink" title="具体实现方式"></a>具体实现方式</h2><p>1、<strong>嵌入到业务代码里，也就是分布在业务服务器中。</strong></p><p>这样实现的好处是不需要跨网络调用，性能会好一点。但是业务层的部署可能存在很多分，这就要求我们用更多的机器位，来确保唯一性。</p><p>2、<strong>作为独立的服务部署，这也就是我们常说的发号器服务。</strong></p><p>这种部署方式需要业务层多一次网络请求来获取id，但是可以减少机器id的位数，留更多的位数给自增信息位。</p><p>该算法的一个缺点是依赖于子系统的时间戳，一旦系统时间不准，就有可能生成重复的id。所以当我们发现系统时钟不准时，就可以让发号器拒绝发号，一直到时钟准为止。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计 40 问》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;主键如何选择&quot;&gt;&lt;a href=&quot;#主键如何选择&quot; class=&quot;headerlink&quot; title=&quot;主键如何选择&quot;&gt;&lt;/a&gt;主键如何选择&lt;/h1&gt;&lt;p&gt;1、使用业务字段作为主键，比如说对于用户表来说，可以使用手机号，email 或者身份证号作为主键。&lt;/p&gt;
-</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="数据库篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AF%87/"/>
-    
-    
-    <category term="分库分表" scheme="http://example.com/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>MySQL分库分表</title>
-    <link href="http://example.com/2023/04/27/MySQL/MySQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/"/>
-    <id>http://example.com/2023/04/27/MySQL/MySQL%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/</id>
-    <published>2023-04-27T12:09:52.000Z</published>
-    <updated>2023-04-27T13:37:30.446Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="分库分表"><a href="#分库分表" class="headerlink" title="分库分表"></a>分库分表</h1><p>分库分表是一种常见的数据分片方式，它不同于集群那种完全的备份数据，而是每个数据库或者每张表只存储整个数据的一部分，这样可以保证总数据量不变的情况下，每个数据库和每张表少存储一些数据。</p><p>而且在数据写入时，也会变为往一个库或者一张表写变为往多个库或者多张表写，提高并发写入能力。</p><h1 id="如何对数据库做垂直拆分"><a href="#如何对数据库做垂直拆分" class="headerlink" title="如何对数据库做垂直拆分"></a>如何对数据库做垂直拆分</h1><p>垂直拆分就是对数据库竖着拆分，也就是将<strong>数据库的表</strong>拆分到多个<strong>不同的数据库中</strong>。</p><p>垂直拆分的原则一般是按照业务类型来拆分，核心思想是专库专用，将业务耦合度比较高的表拆分到单独的库中。</p><h1 id="如何对数据库做水平拆分"><a href="#如何对数据库做水平拆分" class="headerlink" title="如何对数据库做水平拆分"></a>如何对数据库做水平拆分</h1><p>水平拆分指的是将<strong>单一数据表</strong>按照某一种规则拆分到<strong>多个数据库</strong>和<strong>多个数据表</strong>中，关注点在数据的特点。</p><h2 id="拆分规则"><a href="#拆分规则" class="headerlink" title="拆分规则"></a>拆分规则</h2><p>1、按照某一个字段的哈希值做拆分，这种拆分规则比较适用于实体表。</p><p>比如说我们想把用户表拆分成 16 个库，每个库是 64 张表，那么可以先对用户 ID 做哈希，哈希的目的是将 ID 尽量打散，然后再对 16 取余，这样就得到了分库后的索引值；对 64 取余，就得到了分表后的索引值。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230427202234676.png" alt="image-20230427202234676" style="zoom:67%;" /><p>2、按照某一个字段的区间来拆分，比较常用的是时间字段。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230427202322368.png" alt="image-20230427202322368" style="zoom:67%;" /><h1 id="分库分表带来的问题"><a href="#分库分表带来的问题" class="headerlink" title="分库分表带来的问题"></a>分库分表带来的问题</h1><p>分库分表引入的一个最大的问题就是<strong>引入了分库分表键，也叫做分区键，</strong>也就是我们对数据库做分库分表所依据的字段。</p><p>这也就要求我们后续所有的查询都要带上分区或者分库所用的字段，否则就要遍历所有的库。</p><p>一个解决办法就是，我们可以建立一个其他字段和分区字段的映射，当需要根据其他字段查找时，我们先找到它所对应的id，然后再根据id来查询这个具体的值。</p><p>另一方面，我们无法通过join来连接两个库的表，只能查询到后端然后进行处理。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计 40 问》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;分库分表&quot;&gt;&lt;a href=&quot;#分库分表&quot; class=&quot;headerlink&quot; title=&quot;分库分表&quot;&gt;&lt;/a&gt;分库分表&lt;/h1&gt;&lt;p&gt;分库分表是一种常见的数据分片方式，它不同于集群那种完全的备份数据，而是每个数据库或者每张表只存储整个数据的一部分，这样可以保</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="数据库篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AF%87/"/>
-    
-    
-    <category term="分库分表" scheme="http://example.com/tags/%E5%88%86%E5%BA%93%E5%88%86%E8%A1%A8/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>池化技术</title>
-    <link href="http://example.com/2023/04/26/MySQL/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
-    <id>http://example.com/2023/04/26/MySQL/%E6%95%B0%E6%8D%AE%E5%BA%93%E8%BF%9E%E6%8E%A5%E6%B1%A0/</id>
-    <published>2023-04-26T06:40:53.000Z</published>
-    <updated>2023-04-26T07:32:52.245Z</updated>
-    
-    <content type="html"><![CDATA[<p>在后端代码操作MySQL时，需要先与MySQL建立连接， 这个连接需要使用TCP的三次握手，比较的耗时，如果在正常的系统中，每一次执行sql，都要建立连接，连接使用完毕后断开连接，那么就会带来严重的性能影响。因此，池化技术就这样诞生了。</p><h1 id="连接池基本配置"><a href="#连接池基本配置" class="headerlink" title="连接池基本配置"></a>连接池基本配置</h1><p>MySQL连接池有两个重要配置，<strong>最小连接数</strong>和<strong>最大连接数</strong>。</p><p>如果连接池中有空闲的连接，则直接使用这些已经建立好的连接，如果已有的连接数超过最小连接数，但是没有超过最大连接数，来了新的连接请求，则创建新的连接处理请求。如果当前连接数大于等于最大连接数，则让新的请求排队，如果超时则抛出错误。</p><p>还有一种情况是，当前连接池中的连接数小于最小连接数，那么新到的连接请求会直接创建新的连接，而不会使用池子中的连接。</p><p>针对于连接池中的连接，我们可以启动一个线程定期检测连接池是否可用，如果不可用就关闭该连接。</p><h1 id="用线程池预先创建线程"><a href="#用线程池预先创建线程" class="headerlink" title="用线程池预先创建线程"></a>用线程池预先创建线程</h1><p>jdk1.5中就提供了池化技术。ThreadPoolExecutor 就是其中的一种，它有两个参数coreThreadCount 和 maxThreadCount。</p><ul><li><p>如果线程池中的线程数少于 coreThreadCount 时，处理新的任务时会创建新的线程；</p></li><li><p>如果线程数大于 coreThreadCount 则把任务丢到一个队列里面，由当前空闲的线程执行；</p></li><li><p>当队列中的任务堆积满了的时候，则继续创建线程，直到达到 maxThreadCount；</p></li><li><p>当线程数达到 maxTheadCount 时还有新的任务提交，那么我们就不得不将它们丢弃了。</p></li></ul><p>流程如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230426152317089.png" alt="image-20230426152317089" style="zoom:67%;" /><p>注意：JDK原生的线程池会优先把任务放进队列，而不是优先创建线程，这种就比较适合CPU密集型的任务。</p><p>因为CPU密集型的任务，如果创建过多的线程去执行任务，那么这些任务会争抢线程，导致频繁的上下文切换，造成性能的损失。</p><p>但是我们平时开发的web项目，其实属于I&#x2F;O密集型的任务，因为牵扯到数据库，所以Tomcat就没有采用JDK自带的，而是做了改进，优先创建线程去处理请求。因为I&#x2F;O密集型的大多时间都花费在去磁盘取数据，这段时间并不需要CPU，所以可以创建更多的线程去处理请求。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计 40 问》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;在后端代码操作MySQL时，需要先与MySQL建立连接， 这个连接需要使用TCP的三次握手，比较的耗时，如果在正常的系统中，每一次执行sql，都要建立连接，连接使用完毕后断开连接，那么就会带来严重的性能影响。因此，池化技术就这样诞生了。&lt;/p&gt;
-&lt;h1 id=&quot;连接池基本配</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="数据库篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%95%B0%E6%8D%AE%E5%BA%93%E7%AF%87/"/>
-    
-    
-    <category term="连接池" scheme="http://example.com/tags/%E8%BF%9E%E6%8E%A5%E6%B1%A0/"/>
     
   </entry>
   
