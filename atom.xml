@@ -18,8 +18,8 @@
   
   <entry>
     <title>Redis的I/O多路复用</title>
-    <link href="http://example.com/2023/05/12/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/"/>
-    <id>http://example.com/2023/05/12/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</id>
+    <link href="http://example.com/2023/05/12/Redis/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/"/>
+    <id>http://example.com/2023/05/12/Redis/Redis%E7%9A%84I-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</id>
     <published>2023-05-12T12:36:26.000Z</published>
     <updated>2023-05-11T13:52:45.058Z</updated>
     
@@ -42,6 +42,35 @@
     
     
     <category term="Redis设计与实现" scheme="http://example.com/tags/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>注册中心</title>
+    <link href="http://example.com/2023/05/12/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/"/>
+    <id>http://example.com/2023/05/12/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/</id>
+    <published>2023-05-12T10:27:15.000Z</published>
+    <updated>2023-05-12T11:02:34.740Z</updated>
+    
+    <content type="html"><![CDATA[<p> 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。</p><p>注册中心的基本功能有两点：</p><ul><li><p>一是提供了服务地址的存储；</p></li><li><p>二是当存储内容发生变化时，可以将变更的内容推送给客户端。</p></li></ul><p>使用了注册中心组件之后，RPC 的通信过程就变成了下面这个样子：</p><ul><li><p>客户端会与注册中心建立连接，并且告诉注册中心，它对哪一组服务感兴趣；</p></li><li><p>服务端向注册中心注册服务后，注册中心会将最新的服务注册信息通知给客户端；</p></li><li><p>客户端拿到服务端的地址之后就可以向服务端发起调用请求了。</p></li></ul><h1 id="服务状态管理如何来做"><a href="#服务状态管理如何来做" class="headerlink" title="服务状态管理如何来做"></a>服务状态管理如何来做</h1><p>服务的上线和下线是由服务端主动向注册中心注册和取消注册来实现的，这在正常的流程中是没有问题的。<strong>可是，如果某一个服务端意外故障，</strong>比如说机器掉电，网络不通等情况，服务端就没有办法向注册中心通信，将自己从服务列表中删除，就会导致客户端请求一个无法响应的服务。</p><h2 id="主动探测"><a href="#主动探测" class="headerlink" title="主动探测"></a>主动探测</h2><p>你的 RPC 服务要打开一个端口，然后由注册中心每隔一段时间（比如 30 秒）探测这些端口是否可用，如果可用就认为服务仍然是正常的，否则就可以认为服务不可用，那么注册中心就可以把服务从列表里面删除了。</p><p>这样做的如果服务比较多的话，成本就会比较的高。</p><h2 id="心跳模式"><a href="#心跳模式" class="headerlink" title="心跳模式"></a>心跳模式</h2><p>注册中心为每一个连接上来的 RPC 服务节点记录最近续约的时间，RPC 服务节点在启动注册到注册中心后，就按照一定的时间间隔（比如 30 秒），向注册中心发送心跳包。注册中心在接收到心跳包之后，会更新这个节点的最近续约时间。然后，注册中心会启动一个定时器定期检测当前时间和节点最近续约时间的差值，如果达到一个阈值（比如说 90 秒），那么认为这个服务节点不可用。</p><h2 id="保护机制"><a href="#保护机制" class="headerlink" title="保护机制"></a>保护机制</h2><p>要避免注册中心因为监测不到心跳而摘除所有的服务，要设置一定的警报，如果摘除超过一定比例的服务后，要发起警告。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。&lt;/p&gt;
+&lt;p&gt;注册中心的基本功能有两点</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
     
   </entry>
   
@@ -342,8 +371,8 @@
   
   <entry>
     <title>StampedLock</title>
-    <link href="http://example.com/2023/05/04/StampedLock/"/>
-    <id>http://example.com/2023/05/04/StampedLock/</id>
+    <link href="http://example.com/2023/05/04/Java/StampedLock/"/>
+    <id>http://example.com/2023/05/04/Java/StampedLock/</id>
     <published>2023-05-04T13:53:20.000Z</published>
     <updated>2023-05-11T14:37:55.106Z</updated>
     
@@ -554,35 +583,6 @@
     
     
     <category term="缓存" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>TCP连接的管理</title>
-    <link href="http://example.com/2023/04/30/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/"/>
-    <id>http://example.com/2023/04/30/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/TCP%E8%BF%9E%E6%8E%A5%E7%9A%84%E7%AE%A1%E7%90%86/</id>
-    <published>2023-04-30T02:49:26.000Z</published>
-    <updated>2023-04-30T03:32:19.901Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="建立连接过程"><a href="#建立连接过程" class="headerlink" title="建立连接过程"></a>建立连接过程</h1><p>TCP建立连接的过程如下：</p><p><strong>第一步</strong>：客户端的TCP首先向服务器端的TCP发送一个特殊的TCP报文段。该报文段中不包含应用层数据。该报文段会将首部中的SYN置为1，这个特殊报文段被称为SYN报文段。</p><p>客户会随机地选择一个初始序号（client_isn）,并将此编号放置于该起始的TCP SYN报文段的序号字段中。该报文段会被封装在一个IP数据报中，并发送给服务器。</p><p><strong>第二步</strong>：一旦包含TCP SYN报文段的IP数据报到达服务器主机，服务器会从该数据报中提取出TCP SYN报文段，为该TCP连接分配TCP缓存和变量，并向该客户TCP发送允许连接的报文段。这个允许连接的报文段也不包含应用层数据。</p><p>在报文段的首部包含3个重要的信息。首先，SYN比特被置为1。其次，该TCP报文段首部的确认号字段被置为client _ isn + 1。最后，服务器选择自己的初始序号（server_isn）,并将其放置到TCP报文段首部的序号字段中。</p><p>这个允许连接的报文段实际上表明了： “我收到了你发起建立连接的SYN分组，该分组带有初始序号client_isn。我同意建立该连接。我自己的初始序号是server_isn。该允许连接的报文段被称为SYNACK报文段（SYNACK segment）。</p><p><strong>第三步</strong>：在收到SYNACK报文段后，客户也要给该连接分配缓存和变量。客户主机则向服务器发送另外一个报文段；这最后一个报文段对服务器的允许连接的报文段进行了确认（该客户通过将值server_isn + 1放置到TCP报文段首部的确认字段中来完成此项工作）。</p><p>该三次握手的第三个阶段可以在报文段负载中携带客户到服务器的数据。 </p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430112825050.png" alt="image-20230430112825050" style="zoom:67%;" /><h1 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h1><p>也就是说，第一步客户端先发起一个报文段请求，用于表明我想要建立连接，不携带数据。</p><p>第二步，服务器收到请求，允许建立连接，分配缓存，然后给客户端通知该消息，也不携带数据。</p><p>第三步，客户端收到服务端同意建立连接的请求，然后给服务端回应，我收到了你的同意建立连接。第三步其实是一个确认的消息，只不过可以携带一部分数据。</p><h1 id="终止连接的过程"><a href="#终止连接的过程" class="headerlink" title="终止连接的过程"></a>终止连接的过程</h1><p>当连接结束后,主机中的“资源”（即缓存和变量）将被释放。</p><p>当客户想要关闭连接，它会向服务端发送一个特殊的报文，服务端收到后会给他一个ACK响应。然后服务端发送自己的终止报文段，客户端收到后会给该终止报文段一个确认。之后，两台主机上用于该连接的所有资源都被释放。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430113216637.png" alt="image-20230430113216637" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络：自顶向下方法》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;建立连接过程&quot;&gt;&lt;a href=&quot;#建立连接过程&quot; class=&quot;headerlink&quot; title=&quot;建立连接过程&quot;&gt;&lt;/a&gt;建立连接过程&lt;/h1&gt;&lt;p&gt;TCP建立连接的过程如下：&lt;/p&gt;
-&lt;p&gt;&lt;strong&gt;第一步&lt;/strong&gt;：客户端的TCP首先向服务</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-    <category term="-运输层" scheme="http://example.com/tags/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
     
   </entry>
   
