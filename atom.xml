@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-05-11T13:52:45.058Z</updated>
+  <updated>2023-05-15T14:52:42.455Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,150 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>java并发容器</title>
+    <link href="http://example.com/2023/05/15/java%E5%B9%B6%E5%8F%91%E5%AE%B9%E5%99%A8/"/>
+    <id>http://example.com/2023/05/15/java%E5%B9%B6%E5%8F%91%E5%AE%B9%E5%99%A8/</id>
+    <published>2023-05-15T14:38:17.000Z</published>
+    <updated>2023-05-15T14:52:42.455Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="List"><a href="#List" class="headerlink" title="List"></a>List</h1><p>List 里面只有一个实现类就是 <strong>CopyOnWriteArrayList</strong>。</p><p>CopyOnWrite，顾名思义就是写的时候会将共享变量新复制一份出来，这样做的好处是读操作完全无锁。</p><p>CopyOnWriteArrayList 内部维护了一个数组，成员变量 array 就指向这个内部数组，所有的读操作都是基于 array 进行的，迭代器 Iterator 遍历的就是 array 数组。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224227570.png" alt="image-20230515224227570"></p><p>如果在遍历时，还有写入时，CopyOnWriteArrayList 会将 array 复制一份，然后在新复制处理的数组上执行增加元素的操作，执行完之后再将 array 指向这个新的数组。遍历操作一直都是基于原 array 执行，而写操作则是基于新 array 进行。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224431375.png" alt="image-20230515224431375" style="zoom: 80%;" /><p>注意：CopyOnWriteArrayList 仅适用于写操作非常少的场景，而且能够容忍读写的短暂不一致。因为遍历时，写入的新元素并不能第一之间被遍历到。</p><p>CopyOnWriteArrayList 迭代器是只读的，不支持增删改。因为迭代器遍历的仅仅是一个快照，而对快照进行增删改是没有意义的。</p><h1 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h1><p>Map 接口的两个实现是 ConcurrentHashMap 和 ConcurrentSkipListMap，它们从应用的角度来看，主要区别在于 <strong>ConcurrentHashMap 的 key 是无序的，而 ConcurrentSkipListMap 的 key 是有序的</strong>。而且他们的key和value都不能为空。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224643521.png" alt="image-20230515224643521" style="zoom:80%;" /><p>ConcurrentSkipListMap 里面的 SkipList 本身就是一种数据结构，中文一般都翻译为“跳表”。</p><p>跳表插入、删除、查询操作平均的时间复杂度是 O(log n)，理论上和并发线程数没有关系，所以在并发度非常高的情况下，若你对 ConcurrentHashMap 的性能还不满意，可以尝试一下 ConcurrentSkipListMap。</p><h1 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h1><p>Set 接口的两个实现是 CopyOnWriteArraySet 和 ConcurrentSkipListSet，使用场景可以参考前面讲述的 CopyOnWriteArrayList 和 ConcurrentSkipListMap。</p><h1 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h1><p>队列可以从以下两个维度来分：</p><p>一个维度是<strong>阻塞与非阻塞</strong>，所谓阻塞指的是当队列已满时，入队操作阻塞；当队列已空时，出队操作阻塞。</p><p>另一个维度是<strong>单端与双端</strong>，单端指的是只能队尾入队，队首出队；而双端指的是队首队尾皆可入队出队。</p><p>可以将Queue分为4大类</p><p>1、<strong>单端阻塞队列</strong>：其实现有 ArrayBlockingQueue、LinkedBlockingQueue、SynchronousQueue、LinkedTransferQueue、PriorityBlockingQueue 和 DelayQueue。</p><p>内部一般会持有一个队列，这个队列可以是数组（其实现是 ArrayBlockingQueue）也可以是链表（其实现是 LinkedBlockingQueue）；甚至还可以不持有队列（其实现是 SynchronousQueue），此时生产者线程的入队操作必须等待消费者线程的出队操作。</p><p>而 LinkedTransferQueue 融合 LinkedBlockingQueue 和 SynchronousQueue 的功能，性能比 LinkedBlockingQueue 更好；PriorityBlockingQueue 支持按照优先级出队；DelayQueue 支持延时出队。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515225105664.png" alt="image-20230515225105664" style="zoom:67%;" /><p>2.<strong>双端阻塞队列</strong>：其实现是 LinkedBlockingDeque。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515225129204.png" alt="image-20230515225129204" style="zoom:67%;" /><p>3.<strong>单端非阻塞队列</strong>：其实现是 ConcurrentLinkedQueue。</p><p>4.<strong>双端非阻塞队列</strong>：其实现是 ConcurrentLinkedDeque。</p><p>在使用队列时，要注意队列是否是有界的，在使用无界队列时，要注意是否会导致OOM异常。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Java并发编程实战》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;List&quot;&gt;&lt;a href=&quot;#List&quot; class=&quot;headerlink&quot; title=&quot;List&quot;&gt;&lt;/a&gt;List&lt;/h1&gt;&lt;p&gt;List 里面只有一个实现类就是 &lt;strong&gt;CopyOnWriteArrayList&lt;/strong&gt;。&lt;/p&gt;
+&lt;p</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>负载均衡</title>
+    <link href="http://example.com/2023/05/15/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/"/>
+    <id>http://example.com/2023/05/15/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/</id>
+    <published>2023-05-15T09:24:59.000Z</published>
+    <updated>2023-05-15T11:58:59.926Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="负载均衡服务器的种类"><a href="#负载均衡服务器的种类" class="headerlink" title="负载均衡服务器的种类"></a>负载均衡服务器的种类</h1><p><strong>负载均衡的含义是：</strong>将负载（访问的请求）“均衡”地分配到多个处理节点上。这样可以减少单个处理节点的请求量，提升整体系统的性能。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515172635623.png" alt="image-20230515172635623" style="zoom:67%;" /><p>在项目的架构中，我们一般会同时部署 LVS 和 Nginx 来做 HTTP 应用服务的负载均衡。也就是说，在入口处部署 LVS 将流量分发到多个 Nginx 服务器上，再由 Nginx 服务器分发到应用服务器上。</p><p>不过这两个负载均衡服务适用于普通的 Web 服务，对于微服务架构来说，它们是不合适的。</p><p>因为微服务架构中的服务节点存储在注册中心里，使用 LVS 就很难和注册中心交互获取全量的服务节点列表。另外，一般微服务架构中，使用的是 RPC 协议而不是 HTTP 协议，所以 Nginx 也不能满足要求。</p><p><strong>所以，我们会使用另一类的负载均衡服务，客户端负载均衡服务，也就是把负载均衡的服务内嵌在 RPC 客户端中。</strong></p><p>这类服务一般会结合注册中心来使用，注册中心提供服务节点的完整列表，客户端拿到列表之后使用负载均衡服务的策略选取一个合适的节点，然后将请求发到这个节点上。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515194359296.png" alt="image-20230515194359296"></p><h2 id="常见的负载均衡策略有哪些"><a href="#常见的负载均衡策略有哪些" class="headerlink" title="常见的负载均衡策略有哪些"></a>常见的负载均衡策略有哪些</h2><ul><li><p>一类是静态策略，也就是说负载均衡服务器在选择服务节点时，不会参考后端服务的实际运行的状态；</p></li><li><p>一类是动态策略，也就是说负载均衡服务器会依据后端服务的一些负载特性，来决定要选择哪一个服务节点。</p></li></ul><p>静态的又有以下几种策略：</p><ul><li><strong>轮询的策略</strong>：如果服务器性能不一样，则不能很好的发挥作用</li><li><strong>带有权重的轮询策略</strong></li></ul><p>动态策略：</p><ul><li>Dubbo 提供的 LeastAcive 策略，就是优先选择活跃连接数最少的服务；</li><li>Spring Cloud 全家桶中的 Ribbon 提供了 WeightedResponseTimeRule 是使用响应时间给每个服务节点计算一个权重，然后依据这个权重，来给调用方分配服务节点。</li></ul><p><strong>这些策略的思考点</strong>是从调用方的角度出发，选择负载最小、资源最空闲的服务来调用，以期望能得到更高的服务调用性能</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;负载均衡服务器的种类&quot;&gt;&lt;a href=&quot;#负载均衡服务器的种类&quot; class=&quot;headerlink&quot; title=&quot;负载均衡服务器的种类&quot;&gt;&lt;/a&gt;负载均衡服务器的种类&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;负载均衡的含义是：&lt;/strong&gt;将负载（访问的请求）“均</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>CountDownLatch和CyclicBarrier：如何让多线程步调一致</title>
+    <link href="http://example.com/2023/05/14/Java/CountDownLatch%E5%92%8CCyclicBarrier%EF%BC%9A%E5%A6%82%E4%BD%95%E8%AE%A9%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%AD%A5%E8%B0%83%E4%B8%80%E8%87%B4/"/>
+    <id>http://example.com/2023/05/14/Java/CountDownLatch%E5%92%8CCyclicBarrier%EF%BC%9A%E5%A6%82%E4%BD%95%E8%AE%A9%E5%A4%9A%E7%BA%BF%E7%A8%8B%E6%AD%A5%E8%B0%83%E4%B8%80%E8%87%B4/</id>
+    <published>2023-05-14T11:02:59.000Z</published>
+    <updated>2023-05-14T11:45:12.442Z</updated>
+    
+    <content type="html"><![CDATA[<p> 假如我们要实现一下功能：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514190414839.png" alt="image-20230514190414839" style="zoom:67%;" /><p>如果单线程处理，那么执行图如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514190537547.png" alt="image-20230514190537547" style="zoom:67%;" /><p>如果想要优化，则可以将获取order的操作并行执行，如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514190619676.png" alt="image-20230514190619676" style="zoom:67%;" /><p>大致的代码如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">while</span> (存在未对账订单) &#123;</span><br><span class="line">    <span class="comment">// 查询未对账订单</span></span><br><span class="line">    <span class="type">Thread</span> <span class="variable">T1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(()-&gt;&#123;</span><br><span class="line">        pos = getPOrders();</span><br><span class="line">    &#125;);</span><br><span class="line">    T1.start();</span><br><span class="line">    <span class="comment">// 查询派送单</span></span><br><span class="line">    <span class="type">Thread</span> <span class="variable">T2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(()-&gt;&#123;</span><br><span class="line">        dos = getDOrders();</span><br><span class="line">    &#125;);</span><br><span class="line">    T2.start();</span><br><span class="line">    <span class="comment">// 等待T1、T2结束</span></span><br><span class="line">    T1.join();</span><br><span class="line">    T2.join();</span><br><span class="line">    <span class="comment">// 执行对账操作</span></span><br><span class="line">    diff = check(pos, dos);</span><br><span class="line">    <span class="comment">// 差异写入差异库</span></span><br><span class="line">    save(diff);</span><br><span class="line">&#125; </span><br></pre></td></tr></table></figure><p>但是这样写有一个缺点，就是while循环每次都要创建线程，而创建线程开销又比较的大，所以我们可以用线程池有优化。</p><h1 id="用-CountDownLatch-实现线程等待"><a href="#用-CountDownLatch-实现线程等待" class="headerlink" title="用 CountDownLatch 实现线程等待"></a>用 CountDownLatch 实现线程等待</h1><p>因为没有手动创建线程，所以没有join方法，那么如何通知主线程两个子线程已经执行完成了呢？我们可以使用<strong>CountDownLatch</strong></p><p>代码如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="comment">// 创建2个线程的线程池</span></span><br><span class="line"><span class="type">Executor</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">2</span>);</span><br><span class="line"><span class="keyword">while</span> (存在未对账订单) &#123;</span><br><span class="line">    <span class="comment">// 计数器初始化为2</span></span><br><span class="line">    <span class="type">CountDownLatch</span> <span class="variable">latch</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CountDownLatch</span>(<span class="number">2</span>);</span><br><span class="line">    <span class="comment">// 查询未对账订单</span></span><br><span class="line">    executor.execute(()-&gt; &#123;</span><br><span class="line">        pos = getPOrders();</span><br><span class="line">        latch.countDown();</span><br><span class="line">    &#125;);</span><br><span class="line">    <span class="comment">// 查询派送单</span></span><br><span class="line">    executor.execute(()-&gt; &#123;</span><br><span class="line">        dos = getDOrders();</span><br><span class="line">        latch.countDown();</span><br><span class="line">    &#125;);</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 等待两个查询操作结束</span></span><br><span class="line">    latch.await();</span><br><span class="line">    <span class="comment">// 执行对账操作</span></span><br><span class="line">    diff = check(pos, dos);</span><br><span class="line">    <span class="comment">// 差异写入差异库</span></span><br><span class="line">    save(diff);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h1 id="进一步优化"><a href="#进一步优化" class="headerlink" title="进一步优化"></a>进一步优化</h1><p>在查询完第一次后进行对比时，可以进行第二次查询，如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514191455335.png" alt="image-20230514191455335" style="zoom:67%;" /><p>这里有点生产者-消费者的意思了，查询 可以当作生产者，查询玩的计算可以当作消费者。既然是生产者 - 消费者模型，那就需要有个队列，来保存生产者生产的数据，而消费者则从这个队列消费数据。</p><p>我们可以用两个队列，一个存储查询订单，一个存储派送订单，然后两个线程，当每个线程都查询一条数据时，通知第三个线程去执行计算。但是这样需要保证查询线程速度一样。</p><h2 id="用-CyclicBarrier-实现线程同步"><a href="#用-CyclicBarrier-实现线程同步" class="headerlink" title="用 CyclicBarrier 实现线程同步"></a>用 CyclicBarrier 实现线程同步</h2><p>线程 T1 负责查询订单，当查出一条时，调用 barrier.await() 来将计数器减 1，同时等待计数器变成 0；线程 T2 负责查询派送单，当查出一条时，也调用 barrier.await() 来将计数器减 1，同时等待计数器变成 0；当 T1 和 T2 都调用 barrier.await() 的时候，计数器会减到 0，此时 T1 和 T2 就可以执行下一条语句了，同时会调用 barrier 的回调函数来执行对账操作。</p><p>CyclicBarrier 的计数器有自动重置的功能，当减到 0 的时候，会自动重置你设置的初始值。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 订单队列</span></span><br><span class="line">Vector&lt;P&gt; pos;</span><br><span class="line"><span class="comment">// 派送单队列</span></span><br><span class="line">Vector&lt;D&gt; dos;</span><br><span class="line"><span class="comment">// 执行回调的线程池， 这里好像必须为1</span></span><br><span class="line"><span class="type">Executor</span> <span class="variable">executor</span> <span class="operator">=</span> Executors.newFixedThreadPool(<span class="number">1</span>);</span><br><span class="line"><span class="comment">// 计数器的值为2</span></span><br><span class="line"><span class="keyword">final</span> <span class="type">CyclicBarrier</span> <span class="variable">barrier</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">CyclicBarrier</span>(<span class="number">2</span>, ()-&gt;&#123;</span><br><span class="line">    executor.execute(()-&gt;check());</span><br><span class="line">&#125;);</span><br><span class="line"></span><br><span class="line"><span class="comment">// 判断时，将队列中的元素移除</span></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">check</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="type">P</span> <span class="variable">p</span> <span class="operator">=</span> pos.remove(<span class="number">0</span>);</span><br><span class="line">    <span class="type">D</span> <span class="variable">d</span> <span class="operator">=</span> dos.remove(<span class="number">0</span>);</span><br><span class="line">    <span class="comment">// 执行对账操作</span></span><br><span class="line">    diff = check(p, d);</span><br><span class="line">    <span class="comment">// 差异写入差异库</span></span><br><span class="line">    save(diff);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> <span class="title function_">checkAll</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 循环查询订单库</span></span><br><span class="line">    <span class="type">Thread</span> <span class="variable">T1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(()-&gt;&#123;</span><br><span class="line">        <span class="keyword">while</span>(存在未对账订单)&#123;</span><br><span class="line">            <span class="comment">// 查询订单库</span></span><br><span class="line">            pos.add(getPOrders());</span><br><span class="line">            <span class="comment">// 等待</span></span><br><span class="line">            barrier.await();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    T1.start();  </span><br><span class="line">    <span class="comment">// 循环查询运单库</span></span><br><span class="line">    <span class="type">Thread</span> <span class="variable">T2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(()-&gt;&#123;</span><br><span class="line">        <span class="keyword">while</span>(存在未对账订单)&#123;</span><br><span class="line">            <span class="comment">// 查询运单库</span></span><br><span class="line">            dos.add(getDOrders());</span><br><span class="line">            <span class="comment">// 等待</span></span><br><span class="line">            barrier.await();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;);</span><br><span class="line">    T2.start();</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure><p><strong>CountDownLatch 主要用来解决一个线程等待多个线程的场景</strong></p><p><strong>CyclicBarrier 是一组线程之间互相等待</strong></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Java并发编程实战》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 假如我们要实现一下功能：&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514190414839.png&quot; alt=&quot;image-20230514190414</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>分布式下如何排查慢请求</title>
+    <link href="http://example.com/2023/05/14/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8B%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%E6%85%A2%E8%AF%B7%E6%B1%82/"/>
+    <id>http://example.com/2023/05/14/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8B%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%E6%85%A2%E8%AF%B7%E6%B1%82/</id>
+    <published>2023-05-14T09:53:02.000Z</published>
+    <updated>2023-05-14T10:49:24.392Z</updated>
+    
+    <content type="html"><![CDATA[<p>在引入了注册中心后，微服务项目的架构会变成下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514175352625.png" alt="image-20230514175352625"></p><p>但是，如果此时有一个请求的响应速度比较慢，而这个请求调用了多个RPC服务，该如何去排查呢？</p><h2 id="一体化架构中的慢请求排查如何做"><a href="#一体化架构中的慢请求排查如何做" class="headerlink" title="一体化架构中的慢请求排查如何做"></a>一体化架构中的慢请求排查如何做</h2><p>最简单的办法，就是像下面这样：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">processA();</span><br><span class="line"><span class="comment">// 打印A步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process A cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processB();</span><br><span class="line"><span class="comment">// 打印B步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process B cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processC();</span><br><span class="line"><span class="comment">// 打印C步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process C cost &quot;</span> + (System.currentTimeMillis() - start));</span><br></pre></td></tr></table></figure><p>但是这样会有一个问题，如果多个用户同时下单，那么日志的打印是穿插进行的，无法判断。</p><p>一个简单的解决办法是，给每个请求每一行日志加一个id，用于区分。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">requestId</span> <span class="operator">=</span> UUID.randomUUID().toString();</span><br><span class="line">ThreadLocal&lt;String&gt; tl = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;String&gt;()&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> String <span class="title function_">initialValue</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> requestId;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;; <span class="comment">//requestId存储在线程上下文中</span></span><br><span class="line"><span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">processA();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process A cost &quot;</span> + (System.currentTimeMillis() - start)); <span class="comment">// 日志中增加requestId</span></span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processB();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process B cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processC();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process C cost &quot;</span> + (System.currentTimeMillis() - start));</span><br></pre></td></tr></table></figure><h1 id="利用切面编程"><a href="#利用切面编程" class="headerlink" title="利用切面编程"></a>利用切面编程</h1><p>一般来说，切面分为两类：</p><ul><li><p>一类是静态代理，典型的代表是 AspectJ，它的特点是在编译期做切面代码注入；</p></li><li><p>另一类是动态代理，典型的代表是 Spring AOP，它的特点是在运行期做切面代码注入</p></li></ul><p>区别：</p><p>静态代理是在编译期插入代码，增加了编译的时间，给你的直观感觉就是启动的时间变长了，但是一旦在编译期插入代码完毕之后在运行期就基本对于性能没有影响。</p><p>而动态代理不会去修改生成的 Class 文件，而是会在运行期生成一个代理对象，这个代理对象对源对象做了字节码增强，来完成切面所要执行的操作。由于在运行期需要生成代理对象，所以动态代理的性能要比静态代理要差。</p><h1 id="其他问题"><a href="#其他问题" class="headerlink" title="其他问题"></a>其他问题</h1><p>为了避免打印过多的日志，我们可以根据id进行采样，比如说只打印id % 10 &#x3D;&#x3D; 0的，这样就只统计局部的 也可以实现需求。</p><p>但是还有一个问题，如果这样的话，拿到一个id我们并不知道它是属于哪个服务器的，我们还需要去服务器查询。解决办法就是将日志通过消息队列插入Elasticsearch，这样搜索也比较简单。如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514183317870.png" alt="image-20230514183317870"></p><h1 id="如何来做分布式-Trace"><a href="#如何来做分布式-Trace" class="headerlink" title="如何来做分布式 Trace"></a>如何来做分布式 Trace</h1><p>采用traceId + spanId</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514184244939.png" alt="image-20230514184244939"></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;在引入了注册中心后，微服务项目的架构会变成下图：&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514175352625.png&quot; alt=&quot;image-</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>注册中心</title>
+    <link href="http://example.com/2023/05/13/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/"/>
+    <id>http://example.com/2023/05/13/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/</id>
+    <published>2023-05-13T10:27:15.000Z</published>
+    <updated>2023-05-14T09:50:29.412Z</updated>
+    
+    <content type="html"><![CDATA[<p> 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。</p><p>注册中心的基本功能有两点：</p><ul><li><p>一是提供了服务地址的存储；</p></li><li><p>二是当存储内容发生变化时，可以将变更的内容推送给客户端。</p></li></ul><p>使用了注册中心组件之后，RPC 的通信过程就变成了下面这个样子：</p><ul><li><p>客户端会与注册中心建立连接，并且告诉注册中心，它对哪一组服务感兴趣；</p></li><li><p>服务端向注册中心注册服务后，注册中心会将最新的服务注册信息通知给客户端；</p></li><li><p>客户端拿到服务端的地址之后就可以向服务端发起调用请求了。</p></li></ul><h1 id="服务状态管理如何来做"><a href="#服务状态管理如何来做" class="headerlink" title="服务状态管理如何来做"></a>服务状态管理如何来做</h1><p>服务的上线和下线是由服务端主动向注册中心注册和取消注册来实现的，这在正常的流程中是没有问题的。<strong>可是，如果某一个服务端意外故障，</strong>比如说机器掉电，网络不通等情况，服务端就没有办法向注册中心通信，将自己从服务列表中删除，就会导致客户端请求一个无法响应的服务。</p><h2 id="主动探测"><a href="#主动探测" class="headerlink" title="主动探测"></a>主动探测</h2><p>你的 RPC 服务要打开一个端口，然后由注册中心每隔一段时间（比如 30 秒）探测这些端口是否可用，如果可用就认为服务仍然是正常的，否则就可以认为服务不可用，那么注册中心就可以把服务从列表里面删除了。</p><p>这样做的如果服务比较多的话，成本就会比较的高。</p><h2 id="心跳模式"><a href="#心跳模式" class="headerlink" title="心跳模式"></a>心跳模式</h2><p>注册中心为每一个连接上来的 RPC 服务节点记录最近续约的时间，RPC 服务节点在启动注册到注册中心后，就按照一定的时间间隔（比如 30 秒），向注册中心发送心跳包。注册中心在接收到心跳包之后，会更新这个节点的最近续约时间。然后，注册中心会启动一个定时器定期检测当前时间和节点最近续约时间的差值，如果达到一个阈值（比如说 90 秒），那么认为这个服务节点不可用。</p><h2 id="保护机制"><a href="#保护机制" class="headerlink" title="保护机制"></a>保护机制</h2><p>要避免注册中心因为监测不到心跳而摘除所有的服务，要设置一定的警报，如果摘除超过一定比例的服务后，要发起警告。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt; 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。&lt;/p&gt;
+&lt;p&gt;注册中心的基本功能有两点</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
+    
+    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
+    
+    
+    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
+    
+  </entry>
   
   <entry>
     <title>Redis的I/O多路复用</title>
@@ -42,35 +186,6 @@
     
     
     <category term="Redis设计与实现" scheme="http://example.com/tags/Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>注册中心</title>
-    <link href="http://example.com/2023/05/12/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/"/>
-    <id>http://example.com/2023/05/12/%E6%B3%A8%E5%86%8C%E4%B8%AD%E5%BF%83/</id>
-    <published>2023-05-12T10:27:15.000Z</published>
-    <updated>2023-05-12T11:02:34.740Z</updated>
-    
-    <content type="html"><![CDATA[<p> 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。</p><p>注册中心的基本功能有两点：</p><ul><li><p>一是提供了服务地址的存储；</p></li><li><p>二是当存储内容发生变化时，可以将变更的内容推送给客户端。</p></li></ul><p>使用了注册中心组件之后，RPC 的通信过程就变成了下面这个样子：</p><ul><li><p>客户端会与注册中心建立连接，并且告诉注册中心，它对哪一组服务感兴趣；</p></li><li><p>服务端向注册中心注册服务后，注册中心会将最新的服务注册信息通知给客户端；</p></li><li><p>客户端拿到服务端的地址之后就可以向服务端发起调用请求了。</p></li></ul><h1 id="服务状态管理如何来做"><a href="#服务状态管理如何来做" class="headerlink" title="服务状态管理如何来做"></a>服务状态管理如何来做</h1><p>服务的上线和下线是由服务端主动向注册中心注册和取消注册来实现的，这在正常的流程中是没有问题的。<strong>可是，如果某一个服务端意外故障，</strong>比如说机器掉电，网络不通等情况，服务端就没有办法向注册中心通信，将自己从服务列表中删除，就会导致客户端请求一个无法响应的服务。</p><h2 id="主动探测"><a href="#主动探测" class="headerlink" title="主动探测"></a>主动探测</h2><p>你的 RPC 服务要打开一个端口，然后由注册中心每隔一段时间（比如 30 秒）探测这些端口是否可用，如果可用就认为服务仍然是正常的，否则就可以认为服务不可用，那么注册中心就可以把服务从列表里面删除了。</p><p>这样做的如果服务比较多的话，成本就会比较的高。</p><h2 id="心跳模式"><a href="#心跳模式" class="headerlink" title="心跳模式"></a>心跳模式</h2><p>注册中心为每一个连接上来的 RPC 服务节点记录最近续约的时间，RPC 服务节点在启动注册到注册中心后，就按照一定的时间间隔（比如 30 秒），向注册中心发送心跳包。注册中心在接收到心跳包之后，会更新这个节点的最近续约时间。然后，注册中心会启动一个定时器定期检测当前时间和节点最近续约时间的差值，如果达到一个阈值（比如说 90 秒），那么认为这个服务节点不可用。</p><h2 id="保护机制"><a href="#保护机制" class="headerlink" title="保护机制"></a>保护机制</h2><p>要避免注册中心因为监测不到心跳而摘除所有的服务，要设置一定的警报，如果摘除超过一定比例的服务后，要发起警告。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 当一个项目拆分成微服务之后，接口之间的调用就需要跨网络来完成，这时候就需要知道另外一个接口的ip地址以及端口号，如果把这些内容全部在代码里面写死，那么如果ip发生变动，就需要重启服务，还需要修改代码。注册中心的诞生就解决了这个问题。&lt;/p&gt;
-&lt;p&gt;注册中心的基本功能有两点</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
-    
-    
-    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
     
   </entry>
   
@@ -108,7 +223,7 @@
     <link href="http://example.com/2023/05/11/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/"/>
     <id>http://example.com/2023/05/11/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E5%B7%A5%E4%BD%9C%E5%8E%9F%E7%90%86/</id>
     <published>2023-05-11T02:05:50.000Z</published>
-    <updated>2023-05-11T03:19:10.170Z</updated>
+    <updated>2023-05-15T01:53:53.805Z</updated>
     
     <content type="html"><![CDATA[<h1 id="路由器结构"><a href="#路由器结构" class="headerlink" title="路由器结构"></a>路由器结构</h1><p>一个路由器的体系结构如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511101229903.png" alt="image-20230511101229903" style="zoom:80%;" /><p><strong>输入端口作用</strong>：</p><p>1、接收数据链路层的数据。</p><p>2、查询转发表，决定数据的输出端口。到达的分组通过路由器的交换结构转发到输出端口。</p><p><strong>交换结构</strong>：交换结构将路由器的输入端口连接到它的输岀端口。这种交换结构完全包含在路由器之中，即它是一个网络路由器中的网络!</p><p><strong>输出端口：</strong>输出端口存储从交换结构接收的分组，并通过执行必要的链路层和物理层功能在输出链路上传输这些分组。</p><p><strong>路由选择处理器</strong>：路由选择处理器执行<strong>控制平面</strong>功能。</p><p>在传统的路由器中，它执行路由选择协议，维护路由选择表与关联链路状态信息，并为该路由器计算转发表。</p><p>在SDN路由器中，路由选择处理器（在其他活动中）负责与远程控制器通信，目的是接收由远程控制器计算的转发表项，并在该路由器的输入端口安装这些表项。路由选择处理器还执行网络管理功能。</p><p>以上仅仅是每个部分大致功能的描述，后续会有更为详细的介绍。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络自顶向下》</p>]]></content>
     
@@ -473,116 +588,6 @@
     
     <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
     
-    
-  </entry>
-  
-  <entry>
-    <title>拥塞控制原理</title>
-    <link href="http://example.com/2023/05/02/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/"/>
-    <id>http://example.com/2023/05/02/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E6%8B%A5%E5%A1%9E%E6%8E%A7%E5%88%B6%E5%8E%9F%E7%90%86/</id>
-    <published>2023-05-02T02:17:31.000Z</published>
-    <updated>2023-05-03T02:16:20.247Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="拥塞原因与代价"><a href="#拥塞原因与代价" class="headerlink" title="拥塞原因与代价"></a>拥塞原因与代价</h1><h2 id="情况1：两个发送方和一台具有无穷大缓存的路由器"><a href="#情况1：两个发送方和一台具有无穷大缓存的路由器" class="headerlink" title="情况1：两个发送方和一台具有无穷大缓存的路由器"></a>情况1：两个发送方和一台具有无穷大缓存的路由器</h2><p>两台主机（A和B）都有一条连接，且这两条连接共享源与目的地之间的单跳路由，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502102410352.png" alt="image-20230502102410352" style="zoom:67%;" /><p>由于路由器的缓存是无限制的，那么发送方的发送速率达到一定程度，路由器中的平均排队分组数就会无限增长，源与目的地之间的平均时延也会变成无穷大。</p><h2 id="情况2：两个发送方和一台具有有限缓存的路由器"><a href="#情况2：两个发送方和一台具有有限缓存的路由器" class="headerlink" title="情况2：两个发送方和一台具有有限缓存的路由器"></a>情况2：两个发送方和一台具有有限缓存的路由器</h2><p>这里对情况1稍微做一些修改，假定路由器的缓存容量是有限的。这种假设的结果是，当分组到达一个已满的缓存时会被丢弃。然后我们假设连接可靠，即分组在路由器中被丢弃时，会重发。</p><p>假设发送方知道路由中缓存容量，只有在路由未满时才发送，那么就不会导致分组丢失。</p><p>但一种更为真实的情况是，发送方并不知道，那么在缓存满时发送分组，带来的代价就是需要重新发送。而且存在一种情况，分组发出但是未丢失，还在排队当中，发送方因超时重新发送了分组，那么就会导致接收方需要丢弃一个重传分组，带来了不必要的开销。</p><p>这里就看出拥塞的两个代价，发送方需要重传丢失的分组，而且发送方可能重传不必要的分组。</p><h2 id="情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径"><a href="#情况3：-4个发送方和具有有限缓存的多台路由器及多跳路径" class="headerlink" title="情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径"></a>情况3： 4个发送方和具有有限缓存的多台路由器及多跳路径</h2><p>考虑下图的情况：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502104741965.png" alt="image-20230502104741965" style="zoom:67%;" /><p>由于路由器R2的缓存容量是有限的 ，那么当A-C通信，B-D通信时，这两者势必会争抢缓存，一种极端的情况是A-C占据了所有的缓存，导致B-D流量几乎为0，导致分组丢失。</p><p>还会导致资源浪费的一个点是，如果R2丢弃B-D的分组，那么R3所做的转发也就成了无用功，导致资源浪费。</p><h1 id="拥塞控制方法"><a href="#拥塞控制方法" class="headerlink" title="拥塞控制方法"></a>拥塞控制方法</h1><h2 id="端到端拥寒控制"><a href="#端到端拥寒控制" class="headerlink" title="端到端拥寒控制"></a>端到端拥寒控制</h2><p>在端到端拥塞控制方法中，网络层没有为运输层拥塞控制提供显式支持。即使网络中存在拥塞，端系统也必须通过对网络行为的观察（如分组丢失与时延）来推断。</p><p>TCP采用端到端的方法解决拥塞控制，因为IP层不会向端系统提供有关网络拥塞的反馈信息。TCP报文段的丢失（通过超时或3次冗余确认而得知）被认为是网络拥塞的一个迹象，TCP会相应地减小其窗口长度。</p><h2 id="网络辅助的拥塞控制"><a href="#网络辅助的拥塞控制" class="headerlink" title="网络辅助的拥塞控制"></a>网络辅助的拥塞控制</h2><p>在网络辅助的拥塞控制中，路由器向发送方提供关于网络中拥塞状态的显式反馈信息。这种反馈可以简单地用一个比特来指示链路中的拥塞情况。</p><p>对于网络辅助的拥塞控制，拥塞信息从网络反馈到发送方通常有两种方式，如下图</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230502110906990.png" alt="image-20230502110906990" style="zoom:67%;" /><p>直接反馈信息可以由网络路由器发给发送方。这种方式的通知通常采用了一种阻塞分组(choke packet) 的形式（主要是说： “我拥塞了！”）。</p><p>更为通用的第二种形式的通知是，路由器标记或更新从发送方流向接收方的分组中的某个字段来指示拥塞的产生口 一旦收到一个标记的分组后，接收方就会向发送方通知该网络拥塞指示。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;拥塞原因与代价&quot;&gt;&lt;a href=&quot;#拥塞原因与代价&quot; class=&quot;headerlink&quot; title=&quot;拥塞原因与代价&quot;&gt;&lt;/a&gt;拥塞原因与代价&lt;/h1&gt;&lt;h2 id=&quot;情况1：两个发送方和一台具有无穷大缓存的路由器&quot;&gt;&lt;a href=&quot;#情况1：两个发送方和</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="运输层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%BF%90%E8%BE%93%E5%B1%82/"/>
-    
-    
-  </entry>
-  
-  <entry>
-    <title>如何利用事务消息实现分布式事务</title>
-    <link href="http://example.com/2023/05/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/"/>
-    <id>http://example.com/2023/05/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/</id>
-    <published>2023-05-01T10:19:37.000Z</published>
-    <updated>2023-05-01T10:48:42.119Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="什么是分布式事务？"><a href="#什么是分布式事务？" class="headerlink" title="什么是分布式事务？"></a>什么是分布式事务？</h1><p>首先事务是要保证我们对一系列数据进行一些操作，这些操作要么都成功，要么都失败。一个严格意义的事务实现，应该具有 4 个属性：原子性、一致性、隔离性、持久性。</p><p>但是，对于分布式系统来说，严格的实现 ACID 这四个特性几乎是不可能的。一般会采用一些“妥协”的方案，比如说顺序一致性或者最终一致性。</p><h1 id="消息队列是如何实现分布式事务的？"><a href="#消息队列是如何实现分布式事务的？" class="headerlink" title="消息队列是如何实现分布式事务的？"></a>消息队列是如何实现分布式事务的？</h1><p>一个订单和购物车的模型如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230501183227849.png" alt="image-20230501183227849"></p><p>这里的半消息，并不是只发送数据信息的一半，而是说发送全部的数据，但是在事务提交之前，消费者是无法看到这条数据的。</p><p>这里，发送半消息后，就可以继续执行创建订单，如果订单创建成功，则提交事务，那么消费者，也就是购物车模块可以看到这条消息，然后从购物车删除对应订单的物品。如果订单创建失败，则消费者无法看到消息，也就不会导致创建订单失败，但是购物车删除物品这种情况。</p><p>但是还存在一个问题：如果提交事务消息失败时，还是会存在一定的问题，针对这个问题，Kafka 和 RocketMQ给出了不同的解决办法。Kafka 的解决方案比较简单粗暴，直接抛出异常，让用户自行处理。我们可以在业务代码中反复重试提交，直到提交成功，或者删除之前创建的订单进行补偿。RocketMQ 则给出了另外一种解决方案。</p><h1 id="RocketMQ-中的分布式事务实现"><a href="#RocketMQ-中的分布式事务实现" class="headerlink" title="RocketMQ 中的分布式事务实现"></a>RocketMQ 中的分布式事务实现</h1><p>在 RocketMQ 中的事务实现中，增加了事务反查的机制来解决事务消息提交失败的问题。如果 Producer 也就是订单系统，在提交或者回滚事务消息时发生网络异常，RocketMQ 的 Broker 没有收到提交或者回滚的请求，Broker 会定期去 Producer 上反查这个事务对应的本地事务的状态，然后根据反查结果决定提交或者回滚这个事务。</p><p>为了支撑这个事务反查机制，我们的业务代码需要实现一个反查本地事务状态的接口，告知 RocketMQ 本地事务是成功还是失败。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230501184354506.png" alt="image-20230501184354506" style="zoom:67%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《消息队列高手课》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;什么是分布式事务？&quot;&gt;&lt;a href=&quot;#什么是分布式事务？&quot; class=&quot;headerlink&quot; title=&quot;什么是分布式事务？&quot;&gt;&lt;/a&gt;什么是分布式事务？&lt;/h1&gt;&lt;p&gt;首先事务是要保证我们对一系列数据进行一些操作，这些操作要么都成功，要么都失败。一个严</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="消息队列" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
-    
-    
-    <category term="消息队列" scheme="http://example.com/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>缓存如何做到高可用</title>
-    <link href="http://example.com/2023/05/01/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E5%A6%82%E4%BD%95%E5%81%9A%E5%88%B0%E9%AB%98%E5%8F%AF%E7%94%A8/"/>
-    <id>http://example.com/2023/05/01/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E5%A6%82%E4%BD%95%E5%81%9A%E5%88%B0%E9%AB%98%E5%8F%AF%E7%94%A8/</id>
-    <published>2023-05-01T07:13:40.000Z</published>
-    <updated>2023-05-01T07:48:35.474Z</updated>
-    
-    <content type="html"><![CDATA[<p> 分布式缓存的高可用方案有以下三类：</p><p>1、<strong>客户端方案</strong>：在客户端配置多个缓存的节点，通过缓存写入和读取算法策略来实现分布式，从而提高缓存的可用性。</p><p>2、<strong>中间代理层方案</strong>：在应用代码和缓存节点之间增加代理层，客户端所有的写入和读取的请求都通过代理层，而代理层中会内置高可用策略，帮助提升缓存系统的高可用。</p><p>3、<strong>服务端方案</strong>：Redis 2.4 版本后提出的 Redis Sentinel 。</p><h1 id="客户端方案"><a href="#客户端方案" class="headerlink" title="客户端方案"></a>客户端方案</h1><p>在该方案中，需要注意缓存的读写。写需要将数据分片，而读可以用多组缓存做容错，提升系统的可用性。</p><h2 id="缓存数据分片"><a href="#缓存数据分片" class="headerlink" title="缓存数据分片"></a>缓存数据分片</h2><p>当单一机器无法存储所有的数据时，我们就需要将缓存分配到不同的机器上，每个节点上存储部分数据。</p><p><strong>一般来讲，分片算法常见的就是 Hash 分片算法和一致性 Hash 分片算法两种。</strong></p><h3 id="1、Hash分片"><a href="#1、Hash分片" class="headerlink" title="1、Hash分片"></a>1、Hash分片</h3><p>Hash分片就是对key做哈希计算，然后对总的缓存节点取余。该算法优点是简单，缺点是当增加或者减少分片节点数量时，计算的方式也要发生变化。该方案适合缓存命中率下降不敏感的业务。</p><h3 id="2、一致性Hash"><a href="#2、一致性Hash" class="headerlink" title="2、一致性Hash"></a>2、一致性Hash</h3><p><strong>一致性 Hash 算法可以很好地解决增加和删减节点时，命中率下降的问题</strong>。</p><p>该算法中，我们将整个Hash值空间组织成一个虚拟的圆环，然后将每一个分片节点的ip或者主机名做hash后放在该圆环上。当需要确定某一个key在哪个节点上时，先对key做hash，确定在换上的位置（注意，这一步做完hash后，不一定会直接落到某一个节点的下标处，所以需要顺时针往下走），然后往下走，找到第一个是节点的位置，就将数据存储在该节点中。</p><p>在该算法中，删除节点会导致节点上的数据漂移到下一个节点上，对于hash命中率并不会造成特别大的影响。</p><p>存在的问题：</p><p>1、缓存节点在圆环上分布不均匀，会造成部分节点压力很大，而且当一个节点失效，会将数据全部转移到下一个节点。</p><p>2、一致性 Hash 算法的脏数据问题。</p><p>针对于第一个问题，在某个节点出问题时，要将节点平均分配到其他的几个节点上，而不能将它全部移交到下一个节点上。</p><p>对于第二个问题，如果节点3中有一个数据，现在要修改该数据，但是节点3此时无法连接，那么修改操作就会发生到节点4，那么当节点3恢复后，客户端就会从节点3中读取到脏数据。解决办法就是增加过期时间。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 分布式缓存的高可用方案有以下三类：&lt;/p&gt;
-&lt;p&gt;1、&lt;strong&gt;客户端方案&lt;/strong&gt;：在客户端配置多个缓存的节点，通过缓存写入和读取算法策略来实现分布式，从而提高缓存的可用性。&lt;/p&gt;
-&lt;p&gt;2、&lt;strong&gt;中间代理层方案&lt;/strong&gt;：在应用代码和</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="缓存篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E7%AF%87/"/>
-    
-    
-    <category term="缓存" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何正确的选择缓存读写策略</title>
-    <link href="http://example.com/2023/04/30/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/"/>
-    <id>http://example.com/2023/04/30/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%A6%82%E4%BD%95%E6%AD%A3%E7%A1%AE%E7%9A%84%E9%80%89%E6%8B%A9%E7%BC%93%E5%AD%98%E8%AF%BB%E5%86%99%E7%AD%96%E7%95%A5/</id>
-    <published>2023-04-30T11:26:41.000Z</published>
-    <updated>2023-05-01T07:14:01.524Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="Cache-Aside（旁路缓存）策略"><a href="#Cache-Aside（旁路缓存）策略" class="headerlink" title="Cache Aside（旁路缓存）策略"></a>Cache Aside（旁路缓存）策略</h1><p>读策略为：</p><ul><li>从缓存中读取数据，命中则直接返回</li><li>缓存未命中，则从数据库查询，然后写入缓存，并返回给用户</li></ul><p>写策略为：</p><ul><li>更新数据库中的数据</li><li>删除缓存的数据</li></ul><p>先删除缓存再删数据或者先删数据库再删除缓存都会导致一定的问题，分析比较简单，不做具体说明。</p><h2 id="存在的问题"><a href="#存在的问题" class="headerlink" title="存在的问题"></a>存在的问题</h2><p>如果新注册了一个用户，然后立刻发起了查询（此时缓存无法命中），如果查询走的是从库，而且存在一定的时延，那么会有可能查询不到个人信息。</p><p>解决办法就是在特定的场景下，我们可以修改后将修改的信息写入缓存当中，而不是删除。</p><p>而且该策略对于频繁的修改会导致缓存中的数据被频繁的清理，造成缓存命中率低。</p><p>两种解决办法：</p><ol><li><p>一种做法是在更新数据时也更新缓存，只是在更新缓存前先加一个分布式锁，因为这样在同一时间只允许一个线程更新缓存，就不会产生并发问题了。当然这么做对于写入的性能会有一些影响；</p></li><li><p>另一种做法同样也是在更新数据时更新缓存，只是给缓存加一个较短的过期时间，这样即使出现缓存不一致的情况，缓存的数据也会很快过期，对业务的影响也是可以接受。</p></li></ol><h1 id="Read-x2F-Write-Through（读穿-x2F-写穿）策略"><a href="#Read-x2F-Write-Through（读穿-x2F-写穿）策略" class="headerlink" title="Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略"></a>Read&#x2F;Write Through（读穿 &#x2F; 写穿）策略</h1><p>这个策略的核心原则是用户只与缓存打交道，由缓存和数据库通信，写入或者读取数据。</p><p><strong>Write Through 的策略</strong>是这样的：先查询要写入的数据在缓存中是否已经存在，如果已经存在，则更新缓存中的数据，并且由缓存组件同步更新到数据库中，如果缓存中数据不存在，我们把这种情况叫做“Write Miss（写失效）”。</p><p>如果发生写失效，则解决办法有以下两种：</p><ul><li>Write Allocate（按写分配）：写入缓存相应位置，再由缓存组件同步更新到数据库中；</li><li>No-write allocate（不按写分配）：不写入缓存中，而是直接更新到数据库中。</li></ul><p><strong>Read Through 策略</strong>就简单一些，它的步骤是这样的：先查询缓存中数据是否存在，如果存在则直接返回，如果不存在，则由缓存组件负责从数据库中同步加载数据。</p><h1 id="Write-Back（写回）策略"><a href="#Write-Back（写回）策略" class="headerlink" title="Write Back（写回）策略"></a>Write Back（写回）策略</h1><p>这个策略的核心思想是在写入数据时只写入缓存，并且把缓存块儿标记为“脏”的。而脏块儿只有被再次使用时才会将其中的数据写入到后端存储中。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230430194034299.png" alt="image-20230430194034299" style="zoom:67%;" /><p><strong>如果使用 Write Back 策略的话，读的策略也有一些变化了。</strong></p><p>我们在读取缓存时如果发现缓存命中则直接返回缓存数据。</p><p>如果缓存不命中则寻找一个可用的缓存块儿，如果这个缓存块儿是“脏”的，就把缓存块儿中之前的数据写入到后端存储中，并且从后端存储加载数据到缓存块儿。</p><p>如果不是脏的，则由缓存组件将后端存储中的数据加载到缓存中，最后我们将缓存设置为不是脏的，返回数据就好了。</p><p>这个策略一般不直接在生产环境中使用，往往是计算机结构中使用，比如说操作系统层面的 Page Cache，日志的异步刷盘，消息队列中消息的异步写入磁盘等。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《高并发系统设计》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;Cache-Aside（旁路缓存）策略&quot;&gt;&lt;a href=&quot;#Cache-Aside（旁路缓存）策略&quot; class=&quot;headerlink&quot; title=&quot;Cache Aside（旁路缓存）策略&quot;&gt;&lt;/a&gt;Cache Aside（旁路缓存）策略&lt;/h1&gt;&lt;p&gt;读策</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="缓存篇" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E7%BC%93%E5%AD%98%E7%AF%87/"/>
-    
-    
-    <category term="缓存" scheme="http://example.com/tags/%E7%BC%93%E5%AD%98/"/>
     
   </entry>
   
