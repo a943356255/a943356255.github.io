@@ -18,8 +18,8 @@
   
   <entry>
     <title>单例模式（下）</title>
-    <link href="http://example.com/2023/06/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
-    <id>http://example.com/2023/06/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
     <published>2023-06-07T07:21:16.000Z</published>
     <updated>2023-06-07T08:20:25.757Z</updated>
     
@@ -45,8 +45,8 @@
   
   <entry>
     <title>单例模式（中）</title>
-    <link href="http://example.com/2023/06/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/"/>
-    <id>http://example.com/2023/06/07/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/"/>
+    <id>http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/</id>
     <published>2023-06-07T06:40:38.000Z</published>
     <updated>2023-06-07T07:20:22.905Z</updated>
     
@@ -71,8 +71,8 @@
   
   <entry>
     <title>单例模式（上）</title>
-    <link href="http://example.com/2023/06/06/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
-    <id>http://example.com/2023/06/06/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/06/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
+    <id>http://example.com/2023/06/06/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
     <published>2023-06-06T02:18:00.000Z</published>
     <updated>2023-06-06T03:24:44.153Z</updated>
     
