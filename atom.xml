@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-06-14T04:36:14.396Z</updated>
+  <updated>2023-06-16T03:13:35.809Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,59 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>享元模式（下）</title>
+    <link href="http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <published>2023-06-16T02:52:05.000Z</published>
+    <updated>2023-06-16T03:13:35.809Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="享元模式在-Java-Integer-中的应用"><a href="#享元模式在-Java-Integer-中的应用" class="headerlink" title="享元模式在 Java Integer 中的应用"></a>享元模式在 Java Integer 中的应用</h1><h2 id="自动装箱与自动拆箱"><a href="#自动装箱与自动拆箱" class="headerlink" title="自动装箱与自动拆箱"></a>自动装箱与自动拆箱</h2><p>Java中的基本数据类型对应的有包装器类型，他们之前存在着自动装箱和拆箱的过程。</p><p>所谓的自动装箱，就是自动将基本数据类型转换为包装器类型。所谓的自动拆箱，也就是自 动将包装器类型转化为基本数据类型。具体的代码示例如下所示：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Integer</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">56</span>; <span class="comment">//自动装箱</span></span><br><span class="line"><span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> i; <span class="comment">//自动拆箱</span></span><br></pre></td></tr></table></figure><p>数值 56 是基本数据类型 int，当赋值给包装器类型（Integer）变量的时候，触发自动装箱 操作，创建一个 Integer 类型的对象，并且赋值给变量 i。其底层相当于执行了下面这条语句：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Integer</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">59</span>；底层执行了：<span class="type">Integer</span> <span class="variable">i</span> <span class="operator">=</span> Integer.valueOf(<span class="number">59</span>);</span><br></pre></td></tr></table></figure><p>反过来，当把包装器类型的变量 i，赋值给基本数据类型变量 j 的时候，触发自动拆箱操 作，将 i 中的数据取出，赋值给 j。其底层相当于执行了下面这条语句：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> i; 底层执行了：<span class="type">int</span> <span class="variable">j</span> <span class="operator">=</span> i.intValue();</span><br></pre></td></tr></table></figure><h2 id="对象存储"><a href="#对象存储" class="headerlink" title="对象存储"></a>对象存储</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">User</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">User</span>(<span class="number">123</span>, <span class="number">23</span>); <span class="comment">// id=123, age=23</span></span><br></pre></td></tr></table></figure><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230616110300848.png" alt="image-20230616110300848" style="zoom:67%;" /><p>当我们通过“&#x3D;&#x3D;”来判定两个对象是否相等的时候，实际上是在判断两个局部变量存储的 地址是否相同，换句话说，是在判断两个局部变量是否指向相同的对象。</p><h2 id="一个具体的例子"><a href="#一个具体的例子" class="headerlink" title="一个具体的例子"></a>一个具体的例子</h2><p>看下面的代码，它的结果是什么样的？</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Integer</span> <span class="variable">i1</span> <span class="operator">=</span> <span class="number">56</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">i2</span> <span class="operator">=</span> <span class="number">56</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">i3</span> <span class="operator">=</span> <span class="number">129</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">i4</span> <span class="operator">=</span> <span class="number">129</span>;</span><br><span class="line">System.out.println(i1 == i2);</span><br><span class="line">System.out.println(i3 == i4);</span><br></pre></td></tr></table></figure><p>前 4 行赋值语句都会触发自动装箱操作，也就是会创建 Integer 对象并且赋值给 i1、i2、 i3、i4 这四个变量。i1、i2 尽管存储的数值相同，都是 56，但是指向不同的 Integer 对象，所以通过“&#x3D;&#x3D;”来判定是否相同的时候，会返回 false，同理第二个也是false。这样对吗？</p><p>答案并非是两个 false，而是一个 true，一个 false。</p><p>实际上，这正是因为 Integer 用到了享元模式来复用对象，才 导致了这样的运行结果。当我们通过自动装箱，也就是调用 valueOf() 来创建 Integer 对象的时候，<strong>如果要创建的 Integer 对象的值在 -128 到 127 之间，会从 IntegerCache 类中 直接返回</strong>，否则才调用 new 方法创建。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">static</span> Integer <span class="title function_">valueOf</span><span class="params">(<span class="type">int</span> i)</span> &#123;</span><br><span class="line">    <span class="keyword">if</span> (i &gt;= IntegerCache.low &amp;&amp; i &lt;= IntegerCache.high)</span><br><span class="line">        <span class="keyword">return</span> IntegerCache.cache[i + (-IntegerCache.low)];</span><br><span class="line">    <span class="keyword">return</span> <span class="keyword">new</span> <span class="title class_">Integer</span>(i);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>因为 56 处于 -128 和 127 之间，i1 和 i2 会指向相同 的享元对象，所以 i1&#x3D;&#x3D;i2 返回 true。而 129 大于 127，并不会被缓存，每次都会创建一 个全新的对象，也就是说，i3 和 i4 指向不同的 Integer 对象，所以 i3&#x3D;&#x3D;i4 返回 false。</p><p>在平时开发中，优先使用后两种创建：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">Integer</span> <span class="variable">a</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Integer</span>(<span class="number">123</span>);</span><br><span class="line"><span class="type">Integer</span> <span class="variable">a</span> <span class="operator">=</span> <span class="number">123</span>;</span><br><span class="line"><span class="type">Integer</span> <span class="variable">a</span> <span class="operator">=</span> Integer.valueOf(<span class="number">123</span>);</span><br></pre></td></tr></table></figure><p>第一种创建方式并不会使用到 IntegerCache，而后面两种创建方法可以利用 IntegerCache 缓存，返回共享的对象，以达到节省内存的目的。</p><h1 id="享元模式在-Java-String-中的应用"><a href="#享元模式在-Java-String-中的应用" class="headerlink" title="享元模式在 Java String 中的应用"></a>享元模式在 Java String 中的应用</h1><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">s1</span> <span class="operator">=</span> <span class="string">&quot;aaa&quot;</span>;</span><br><span class="line"><span class="type">String</span> <span class="variable">s2</span> <span class="operator">=</span> <span class="string">&quot;aaa&quot;</span>;</span><br><span class="line"><span class="type">String</span> <span class="variable">s3</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">String</span>(<span class="string">&quot;aaa&quot;</span>);</span><br><span class="line">System.out.println(s1 == s2);</span><br><span class="line">System.out.println(s1 == s3);</span><br></pre></td></tr></table></figure><p>上面代码的运行结果是：一个 true，一个 false。String 类 利用享元模式来复用相同的字符串常量，JVM 会专门开辟 一块存储区来存储字符串常量，这块存储区叫作“字符串常量池”。</p><p>不过，String 类的享元模式的设计，跟 Integer 类稍微有些不同。Integer 类中要共享的对 象，是在类加载的时候，就集中一次性创建好的。但是，对于字符串来说，我们没法事先知 道要共享哪些字符串常量，所以没办法事先创建好，只能在某个字符串常量第一次被用到的 时候，存储到常量池中，当之后再用到的时候，直接引用常量池中已经存在的即可，就不需 要再重新创建了。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;享元模式在-Java-Integer-中的应用&quot;&gt;&lt;a href=&quot;#享元模式在-Java-Integer-中的应用&quot; class=&quot;headerlink&quot; title=&quot;享元模式在 Java Integer 中的应用&quot;&gt;&lt;/a&gt;享元模式在 Java Intege</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+    
+    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>享元模式（上）</title>
+    <link href="http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/</id>
+    <published>2023-06-16T02:30:33.000Z</published>
+    <updated>2023-06-16T02:51:49.211Z</updated>
+    
+    <content type="html"><![CDATA[<p>享元模式的意图是复用对象，节省内存，前提是享元对象是不可变对象。</p><p>具体来讲，当一个系统中存在大量重复对象的时候，如果这些重复的对象是不可变对象，我 们就可以利用享元模式将对象设计成享元，在内存中只保留一份实例，供多处代码引用。这 样可以减少内存中对象的数量，起到节省内存的目的。</p><h1 id="享元模式的两个应用场景"><a href="#享元模式的两个应用场景" class="headerlink" title="享元模式的两个应用场景"></a>享元模式的两个应用场景</h1><p>1、在象棋游戏中，每一句的棋子都是一样的，当有多个玩家时，不同玩家之间只是象棋的位置不同，那么我们就可以将一些基础的属性抽出来，供多个人使用，节省了内存。</p><p>2、文本编辑器中，每一个字体都可以单独的设置格式。对于字体格式，我们可以将它设计成享元，让不同的文字共享使用。</p><h1 id="享元模式-vs-单例、缓存、对象池"><a href="#享元模式-vs-单例、缓存、对象池" class="headerlink" title="享元模式 vs 单例、缓存、对象池"></a>享元模式 vs 单例、缓存、对象池</h1><h2 id="享元模式跟单例的区别"><a href="#享元模式跟单例的区别" class="headerlink" title="享元模式跟单例的区别"></a>享元模式跟单例的区别</h2><p>在单例模式中，一个类只能创建一个对象，而在享元模式中，一个类可以创建多个对象，每 个对象被多处代码引用共享。实际上，享元模式有点类似于之前讲到的单例的变体：多例</p><p>应用享元模式是为了对象复用，节省内存，而应用单例模式是为 了限制对象的个数。</p><h2 id="享元模式跟缓存的区别"><a href="#享元模式跟缓存的区别" class="headerlink" title="享元模式跟缓存的区别"></a>享元模式跟缓存的区别</h2><p>在享元模式的实现中，我们通过工厂类来“缓存”已经创建好的对象。这里的“缓存”实际 上是“存储”的意思，跟我们平时所说的“数据库缓存”“CPU 缓存”“MemCache 缓 存”是两回事。我们平时所讲的缓存，主要是为了提高访问效率，而非复用。</p><h2 id="享元模式跟对象池的区别"><a href="#享元模式跟对象池的区别" class="headerlink" title="享元模式跟对象池的区别"></a>享元模式跟对象池的区别</h2><p>为了避免频繁地进行对象创 建和释放导致内存碎片，我们可以预先申请一片连续的内存空间，也就是这里说的对象池。每次创建对象时，我们从对象池中直接取出一个空闲对象来使用，对象使用完成之后，再放 回到对象池中以供后续复用，而非直接释放掉。</p><p><strong>池化技术中的“复用”可以理解为“重复使用”，主要目的是节省时间（比如从数据库池中 取一个连接，不需要重新创建）</strong>。在任意时刻，每一个对象、连接、线程，并不会被多处使 用，而是被一个使用者独占，当使用完成之后，放回到池中，再由其他使用者重复利用。</p><p>享元模式中的“复用”可以理解为“共享使用”，在整个生命周期中，都是被所有使用者共享 的，<strong>主要目的是节省空间。</strong></p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;享元模式的意图是复用对象，节省内存，前提是享元对象是不可变对象。&lt;/p&gt;
+&lt;p&gt;具体来讲，当一个系统中存在大量重复对象的时候，如果这些重复的对象是不可变对象，我 们就可以利用享元模式将对象设计成享元，在内存中只保留一份实例，供多处代码引用。这 样可以减少内存中对象的数量，起</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+    
+    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
   
   <entry>
     <title>适配器模式</title>
@@ -506,62 +559,6 @@
     
     
     <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Api网关</title>
-    <link href="http://example.com/2023/05/16/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/Api%E7%BD%91%E5%85%B3/"/>
-    <id>http://example.com/2023/05/16/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/Api%E7%BD%91%E5%85%B3/</id>
-    <published>2023-05-16T06:08:58.000Z</published>
-    <updated>2023-05-16T07:15:51.279Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="API-网关起到的作用"><a href="#API-网关起到的作用" class="headerlink" title="API 网关起到的作用"></a>API 网关起到的作用</h1><p>API 网关可以分为两类：<strong>一类叫做入口网关，一类叫做出口网关。</strong></p><h2 id="入口网关"><a href="#入口网关" class="headerlink" title="入口网关"></a>入口网关</h2><p>入口网关部署在负载均衡服务器和应用服务器之间，<strong>主要有几方面的作用。</strong></p><p>1、它提供客户端一个统一的接入地址，API 网关可以将用户的请求动态路由到不同的业务服务上，并且做一些必要的协议转换工作。这里有一点需要注意，<strong>你部署的微服务对外暴露的协议可能不同</strong>，有些可能是RPC，有些可能是Http，这些细节都可以在网关中处理。</p><p>2、另一方面，在 API 网关中，我们可以植入一些服务治理的策略，比如服务的熔断、降级、流量控制和分流等等。</p><p>3、客户端的认证和授权的实现，也可以放在 API 网关中。</p><p>4、另外，API 网关还可以做一些与黑白名单相关的事情，比如针对设备 ID、用户 IP、用户 ID 等维度的黑白名单。</p><p>5、最后，在 API 网关中也可以做一些日志记录的事情。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230516142313124.png" alt="image-20230516142313124" style="zoom:67%;" /><h2 id="出口网关"><a href="#出口网关" class="headerlink" title="出口网关"></a>出口网关</h2><p>我们在系统开发中，会依赖很多外部的第三方系统，典型的例子：第三方账户登录、使用第三方工具支付等等。我们可以在应用服务器和第三方系统之间，部署出口网关，在出口网关中，对调用外部的 API 做统一的认证、授权、审计以及访问控制。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230516142531792.png" alt="image-20230516142531792" style="zoom:67%;" /><h1 id="网关实现"><a href="#网关实现" class="headerlink" title="网关实现"></a>网关实现</h1><p>在实现网关时，需要注意一点：为了提升网关对于请求的并行处理能力，我们一般会使用线程池来并行的执行请求。</p><p>但是这样设计也同样会带来一些问题：假如一个服务出现问题导致响应过慢，那么调用该服务的模块也会被阻塞，其他服务也会级联受到影响，导致无法线程池中的线程无法释放，对整个系统造成影响。</p><p>因此，我们需要针对不同的服务做线程隔离或者保护。<strong>有两种思路：</strong></p><ul><li>如果你后端的服务拆分得不多，可以针对不同的服务，采用不同的线程池，这样一个服务的故障就不会影响到其他服务；</li><li>在线程池内部可以针对不同的服务甚至不同的接口做线程的保护。比如说，线程池的最大线程数是 1000，那么可以给每个服务设置一个最多可以使用的配额。</li></ul><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230516151544806.png" alt="image-20230516151544806"></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;API-网关起到的作用&quot;&gt;&lt;a href=&quot;#API-网关起到的作用&quot; class=&quot;headerlink&quot; title=&quot;API 网关起到的作用&quot;&gt;&lt;/a&gt;API 网关起到的作用&lt;/h1&gt;&lt;p&gt;API 网关可以分为两类：&lt;strong&gt;一类叫做入口网关，一类叫做</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
-    
-    
-    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>负载均衡</title>
-    <link href="http://example.com/2023/05/15/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/"/>
-    <id>http://example.com/2023/05/15/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/</id>
-    <published>2023-05-15T09:24:59.000Z</published>
-    <updated>2023-05-15T11:58:59.926Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="负载均衡服务器的种类"><a href="#负载均衡服务器的种类" class="headerlink" title="负载均衡服务器的种类"></a>负载均衡服务器的种类</h1><p><strong>负载均衡的含义是：</strong>将负载（访问的请求）“均衡”地分配到多个处理节点上。这样可以减少单个处理节点的请求量，提升整体系统的性能。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515172635623.png" alt="image-20230515172635623" style="zoom:67%;" /><p>在项目的架构中，我们一般会同时部署 LVS 和 Nginx 来做 HTTP 应用服务的负载均衡。也就是说，在入口处部署 LVS 将流量分发到多个 Nginx 服务器上，再由 Nginx 服务器分发到应用服务器上。</p><p>不过这两个负载均衡服务适用于普通的 Web 服务，对于微服务架构来说，它们是不合适的。</p><p>因为微服务架构中的服务节点存储在注册中心里，使用 LVS 就很难和注册中心交互获取全量的服务节点列表。另外，一般微服务架构中，使用的是 RPC 协议而不是 HTTP 协议，所以 Nginx 也不能满足要求。</p><p><strong>所以，我们会使用另一类的负载均衡服务，客户端负载均衡服务，也就是把负载均衡的服务内嵌在 RPC 客户端中。</strong></p><p>这类服务一般会结合注册中心来使用，注册中心提供服务节点的完整列表，客户端拿到列表之后使用负载均衡服务的策略选取一个合适的节点，然后将请求发到这个节点上。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515194359296.png" alt="image-20230515194359296"></p><h2 id="常见的负载均衡策略有哪些"><a href="#常见的负载均衡策略有哪些" class="headerlink" title="常见的负载均衡策略有哪些"></a>常见的负载均衡策略有哪些</h2><ul><li><p>一类是静态策略，也就是说负载均衡服务器在选择服务节点时，不会参考后端服务的实际运行的状态；</p></li><li><p>一类是动态策略，也就是说负载均衡服务器会依据后端服务的一些负载特性，来决定要选择哪一个服务节点。</p></li></ul><p>静态的又有以下几种策略：</p><ul><li><strong>轮询的策略</strong>：如果服务器性能不一样，则不能很好的发挥作用</li><li><strong>带有权重的轮询策略</strong></li></ul><p>动态策略：</p><ul><li>Dubbo 提供的 LeastAcive 策略，就是优先选择活跃连接数最少的服务；</li><li>Spring Cloud 全家桶中的 Ribbon 提供了 WeightedResponseTimeRule 是使用响应时间给每个服务节点计算一个权重，然后依据这个权重，来给调用方分配服务节点。</li></ul><p><strong>这些策略的思考点</strong>是从调用方的角度出发，选择负载最小、资源最空闲的服务来调用，以期望能得到更高的服务调用性能</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;负载均衡服务器的种类&quot;&gt;&lt;a href=&quot;#负载均衡服务器的种类&quot; class=&quot;headerlink&quot; title=&quot;负载均衡服务器的种类&quot;&gt;&lt;/a&gt;负载均衡服务器的种类&lt;/h1&gt;&lt;p&gt;&lt;strong&gt;负载均衡的含义是：&lt;/strong&gt;将负载（访问的请求）“均</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
-    
-    
-    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
     
   </entry>
   
