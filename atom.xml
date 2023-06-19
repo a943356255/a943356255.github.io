@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-06-16T03:13:35.809Z</updated>
+  <updated>2023-06-19T03:06:04.327Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,9 +17,65 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>观察者模式（下）</title>
+    <link href="http://example.com/2023/06/19/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/19/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <published>2023-06-19T02:27:26.000Z</published>
+    <updated>2023-06-19T03:06:04.327Z</updated>
+    
+    <content type="html"><![CDATA[<p>观察者模式有几种不同的实现方式：同步阻塞、异步非阻塞、进程内、进程间的实现方式。</p><p>同步阻塞是最经典的实现方式，主要是为了代码解耦；异步非阻塞除了能实现代码解耦之 外，还能提高代码的执行效率；进程间的观察者模式解耦更加彻底，一般是基于消息队列来 实现，用来实现不同进程间的被观察者和观察者之间的交互。</p><h1 id="异步非阻塞观察者模式的简易实现"><a href="#异步非阻塞观察者模式的简易实现" class="headerlink" title="异步非阻塞观察者模式的简易实现"></a>异步非阻塞观察者模式的简易实现</h1><p>有两种实现方式：其中一种是：在每个 handleRegSuccess() 函数中创建一个新的线 程执行代码逻辑；另一种是：在 UserController 的 register() 函数中使用线程池来执行每 个观察者的 handleRegSuccess() 函数。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 第一种实现方式，其他类代码不变，就没有再重复罗列</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">RegPromotionObserver</span> <span class="keyword">implements</span> <span class="title class_">RegObserver</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> PromotionService promotionService; <span class="comment">// 依赖注入</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">handleRegSuccess</span><span class="params">(<span class="type">long</span> userId)</span> &#123;</span><br><span class="line">        <span class="type">Thread</span> <span class="variable">thread</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Thread</span>(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">            <span class="meta">@Override</span></span><br><span class="line">            <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                promotionService.issueNewUserExperienceCash(userId);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;);</span><br><span class="line">        thread.start();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="comment">// 第二种实现方式，其他类代码不变，就没有再重复罗列</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">UserController</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> UserService userService; <span class="comment">// 依赖注入</span></span><br><span class="line">    <span class="keyword">private</span> List&lt;RegObserver&gt; regObservers = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;&gt;();</span><br><span class="line">    <span class="keyword">private</span> Executor executor;</span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">UserController</span><span class="params">(Executor executor)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.executor = executor;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">setRegObservers</span><span class="params">(List&lt;RegObserver&gt; observers)</span> &#123;</span><br><span class="line">        regObservers.addAll(observers);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> Long <span class="title function_">register</span><span class="params">(String telephone, String password)</span> &#123;</span><br><span class="line">        <span class="comment">//省略输入参数的校验代码</span></span><br><span class="line">        <span class="comment">//省略userService.register()异常的try-catch代码</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">userId</span> <span class="operator">=</span> userService.register(telephone, password);</span><br><span class="line">        <span class="keyword">for</span> (RegObserver observer : regObservers) &#123;</span><br><span class="line">            executor.execute(<span class="keyword">new</span> <span class="title class_">Runnable</span>() &#123;</span><br><span class="line">                <span class="meta">@Override</span></span><br><span class="line">                <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">run</span><span class="params">()</span> &#123;</span><br><span class="line">                    observer.handleRegSuccess(userId);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">return</span> userId;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>对于第一种实现方式，频繁地创建和销毁线程比较耗时，并且并发线程数无法控制，创建过多的线程会导致堆栈溢出。</p><p>第二种实现方式，尽管利用了线程池解决了第一种实现方式的问题，但线程池、异步执行逻辑都耦合在了 register() 函数中，增加了这部分业务代码的维护成本。</p><h1 id="EventBus核心"><a href="#EventBus核心" class="headerlink" title="EventBus核心"></a>EventBus核心</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230619110451041.png" alt="image-20230619110451041"></p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230619110502970.png" alt="image-20230619110502970"></p><p>从图中我们可以看出，最关键的一个数据结构是 Observer 注册表，记录了消息类型和可接收消息函数的对应关系。</p><p>当调用 register() 函数注册观察者的时候，EventBus 通过解析 @Subscribe 注解，生成 Observer 注册表。</p><p>当调用 post() 函数发送消息的时候， EventBus 通过注册表找到相应的可接收消息的函数，然后通过 Java 的反射语法来动态地 创建对象、执行函数。</p><p>对于同步阻塞模式，EventBus 在一个线程内依次执行相应的函数。 </p><p>对于异步非阻塞模式，EventBus 通过一个线程池来执行相应的函数。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;观察者模式有几种不同的实现方式：同步阻塞、异步非阻塞、进程内、进程间的实现方式。&lt;/p&gt;
+&lt;p&gt;同步阻塞是最经典的实现方式，主要是为了代码解耦；异步非阻塞除了能实现代码解耦之 外，还能提高代码的执行效率；进程间的观察者模式解耦更加彻底，一般是基于消息队列来 实现，用来实现不</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+    
+    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>观察者模式（上）</title>
+    <link href="http://example.com/2023/06/17/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
+    <id>http://example.com/2023/06/17/%E8%A7%82%E5%AF%9F%E8%80%85%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
+    <published>2023-06-17T02:36:09.000Z</published>
+    <updated>2023-06-18T04:09:40.450Z</updated>
+    
+    <content type="html"><![CDATA[<p>观察者模式（Observer Design Pattern）也被称为发布订阅模式，在《设计模式》一书中，它的定义如下：</p><p>在对象之间定义一个一对多的依赖，当一个对象状态改变的时候，所有依赖的对象都会自动收到通知。</p><p>一个具体的代码示例如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Subject</span> &#123;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">registerObserver</span><span class="params">(Observer observer)</span>;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">removeObserver</span><span class="params">(Observer observer)</span>;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">notifyObservers</span><span class="params">(Message message)</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">interface</span> <span class="title class_">Observer</span> &#123;</span><br><span class="line">    <span class="keyword">void</span> <span class="title function_">update</span><span class="params">(Message message)</span>;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConcreteSubject</span> <span class="keyword">implements</span> <span class="title class_">Subject</span> &#123;</span><br><span class="line">    <span class="keyword">private</span> List&lt;Observer&gt; observers = <span class="keyword">new</span> <span class="title class_">ArrayList</span>&lt;Observer&gt;();</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">registerObserver</span><span class="params">(Observer observer)</span> &#123;</span><br><span class="line">        observers.add(observer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">removeObserver</span><span class="params">(Observer observer)</span> &#123;</span><br><span class="line">        observers.remove(observer);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">notifyObservers</span><span class="params">(Message message)</span> &#123;</span><br><span class="line">        <span class="keyword">for</span> (Observer observer : observers) &#123;</span><br><span class="line">            observer.update(message);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConcreteObserverOne</span> <span class="keyword">implements</span> <span class="title class_">Observer</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">update</span><span class="params">(Message message)</span> &#123;</span><br><span class="line">        <span class="comment">//<span class="doctag">TODO:</span> 获取消息通知，执行自己的逻辑...</span></span><br><span class="line">        System.out.println(<span class="string">&quot;ConcreteObserverOne is notified.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ConcreteObserverTwo</span> <span class="keyword">implements</span> <span class="title class_">Observer</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">update</span><span class="params">(Message message)</span> &#123;</span><br><span class="line">        <span class="comment">//<span class="doctag">TODO:</span> 获取消息通知，执行自己的逻辑...</span></span><br><span class="line">        System.out.println(<span class="string">&quot;ConcreteObserverTwo is notified.&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Demo</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">ConcreteSubject</span> <span class="variable">subject</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ConcreteSubject</span>();</span><br><span class="line">        subject.registerObserver(<span class="keyword">new</span> <span class="title class_">ConcreteObserverOne</span>());</span><br><span class="line">        subject.registerObserver(<span class="keyword">new</span> <span class="title class_">ConcreteObserverTwo</span>());</span><br><span class="line">        subject.notifyObservers(<span class="keyword">new</span> <span class="title class_">Message</span>());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;观察者模式（Observer Design Pattern）也被称为发布订阅模式，在《设计模式》一书中，它的定义如下：&lt;/p&gt;
+&lt;p&gt;在对象之间定义一个一对多的依赖，当一个对象状态改变的时候，所有依赖的对象都会自动收到通知。&lt;/p&gt;
+&lt;p&gt;一个具体的代码示例如下：&lt;/p&gt;
+</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+    
+    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
     <title>享元模式（下）</title>
-    <link href="http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
-    <id>http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/16/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/16/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
     <published>2023-06-16T02:52:05.000Z</published>
     <updated>2023-06-16T03:13:35.809Z</updated>
     
@@ -44,8 +100,8 @@
   
   <entry>
     <title>享元模式（上）</title>
-    <link href="http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://example.com/2023/06/16/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/</id>
+    <link href="http://example.com/2023/06/16/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/16/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BA%AB%E5%85%83%E6%A8%A1%E5%BC%8F/</id>
     <published>2023-06-16T02:30:33.000Z</published>
     <updated>2023-06-16T02:51:49.211Z</updated>
     
@@ -71,8 +127,8 @@
   
   <entry>
     <title>适配器模式</title>
-    <link href="http://example.com/2023/06/14/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://example.com/2023/06/14/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/</id>
+    <link href="http://example.com/2023/06/14/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/14/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E9%80%82%E9%85%8D%E5%99%A8%E6%A8%A1%E5%BC%8F/</id>
     <published>2023-06-14T03:35:11.000Z</published>
     <updated>2023-06-14T04:36:14.396Z</updated>
     
@@ -98,8 +154,8 @@
   
   <entry>
     <title>装饰器模式</title>
-    <link href="http://example.com/2023/06/13/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://example.com/2023/06/13/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/</id>
+    <link href="http://example.com/2023/06/13/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/13/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%A3%85%E9%A5%B0%E5%99%A8%E6%A8%A1%E5%BC%8F/</id>
     <published>2023-06-13T02:33:13.000Z</published>
     <updated>2023-06-13T03:57:36.421Z</updated>
     
@@ -125,8 +181,8 @@
   
   <entry>
     <title>代理模式</title>
-    <link href="http://example.com/2023/06/12/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://example.com/2023/06/12/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/</id>
+    <link href="http://example.com/2023/06/12/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/12/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E4%BB%A3%E7%90%86%E6%A8%A1%E5%BC%8F/</id>
     <published>2023-06-12T08:13:14.000Z</published>
     <updated>2023-06-12T11:31:05.196Z</updated>
     
@@ -152,8 +208,8 @@
   
   <entry>
     <title>原型模式</title>
-    <link href="http://example.com/2023/06/10/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/"/>
-    <id>http://example.com/2023/06/10/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/</id>
+    <link href="http://example.com/2023/06/10/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/10/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8E%9F%E5%9E%8B%E6%A8%A1%E5%BC%8F/</id>
     <published>2023-06-10T03:24:23.000Z</published>
     <updated>2023-06-14T03:39:09.714Z</updated>
     
@@ -178,8 +234,8 @@
   
   <entry>
     <title>工厂模式（下）</title>
-    <link href="http://example.com/2023/06/08/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
-    <id>http://example.com/2023/06/08/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/08/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/08/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
     <published>2023-06-08T03:17:07.000Z</published>
     <updated>2023-06-08T03:43:59.833Z</updated>
     
@@ -205,8 +261,8 @@
   
   <entry>
     <title>工厂模式（上）</title>
-    <link href="http://example.com/2023/06/08/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
-    <id>http://example.com/2023/06/08/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/08/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
+    <id>http://example.com/2023/06/08/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%B7%A5%E5%8E%82%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
     <published>2023-06-08T01:35:20.000Z</published>
     <updated>2023-06-08T02:45:24.333Z</updated>
     
@@ -501,64 +557,6 @@
     
     
     <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分布式下如何排查慢请求</title>
-    <link href="http://example.com/2023/05/17/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8B%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%E6%85%A2%E8%AF%B7%E6%B1%82/"/>
-    <id>http://example.com/2023/05/17/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8B%E5%A6%82%E4%BD%95%E6%8E%92%E6%9F%A5%E6%85%A2%E8%AF%B7%E6%B1%82/</id>
-    <published>2023-05-17T09:53:02.000Z</published>
-    <updated>2023-05-22T07:05:38.749Z</updated>
-    
-    <content type="html"><![CDATA[<p>在引入了注册中心后，微服务项目的架构会变成下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514175352625.png" alt="image-20230514175352625"></p><p>但是，如果此时有一个请求的响应速度比较慢，而这个请求调用了多个RPC服务，该如何去排查呢？</p><h1 id="一体化架构中的慢请求排查如何做"><a href="#一体化架构中的慢请求排查如何做" class="headerlink" title="一体化架构中的慢请求排查如何做"></a>一体化架构中的慢请求排查如何做</h1><p>最简单的办法，就是像下面这样：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">processA();</span><br><span class="line"><span class="comment">// 打印A步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process A cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processB();</span><br><span class="line"><span class="comment">// 打印B步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process B cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processC();</span><br><span class="line"><span class="comment">// 打印C步骤的耗时</span></span><br><span class="line">Logs.info(<span class="string">&quot;process C cost &quot;</span> + (System.currentTimeMillis() - start));</span><br></pre></td></tr></table></figure><p>但是这样会有一个问题，如果多个用户同时下单，那么日志的打印是穿插进行的，无法判断。</p><p>一个简单的解决办法是，给每个请求每一行日志加一个id，用于区分。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">String</span> <span class="variable">requestId</span> <span class="operator">=</span> UUID.randomUUID().toString();</span><br><span class="line">ThreadLocal&lt;String&gt; tl = <span class="keyword">new</span> <span class="title class_">ThreadLocal</span>&lt;String&gt;()&#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">protected</span> String <span class="title function_">initialValue</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> requestId;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;; <span class="comment">//requestId存储在线程上下文中</span></span><br><span class="line"><span class="type">long</span> <span class="variable">start</span> <span class="operator">=</span> System.currentTimeMillis();</span><br><span class="line">processA();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process A cost &quot;</span> + (System.currentTimeMillis() - start)); <span class="comment">// 日志中增加requestId</span></span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processB();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process B cost &quot;</span> + (System.currentTimeMillis() - start));</span><br><span class="line">start = System.currentTimeMillis();</span><br><span class="line">processC();</span><br><span class="line">Logs.info(<span class="string">&quot;rid : &quot;</span> + tl.get() + <span class="string">&quot;, process C cost &quot;</span> + (System.currentTimeMillis() - start));</span><br></pre></td></tr></table></figure><h1 id="利用切面编程"><a href="#利用切面编程" class="headerlink" title="利用切面编程"></a>利用切面编程</h1><p>一般来说，切面分为两类：</p><ul><li><p>一类是静态代理，典型的代表是 AspectJ，它的特点是在编译期做切面代码注入；</p></li><li><p>另一类是动态代理，典型的代表是 Spring AOP，它的特点是在运行期做切面代码注入</p></li></ul><p>区别：</p><p>静态代理是在编译期插入代码，增加了编译的时间，给你的直观感觉就是启动的时间变长了，但是一旦在编译期插入代码完毕之后在运行期就基本对于性能没有影响。</p><p>而动态代理不会去修改生成的 Class 文件，而是会在运行期生成一个代理对象，这个代理对象对源对象做了字节码增强，来完成切面所要执行的操作。由于在运行期需要生成代理对象，所以动态代理的性能要比静态代理要差。</p><h1 id="其他问题"><a href="#其他问题" class="headerlink" title="其他问题"></a>其他问题</h1><p>为了避免打印过多的日志，我们可以根据id进行采样，比如说只打印id % 10 &#x3D;&#x3D; 0的，这样就只统计局部的 也可以实现需求。</p><p>但是还有一个问题，如果这样的话，拿到一个id我们并不知道它是属于哪个服务器的，我们还需要去服务器查询。解决办法就是将日志通过消息队列插入Elasticsearch，这样搜索也比较简单。如下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514183317870.png" alt="image-20230514183317870"></p><h1 id="如何来做分布式-Trace"><a href="#如何来做分布式-Trace" class="headerlink" title="如何来做分布式 Trace"></a>如何来做分布式 Trace</h1><p>采用traceId + spanId</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514184244939.png" alt="image-20230514184244939"></p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;在引入了注册中心后，微服务项目的架构会变成下图：&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230514175352625.png&quot; alt=&quot;image-</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="高并发系统设计" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/"/>
-    
-    <category term="微服务架构" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E9%AB%98%E5%B9%B6%E5%8F%91%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%BE%AE%E6%9C%8D%E5%8A%A1%E6%9E%B6%E6%9E%84/"/>
-    
-    
-    <category term="微服务" scheme="http://example.com/tags/%E5%BE%AE%E6%9C%8D%E5%8A%A1/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>java并发容器</title>
-    <link href="http://example.com/2023/05/16/Java/java%E5%B9%B6%E5%8F%91%E5%AE%B9%E5%99%A8/"/>
-    <id>http://example.com/2023/05/16/Java/java%E5%B9%B6%E5%8F%91%E5%AE%B9%E5%99%A8/</id>
-    <published>2023-05-16T14:38:17.000Z</published>
-    <updated>2023-05-22T07:04:35.201Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="List"><a href="#List" class="headerlink" title="List"></a>List</h1><p>List 里面只有一个实现类就是 <strong>CopyOnWriteArrayList</strong>。</p><p>CopyOnWrite，顾名思义就是写的时候会将共享变量新复制一份出来，这样做的好处是读操作完全无锁。</p><p>CopyOnWriteArrayList 内部维护了一个数组，成员变量 array 就指向这个内部数组，所有的读操作都是基于 array 进行的，迭代器 Iterator 遍历的就是 array 数组。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224227570.png" alt="image-20230515224227570"></p><p>如果在遍历时，还有写入时，CopyOnWriteArrayList 会将 array 复制一份，然后在新复制处理的数组上执行增加元素的操作，执行完之后再将 array 指向这个新的数组。遍历操作一直都是基于原 array 执行，而写操作则是基于新 array 进行。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224431375.png" alt="image-20230515224431375" style="zoom: 80%;" /><p>注意：CopyOnWriteArrayList 仅适用于写操作非常少的场景，而且能够容忍读写的短暂不一致。因为遍历时，写入的新元素并不能第一之间被遍历到。</p><p>CopyOnWriteArrayList 迭代器是只读的，不支持增删改。因为迭代器遍历的仅仅是一个快照，而对快照进行增删改是没有意义的。</p><h1 id="Map"><a href="#Map" class="headerlink" title="Map"></a>Map</h1><p>Map 接口的两个实现是 ConcurrentHashMap 和 ConcurrentSkipListMap，它们从应用的角度来看，主要区别在于 <strong>ConcurrentHashMap 的 key 是无序的，而 ConcurrentSkipListMap 的 key 是有序的</strong>。而且他们的key和value都不能为空。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515224643521.png" alt="image-20230515224643521" style="zoom:80%;" /><p>ConcurrentSkipListMap 里面的 SkipList 本身就是一种数据结构，中文一般都翻译为“跳表”。</p><p>跳表插入、删除、查询操作平均的时间复杂度是 O(log n)，理论上和并发线程数没有关系，所以在并发度非常高的情况下，若你对 ConcurrentHashMap 的性能还不满意，可以尝试一下 ConcurrentSkipListMap。</p><h1 id="Set"><a href="#Set" class="headerlink" title="Set"></a>Set</h1><p>Set 接口的两个实现是 CopyOnWriteArraySet 和 ConcurrentSkipListSet，使用场景可以参考前面讲述的 CopyOnWriteArrayList 和 ConcurrentSkipListMap。</p><h1 id="Queue"><a href="#Queue" class="headerlink" title="Queue"></a>Queue</h1><p>队列可以从以下两个维度来分：</p><p>一个维度是<strong>阻塞与非阻塞</strong>，所谓阻塞指的是当队列已满时，入队操作阻塞；当队列已空时，出队操作阻塞。</p><p>另一个维度是<strong>单端与双端</strong>，单端指的是只能队尾入队，队首出队；而双端指的是队首队尾皆可入队出队。</p><p>可以将Queue分为4大类</p><p>1、<strong>单端阻塞队列</strong>：其实现有 ArrayBlockingQueue、LinkedBlockingQueue、SynchronousQueue、LinkedTransferQueue、PriorityBlockingQueue 和 DelayQueue。</p><p>内部一般会持有一个队列，这个队列可以是数组（其实现是 ArrayBlockingQueue）也可以是链表（其实现是 LinkedBlockingQueue）；甚至还可以不持有队列（其实现是 SynchronousQueue），此时生产者线程的入队操作必须等待消费者线程的出队操作。</p><p>而 LinkedTransferQueue 融合 LinkedBlockingQueue 和 SynchronousQueue 的功能，性能比 LinkedBlockingQueue 更好；PriorityBlockingQueue 支持按照优先级出队；DelayQueue 支持延时出队。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515225105664.png" alt="image-20230515225105664" style="zoom:67%;" /><p>2.<strong>双端阻塞队列</strong>：其实现是 LinkedBlockingDeque。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230515225129204.png" alt="image-20230515225129204" style="zoom:67%;" /><p>3.<strong>单端非阻塞队列</strong>：其实现是 ConcurrentLinkedQueue。</p><p>4.<strong>双端非阻塞队列</strong>：其实现是 ConcurrentLinkedDeque。</p><p>在使用队列时，要注意队列是否是有界的，在使用无界队列时，要注意是否会导致OOM异常。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《Java并发编程实战》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;List&quot;&gt;&lt;a href=&quot;#List&quot; class=&quot;headerlink&quot; title=&quot;List&quot;&gt;&lt;/a&gt;List&lt;/h1&gt;&lt;p&gt;List 里面只有一个实现类就是 &lt;strong&gt;CopyOnWriteArrayList&lt;/strong&gt;。&lt;/p&gt;
-&lt;p</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
-    
-    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
-    
-    
-    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
     
   </entry>
   
