@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-06-26T04:29:21.316Z</updated>
+  <updated>2023-06-27T03:32:24.364Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,9 +17,36 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
+    <title>访问者模式</title>
+    <link href="http://example.com/2023/06/27/%E8%AE%BF%E9%97%AE%E8%80%85%E6%A8%A1%E5%BC%8F/"/>
+    <id>http://example.com/2023/06/27/%E8%AE%BF%E9%97%AE%E8%80%85%E6%A8%A1%E5%BC%8F/</id>
+    <published>2023-06-27T02:07:18.000Z</published>
+    <updated>2023-06-27T03:32:24.364Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="概念"><a href="#概念" class="headerlink" title="概念"></a>概念</h1><p>访问者模式：允许一个或者多个操作应用到一组对象上，解耦操作和对象本身。</p><h1 id="使用场景"><a href="#使用场景" class="headerlink" title="使用场景"></a>使用场景</h1><p>一般来说，访问者模式针对的是一组类型不同的对象（PdfFile、PPTFile、WordFile）。不 过，尽管这组对象的类型是不同的，但是，它们继承相同的父类（ResourceFile）或者实 现相同的接口。在不同的应用场景下，我们需要对这组对象进行一系列不相关的业务操作 （抽取文本、压缩等），但为了避免不断添加功能导致类（PdfFile、PPTFile、WordFile） 不断膨胀，职责越来越不单一，以及避免频繁地添加功能导致的频繁代码修改，我们使用访问者模式，将<strong>对象</strong>与<strong>操作</strong>解耦，将这些业务操作抽离出来，定义在独立细分的访问者类 （Extractor、Compressor）中。</p><h1 id="为什么支持双分派的语言不需要访问者模式？"><a href="#为什么支持双分派的语言不需要访问者模式？" class="headerlink" title="为什么支持双分派的语言不需要访问者模式？"></a>为什么支持双分派的语言不需要访问者模式？</h1><h2 id="Single-Dispatch，"><a href="#Single-Dispatch，" class="headerlink" title="Single Dispatch，"></a>Single Dispatch，</h2><p>指的是执行哪个对象的方法，根据对象的运行时类型来决定；执行对象的哪个方法，根据方法参数的<strong>编译时类型</strong>来决定。</p><h2 id="Double-Dispatch"><a href="#Double-Dispatch" class="headerlink" title="Double Dispatch"></a>Double Dispatch</h2><p>指的是执行哪个对象的方法，根据对象的运行时类型来决定；执行对象的哪个方法，根据方法参数的<strong>运行时类型</strong>来决定。</p><h2 id="Single-和-Double"><a href="#Single-和-Double" class="headerlink" title="Single 和 Double"></a>Single 和 Double</h2><p>Single Dispatch 之所以称为“Single”，是因为执行哪个对象的哪个方法，<strong>只跟“对象”的运行时类型有关</strong>。Double Dispatch 之所以称为“Double”，是因为执行哪个对象的哪个方法，跟“对象”和“方法参数”两者的运行时类型有关。</p><h2 id="Java的Single-Dispatch"><a href="#Java的Single-Dispatch" class="headerlink" title="Java的Single Dispatch"></a>Java的Single Dispatch</h2><p>Java 支持多态特性，代码可以在运行时获得对象的实际类型（也就是前面提到的运行时类 型），然后根据实际类型决定调用哪个方法。尽管 Java 支持函数重载，但 Java 设计的函数重载的语法规则是，<strong>并不是在运行时，根据传递进函数的参数的实际类型，来决定调用哪个重载函数</strong>，<strong>而是在编译时，根据传递进函数的参数的声明类型（也就是前面提到的编译时 类型），来决定调用哪个重载函数</strong>。也就是说，具体执行哪个对象的哪个方法，只跟<strong>对象的运行时类型</strong>有关，跟参数的运行时类型无关。所以，Java 语言只支持 Single Dispatch。</p><h2 id="demo"><a href="#demo" class="headerlink" title="demo"></a>demo</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ParentClass</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">f</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;I am ParentClass&#x27;s f().&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">ChildClass</span> <span class="keyword">extends</span> <span class="title class_">ParentClass</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">f</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;I am ChildClass&#x27;s f().&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">SingleDispatchClass</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">polymorphismFunction</span><span class="params">(ParentClass p)</span> &#123;</span><br><span class="line">        p.f();</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">overloadFunction</span><span class="params">(ParentClass p)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;I am overloadFunction(ParentClass p).&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">overloadFunction</span><span class="params">(ChildClass c)</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;I am overloadFunction(ChildClass c).&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">DemoMain</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">SingleDispatchClass</span> <span class="variable">demo</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">SingleDispatchClass</span>();</span><br><span class="line">        <span class="type">ParentClass</span> <span class="variable">p</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">ChildClass</span>();</span><br><span class="line">        <span class="comment">// 执行哪个对象的方法，由对象的实际类型决定。</span></span><br><span class="line">        <span class="comment">// 这里对象p的实例化是ChildClass，所以调用了child的f方法。</span></span><br><span class="line">        demo.polymorphismFunction(p);</span><br><span class="line">        <span class="comment">// 执行对象的哪个方法，由参数对象的声明类型决定</span></span><br><span class="line">        <span class="comment">// 这里指的是执行SingleDispatchClass的哪一个overloadFunction方法</span></span><br><span class="line">        <span class="comment">// 他取决于参数p声明的类型，即ParentClass</span></span><br><span class="line">        demo.overloadFunction(p);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230627112245628.png" alt="image-20230627112245628"></p><p>注：Java作为Single Dispatch，执行重载方法的时候，只会根据执行方法时传递的参数<strong>声明时的类型</strong>来执行，并不会关注他到底实例化了哪一个对象。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;概念&quot;&gt;&lt;a href=&quot;#概念&quot; class=&quot;headerlink&quot; title=&quot;概念&quot;&gt;&lt;/a&gt;概念&lt;/h1&gt;&lt;p&gt;访问者模式：允许一个或者多个操作应用到一组对象上，解耦操作和对象本身。&lt;/p&gt;
+&lt;h1 id=&quot;使用场景&quot;&gt;&lt;a href=&quot;#使用场景&quot; </summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+    
+    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
     <title>迭代器模式（下）</title>
-    <link href="http://example.com/2023/06/26/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/"/>
-    <id>http://example.com/2023/06/26/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
     <published>2023-06-26T02:33:49.000Z</published>
     <updated>2023-06-26T04:29:21.316Z</updated>
     
@@ -45,8 +72,8 @@
   
   <entry>
     <title>迭代器模式（上）</title>
-    <link href="http://example.com/2023/06/26/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
-    <id>http://example.com/2023/06/26/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
+    <id>http://example.com/2023/06/26/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%BF%AD%E4%BB%A3%E5%99%A8%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
     <published>2023-06-26T02:08:31.000Z</published>
     <updated>2023-06-26T02:32:39.763Z</updated>
     
@@ -100,8 +127,8 @@
   
   <entry>
     <title>职责链模式（下）</title>
-    <link href="http://example.com/2023/06/25/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
-    <id>http://example.com/2023/06/25/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/25/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/"/>
+    <id>http://example.com/2023/06/25/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8B%EF%BC%89/</id>
     <published>2023-06-25T02:12:22.000Z</published>
     <updated>2023-06-25T03:10:23.146Z</updated>
     
@@ -127,8 +154,8 @@
   
   <entry>
     <title>职责链模式（上）</title>
-    <link href="http://example.com/2023/06/24/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
-    <id>http://example.com/2023/06/24/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
+    <link href="http://example.com/2023/06/24/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/"/>
+    <id>http://example.com/2023/06/24/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E8%81%8C%E8%B4%A3%E9%93%BE%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%8A%EF%BC%89/</id>
     <published>2023-06-24T01:39:10.000Z</published>
     <updated>2023-06-24T02:26:27.297Z</updated>
     
@@ -515,32 +542,6 @@
       
     <summary type="html">&lt;h1 id=&quot;如何理解单例模式中的唯一性&quot;&gt;&lt;a href=&quot;#如何理解单例模式中的唯一性&quot; class=&quot;headerlink&quot; title=&quot;如何理解单例模式中的唯一性&quot;&gt;&lt;/a&gt;如何理解单例模式中的唯一性&lt;/h1&gt;&lt;p&gt;这个唯一性指的是进程内只允许创建一个对象。&lt;/p&gt;
 </summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-    
-    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>单例模式（中）</title>
-    <link href="http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/"/>
-    <id>http://example.com/2023/06/07/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%EF%BC%88%E4%B8%AD%EF%BC%89/</id>
-    <published>2023-06-07T06:40:38.000Z</published>
-    <updated>2023-06-08T01:36:06.859Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="单例存在的问题"><a href="#单例存在的问题" class="headerlink" title="单例存在的问题"></a>单例存在的问题</h1><p>我们在项目中使用单例，都是用它来表示一些全局唯一类，比如配置信息 类、连接池类、ID 生成器类，但 是，这种使用方法有点类似硬编码（hard code），会带来诸多问题。</p><h2 id="1、对-OOP-特性的支持不友好"><a href="#1、对-OOP-特性的支持不友好" class="headerlink" title="1、对 OOP 特性的支持不友好"></a>1、对 OOP 特性的支持不友好</h2><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Order</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">create</span><span class="params">(...)</span> &#123;</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> IdGenerator.getInstance().getId();</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">create</span><span class="params">(...)</span> &#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> IdGenerator.getInstance().getId();</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种涉及违背了基于接口而非实现的设计原则，如果未来某一天，我们希望针对不同的业务采用不同的 ID 生成算法。 比如，订单 ID 和用户 ID 采用不同的 ID 生成器来生成。为了应对这个需求变化，我们需要修改所有用到 IdGenerator 类的地方。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Order</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">create</span><span class="params">(...)</span> &#123;</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> IdGenerator.getInstance().getId();</span><br><span class="line">        <span class="comment">// 需要将上面一行代码，替换为下面一行代码</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> OrderIdGenerator.getIntance().getId();</span><br><span class="line">        <span class="comment">//...</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">User</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">create</span><span class="params">(...)</span> &#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> IdGenerator.getInstance().getId();</span><br><span class="line">        <span class="comment">// 需要将上面一行代码，替换为下面一行代码</span></span><br><span class="line">        <span class="type">long</span> <span class="variable">id</span> <span class="operator">=</span> UserIdGenerator.getIntance().getId();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>除此之外，单例对继承、多态特性的支持也不友好。</p><h2 id="2、单例会隐藏类之间的依赖关系"><a href="#2、单例会隐藏类之间的依赖关系" class="headerlink" title="2、单例会隐藏类之间的依赖关系"></a>2、单例会隐藏类之间的依赖关系</h2><p>通过构造函数、参数传递等方式声明的类之间的依赖关系，我们通过查看函数的定义，就能 很容易识别出来。但是，单例类不需要显示创建、不需要依赖参数传递，在函数中直接调用 就可以了。如果代码比较复杂，这种调用关系就会非常隐蔽。</p><h2 id="3、单例对代码的扩展性不友好"><a href="#3、单例对代码的扩展性不友好" class="headerlink" title="3、单例对代码的扩展性不友好"></a>3、单例对代码的扩展性不友好</h2><p>比如，在系统设计初期，我们觉得系统中只应该有一个数据库连接池，这样能方便我们控制对数据 库连接资源的消耗。所以，我们把数据库连接池类设计成了单例类。</p><p>但之后我们发现，系统 中有些 SQL 语句运行得非常慢。这些 SQL 语句在执行的时候，长时间占用数据库连接资源，导致其他 SQL 请求无法响应。为了解决这个问题，我们希望将慢 SQL 与其他 SQL 隔 离开来执行。</p><p>为了实现这样的目的，我们可以在系统中创建两个数据库连接池，慢 SQL 独 享一个数据库连接池，其他 SQL 独享另外一个数据库连接池，这样就能避免慢 SQL 影响到 其他 SQL 的执行。</p><h2 id="4、单例对代码的可测试性不友好"><a href="#4、单例对代码的可测试性不友好" class="headerlink" title="4、单例对代码的可测试性不友好"></a>4、单例对代码的可测试性不友好</h2><p>如果单例类依赖比较重的外部资源，比如 DB， 我们在写单元测试的时候，希望能通过 mock 的方式将它替换掉。而单例类这种硬编码式 的使用方式，导致无法实现 mock 替换。</p><p>而且单例往往可以理解为一个全局唯一的变量，在编写单元测试时，需要注意不同测试用例之间修改了单例的值，对测试结果的影响。</p><h2 id="5、单例不支持有参数的构造函数"><a href="#5、单例不支持有参数的构造函数" class="headerlink" title="5、单例不支持有参数的构造函数"></a>5、单例不支持有参数的构造函数</h2><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《设计模式之美》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;单例存在的问题&quot;&gt;&lt;a href=&quot;#单例存在的问题&quot; class=&quot;headerlink&quot; title=&quot;单例存在的问题&quot;&gt;&lt;/a&gt;单例存在的问题&lt;/h1&gt;&lt;p&gt;我们在项目中使用单例，都是用它来表示一些全局唯一类，比如配置信息 类、连接池类、ID 生成器类，但 </summary>
       
     
     
