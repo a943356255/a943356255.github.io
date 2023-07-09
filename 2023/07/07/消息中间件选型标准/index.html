@@ -1,0 +1,230 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>消息中间件选型标准 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="中间件的功能典型的消息中间件主要包含如下几个功能：   消息接收   消息分发   消息存储   消息读取   概念模型抽象的消息中间件模型包含如下几个角色：  发送者和接收者客户端（Sender&#x2F;Receiver Client）； 代理服务器（Broker Server），它们是与客户端代码直接交互的服务端代码； 消息交换机（Exchanger），接收到的消息一般需要通过消息交换机（E">
+<meta property="og:type" content="article">
+<meta property="og:title" content="消息中间件选型标准">
+<meta property="og:url" content="http://example.com/2023/07/07/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E9%80%89%E5%9E%8B%E6%A0%87%E5%87%86/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="中间件的功能典型的消息中间件主要包含如下几个功能：   消息接收   消息分发   消息存储   消息读取   概念模型抽象的消息中间件模型包含如下几个角色：  发送者和接收者客户端（Sender&#x2F;Receiver Client）； 代理服务器（Broker Server），它们是与客户端代码直接交互的服务端代码； 消息交换机（Exchanger），接收到的消息一般需要通过消息交换机（E">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-07-07T02:52:20.000Z">
+<meta property="article:modified_time" content="2023-07-09T03:21:17.104Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="消息队列">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/07/07/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E9%80%89%E5%9E%8B%E6%A0%87%E5%87%86/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '消息中间件选型标准',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-07-09 11:21:17'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">154</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">41</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">38</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">消息中间件选型标准</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-07-07T02:52:20.000Z" title="Created 2023-07-07 10:52:20">2023-07-07</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-07-09T03:21:17.104Z" title="Updated 2023-07-09 11:21:17">2023-07-09</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="消息中间件选型标准"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="中间件的功能"><a href="#中间件的功能" class="headerlink" title="中间件的功能"></a>中间件的功能</h1><p>典型的消息中间件主要包含如下几个功能： </p>
+<ul>
+<li><p>消息接收 </p>
+</li>
+<li><p>消息分发 </p>
+</li>
+<li><p>消息存储 </p>
+</li>
+<li><p>消息读取</p>
+</li>
+</ul>
+<h1 id="概念模型"><a href="#概念模型" class="headerlink" title="概念模型"></a>概念模型</h1><p>抽象的消息中间件模型包含如下几个角色：</p>
+<ol>
+<li>发送者和接收者客户端（Sender&#x2F;Receiver Client）；</li>
+<li>代理服务器（Broker Server），它们是与客户端代码直接交互的服务端代码；</li>
+<li>消息交换机（Exchanger），接收到的消息一般需要通过消息交换机（Exchanger）分发到具体的消息队列中；</li>
+<li>消息队列，一般是一块内存数据结构或持久化数据。</li>
+</ol>
+<p>如下图所示：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230709105627284.png" alt="image-20230709105627284"></p>
+<h1 id="选型标准"><a href="#选型标准" class="headerlink" title="选型标准"></a>选型标准</h1><p>大致有以下几点</p>
+<h2 id="1、性能"><a href="#1、性能" class="headerlink" title="1、性能"></a>1、性能</h2><p>性能主要有两个方面需要考虑：吞吐量（Throughput）和响应时间（Latency）。 不同的消息队列中间件的吞吐量和响应时间相差甚远，对于同一种中间件，不同的配置方式也会影响性能。</p>
+<p>配置主要有以下几种：</p>
+<ul>
+<li>是否需要确认机制，即写入队列后，或从队列读取后，是否需要进行确认。确认机制对响应时间的影响往往很大。</li>
+<li>能否批处理，即消息能否批量读取或者写入。批量操作可以大大减少应用程序与消息中间件的交互次数和消息传递量，大大提高吞吐量。</li>
+<li>能否进行分区（Partition）。将某一主题消息队列进行分区，同一主题消息可以有多台机器并行处理。这不仅仅能影响消息中间件的吞吐量，还决定着消息中间件是否具备良好的可伸缩性（Scalability）。</li>
+<li>是否需要进行持久化。将消息进行持久化往往会同时影响吞吐量和响应时间。</li>
+</ul>
+<h2 id="2、可靠性"><a href="#2、可靠性" class="headerlink" title="2、可靠性"></a>2、可靠性</h2><p>可靠性主要包含：可用性、持久化、确认机制等。高可用性的消息中间件应该具备如下特征：</p>
+<ul>
+<li>消息中间件代理服务器（Broker）具有主从备份。即当一台代理服务宕机之后，备用服务器能接管相关的服务。</li>
+<li>消息中间件中缓存的消息是否有备份、并持久化。高可用、高一致性以及网络分裂不可兼得，大部分中间件在面临网络分裂情况下都很难保证高可用和一致性，而且可用性和一致性之间也不可兼得。</li>
+</ul>
+<p>高可靠的消息中间件应该确保从发送者接收到的消息不会丢失。中间件代理服务器的宕机并不是小概率事件，所以大部分消息中间件都提供持久化，将消息写入磁盘中。但仍有两个问题需要考虑：</p>
+<ul>
+<li>磁盘损坏问题。长时间来看，磁盘出问题的概率仍然存在。</li>
+<li>性能问题。与操作内存相比，磁盘I&#x2F;O的操作性能要慢几个数量级。频繁持久化不仅会增加响应时间，也会降低吞吐量。</li>
+</ul>
+<p>解决方案：多机确认，定期持久化。即消息被缓存在多台机器的内存中，只有每台机器都确认收到消息，才跟发送者确认（很多消息中间件都会提供相应的配置选项，让用户设置最少需要多少台机器接收到消息）。</p>
+<p>确认机制本质上是通讯的握手机制（Handshaking）。如果没有该机制，消息在传输过程中丢失将不会被发现。当然如果没有接收到消息中间件确认完成的指令，应用程序需要决定如何处理。典型的做法有两个： </p>
+<ol>
+<li>多次重试。 </li>
+<li>暂存到本地磁盘或其它持久化媒介。</li>
+</ol>
+<h2 id="3、投递策略（Delivery-policies）"><a href="#3、投递策略（Delivery-policies）" class="headerlink" title="3、投递策略（Delivery policies）"></a>3、投递策略（Delivery policies）</h2><p>投递策略指的是一个消息会被发送几次。主要包含三种策略：</p>
+<ol>
+<li>最多一次（At most Once ）</li>
+<li>最少一次（At least Once）</li>
+<li>仅有一次（Exactly Once）。</li>
+</ol>
+<p>在实际应用中，只考虑消息中间件的投递策略并不能保证业务的投递策略，因为接收者在确认收到消息和处理完消息并持久化之间存在一个时间窗口。</p>
+<p>例如，即使消息中间件保证仅有一次（Exactly Once），如果接收者先确认消息，在持久化之前宕机，则该消息并未被处理。从应用的角度，这就是最多一次（At most Once）。反之，接收者先处理消息并完成持久化，但在确认之前宕机，消息就要被再次发送，这就是最少一次（At least Once）。</p>
+<h1 id="面临的挑战"><a href="#面临的挑战" class="headerlink" title="面临的挑战"></a>面临的挑战</h1><p>消费者是分布式队列编程中真正的数据处理方，数据处理方最常见的挑战包括：有序性、串行化（Serializability）、频次控制、完整性和一致性等。</p>
+<h2 id="1、有序性"><a href="#1、有序性" class="headerlink" title="1、有序性"></a>1、有序性</h2><p>如下图，假定分布式队列保证请求严格有序，请求ri2和ri1都是针对同一数据记录的不同状态，ri2的状态比ri1的状态新。T1、T2、T3和T4代表各个操作发生的时间，并且 T1 &lt; T2 &lt; T3 &lt; T4（”&lt;“代表早于）。</p>
+<p>采用多消费者架构，这两条记录被两个消费者（Consumer1和Consumer2）处理后更新到数据库里面。Consumer1虽然先读取ri1但是却后写入数据库，这就导致，新的状态被老的状态覆盖，所以多消费者不保证数据的有序性。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230709111658723.png" alt="image-20230709111658723"></p>
+<h2 id="2、串行化"><a href="#2、串行化" class="headerlink" title="2、串行化"></a>2、串行化</h2><p>很多场景下，串行化是数据处理的一个基本需求，这是保证数据完整性、可恢复性、事务原子性等的基础。对于分布式队列编程架构，要在在多台消费者实现串行化非常复杂。</p>
+<h2 id="3、频次控制"><a href="#3、频次控制" class="headerlink" title="3、频次控制"></a>3、频次控制</h2><p>有时候，消费者的消费频次需要被控制，可能的原因包括：</p>
+<ul>
+<li>费用问题。如果每次消费所引起的操作都需要收费，而同一个请求消息在队列中保存多份，不进行频次控制，就会导致无谓的浪费。 </li>
+<li>性能问题。每次消费可能会引起对其他服务的调用，被调用服务希望对调用量有所控制，对同一个请求消息的多次访问就需要有所控制。</li>
+</ul>
+<h2 id="4、完整性和一致性"><a href="#4、完整性和一致性" class="headerlink" title="4、完整性和一致性"></a>4、完整性和一致性</h2><p>完整性和一致性是所有多线程和多进程的代码都面临的问题。在多线程或者多进程的系统中考虑完整性和一致性往往会大大地增加代码的复杂度和系统出错的概率。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《美团博客》</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/07/09/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E5%8D%95%E4%BE%8B%E6%9C%8D%E5%8A%A1%E4%BC%98%E5%8C%96/" title="消息中间件单例服务优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">消息中间件单例服务优化</div></div></a></div><div class="next-post pull-right"><a href="/2023/07/06/%E5%88%86%E5%B8%83%E5%BC%8F%E9%98%9F%E5%88%97%E7%BC%96%E7%A8%8B%E4%BC%98%E5%8C%96/" title="分布式队列编程优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">分布式队列编程优化</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2023/07/06/%E5%88%86%E5%B8%83%E5%BC%8F%E9%98%9F%E5%88%97%E7%BC%96%E7%A8%8B%E4%BC%98%E5%8C%96/" title="分布式队列编程优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-06</div><div class="title">分布式队列编程优化</div></div></a></div><div><a href="/2023/07/09/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E5%8D%95%E4%BE%8B%E6%9C%8D%E5%8A%A1%E4%BC%98%E5%8C%96/" title="消息中间件单例服务优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-09</div><div class="title">消息中间件单例服务优化</div></div></a></div><div><a href="/2023/03/28/Redis/%E4%BD%BF%E7%94%A8Redis%E5%BD%93%E4%BD%9C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" title="如何使用Redis作为消息队列"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-28</div><div class="title">如何使用Redis作为消息队列</div></div></a></div><div><a href="/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%BB%85%E8%A2%AB%E6%B6%88%E8%B4%B9%E4%B8%80%E6%AC%A1/" title="如何保证消息仅被消费一次"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-05</div><div class="title">如何保证消息仅被消费一次</div></div></a></div><div><a href="/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/Kafka%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BDI-O/" title="Kafka如何实现高性能I&#x2F;O"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-05</div><div class="title">Kafka如何实现高性能I&#x2F;O</div></div></a></div><div><a href="/2023/05/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%88%A9%E7%94%A8%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E5%AE%9E%E7%8E%B0%E5%88%86%E5%B8%83%E5%BC%8F%E4%BA%8B%E5%8A%A1/" title="如何利用事务消息实现分布式事务"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-01</div><div class="title">如何利用事务消息实现分布式事务</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">154</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">41</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">38</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E4%B8%AD%E9%97%B4%E4%BB%B6%E7%9A%84%E5%8A%9F%E8%83%BD"><span class="toc-number">1.</span> <span class="toc-text">中间件的功能</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E6%A6%82%E5%BF%B5%E6%A8%A1%E5%9E%8B"><span class="toc-number">2.</span> <span class="toc-text">概念模型</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%80%89%E5%9E%8B%E6%A0%87%E5%87%86"><span class="toc-number">3.</span> <span class="toc-text">选型标准</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1%E3%80%81%E6%80%A7%E8%83%BD"><span class="toc-number">3.1.</span> <span class="toc-text">1、性能</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2%E3%80%81%E5%8F%AF%E9%9D%A0%E6%80%A7"><span class="toc-number">3.2.</span> <span class="toc-text">2、可靠性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3%E3%80%81%E6%8A%95%E9%80%92%E7%AD%96%E7%95%A5%EF%BC%88Delivery-policies%EF%BC%89"><span class="toc-number">3.3.</span> <span class="toc-text">3、投递策略（Delivery policies）</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%9D%A2%E4%B8%B4%E7%9A%84%E6%8C%91%E6%88%98"><span class="toc-number">4.</span> <span class="toc-text">面临的挑战</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#1%E3%80%81%E6%9C%89%E5%BA%8F%E6%80%A7"><span class="toc-number">4.1.</span> <span class="toc-text">1、有序性</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#2%E3%80%81%E4%B8%B2%E8%A1%8C%E5%8C%96"><span class="toc-number">4.2.</span> <span class="toc-text">2、串行化</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#3%E3%80%81%E9%A2%91%E6%AC%A1%E6%8E%A7%E5%88%B6"><span class="toc-number">4.3.</span> <span class="toc-text">3、频次控制</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#4%E3%80%81%E5%AE%8C%E6%95%B4%E6%80%A7%E5%92%8C%E4%B8%80%E8%87%B4%E6%80%A7"><span class="toc-number">4.4.</span> <span class="toc-text">4、完整性和一致性</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">5.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/07/09/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E5%8D%95%E4%BE%8B%E6%9C%8D%E5%8A%A1%E4%BC%98%E5%8C%96/" title="消息中间件单例服务优化">消息中间件单例服务优化</a><time datetime="2023-07-09T03:14:06.000Z" title="Created 2023-07-09 11:14:06">2023-07-09</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/07/07/%E6%B6%88%E6%81%AF%E4%B8%AD%E9%97%B4%E4%BB%B6%E9%80%89%E5%9E%8B%E6%A0%87%E5%87%86/" title="消息中间件选型标准">消息中间件选型标准</a><time datetime="2023-07-07T02:52:20.000Z" title="Created 2023-07-07 10:52:20">2023-07-07</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/07/06/%E5%88%86%E5%B8%83%E5%BC%8F%E9%98%9F%E5%88%97%E7%BC%96%E7%A8%8B%E4%BC%98%E5%8C%96/" title="分布式队列编程优化">分布式队列编程优化</a><time datetime="2023-07-06T02:38:48.000Z" title="Created 2023-07-06 10:38:48">2023-07-06</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/07/04/Java%E7%9A%84NIO/" title="Java的NIO">Java的NIO</a><time datetime="2023-07-04T03:10:11.000Z" title="Created 2023-07-04 11:10:11">2023-07-04</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/06/30/%E5%91%BD%E4%BB%A4%E6%A8%A1%E5%BC%8F/" title="命令模式">命令模式</a><time datetime="2023-06-30T02:00:26.000Z" title="Created 2023-06-30 10:00:26">2023-06-30</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
