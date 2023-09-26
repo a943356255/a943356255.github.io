@@ -1,0 +1,202 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>如何实现高性能延时消息 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="延时消息使用场景需要某些事件在特定的时间点上触发时，就需要用到延时消息。 如何实现 延时消息可以通过定时扫描来实现，但是资源浪费太多。 如果使用消息队列，可以理解为生产者生产一条消息，但是并不会被消费者看到，当到达固定的时间点后，消费者才能够看到并且消费消息。所以从技术上来看，消息队列实现延时消息主要包含数据存储、如何让消息可见、定时机制、主动推送四个部分。 以下主要介绍消息可见和定时机制。 如何">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何实现高性能延时消息">
+<meta property="og:url" content="http://example.com/2023/09/06/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BD%E5%BB%B6%E6%97%B6%E6%B6%88%E6%81%AF/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="延时消息使用场景需要某些事件在特定的时间点上触发时，就需要用到延时消息。 如何实现 延时消息可以通过定时扫描来实现，但是资源浪费太多。 如果使用消息队列，可以理解为生产者生产一条消息，但是并不会被消费者看到，当到达固定的时间点后，消费者才能够看到并且消费消息。所以从技术上来看，消息队列实现延时消息主要包含数据存储、如何让消息可见、定时机制、主动推送四个部分。 以下主要介绍消息可见和定时机制。 如何">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-09-06T02:37:47.000Z">
+<meta property="article:modified_time" content="2023-09-06T03:14:36.965Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="消息队列">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/09/06/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BD%E5%BB%B6%E6%97%B6%E6%B6%88%E6%81%AF/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '如何实现高性能延时消息',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-09-06 11:14:36'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">179</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">43</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">40</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">如何实现高性能延时消息</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-09-06T02:37:47.000Z" title="Created 2023-09-06 10:37:47">2023-09-06</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-09-06T03:14:36.965Z" title="Updated 2023-09-06 11:14:36">2023-09-06</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="如何实现高性能延时消息"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="延时消息使用场景"><a href="#延时消息使用场景" class="headerlink" title="延时消息使用场景"></a>延时消息使用场景</h1><p>需要某些事件在特定的时间点上触发时，就需要用到延时消息。</p>
+<h1 id="如何实现"><a href="#如何实现" class="headerlink" title="如何实现"></a>如何实现</h1><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230906104126430.png" alt="image-20230906104126430"></p>
+<p>延时消息可以通过定时扫描来实现，但是资源浪费太多。</p>
+<p>如果使用消息队列，可以理解为生产者生产一条消息，但是并不会被消费者看到，当到达固定的时间点后，消费者才能够看到并且消费消息。所以从技术上来看，消息队列实现延时消息主要包含<strong>数据存储、如何让消息可见、定时机制、主动推送</strong>四个部分。</p>
+<p>以下主要介绍<strong>消息可见</strong>和<strong>定时机制</strong>。</p>
+<h2 id="如何让消息可见"><a href="#如何让消息可见" class="headerlink" title="如何让消息可见"></a>如何让消息可见</h2><p>让消息从不可见变为可见的思路：先将数据写入到临时存储，然后根据一定机制在数据到期后让消费端可以看到该消息。</p>
+<p>临时存储大多有以下三种选择：</p>
+<ol>
+<li><p>单独设计的数据结构</p>
+</li>
+<li><p>独立的 Topic</p>
+</li>
+<li><p>本地的某个存储引擎（如 RocksDB、Mnesia 等）</p>
+</li>
+</ol>
+<p>延时到期后，消费者如何得知该消息可以消费，有以下两种实现：</p>
+<ol>
+<li>定时检测写入</li>
+<li>消费时判断是否可见</li>
+</ol>
+<p>定时检测写入：指的是先将消息写入某个地方，同时有独立的线程去判断数据是否到期，如果到期则将数据写入真正的存储当中。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230906104734666.png" alt="image-20230906104734666"></p>
+<p>消费时判断数据是否可见：是指每次消费时判断是否有到期的延时消息，如果有则从第三方存储中拉取，供消费者消费。</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230906104931264.png" alt="image-20230906104931264"></p>
+<p>实际上，大多采用第一种方案。因为每次消费时都去判断一下是否有消息可见，则会对性能造成一定的影响。</p>
+<h2 id="定时机制的实现"><a href="#定时机制的实现" class="headerlink" title="定时机制的实现"></a>定时机制的实现</h2><p>定时机制的核心：随着时间的推移，拿出到期的延时消息进行处理。从技术上看，定时机制可以拆解为<strong>定时器</strong>和<strong>延时消息定位处理</strong>两部分。</p>
+<p>定时器就是按照时间推进，说白了就是记录一下时间。</p>
+<p>延时消息定位是指随着定时器的推进，在每个时间刻度可以高效定位，获取到该时刻需要处理的延时消息。</p>
+<h1 id="延时消息的技术方案"><a href="#延时消息的技术方案" class="headerlink" title="延时消息的技术方案"></a>延时消息的技术方案</h1><p>延时消息的实现主要有基于轮询检测机制的实现和基于时间轮机制的实现两种方案。</p>
+<h2 id="基于轮询检测机制的实现"><a href="#基于轮询检测机制的实现" class="headerlink" title="基于轮询检测机制的实现"></a>基于轮询检测机制的实现</h2><p>核心思路：将消息写入到独立的存储当中，利用类似于while + sleep的定时器，来推进时间，通过独立线程检测数据是否到期，然后取出到期数据，存入正式存储。</p>
+<p>我们可以将独立存储根据时间划分，大致结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230906110914110.png" alt="image-20230906110914110"></p>
+<p>这样可以减小每个队列的长度。而每个队列采用什么结构，则可以根据实际的应用场景决定。</p>
+<h2 id="基于时间轮机制的实现"><a href="#基于时间轮机制的实现" class="headerlink" title="基于时间轮机制的实现"></a>基于时间轮机制的实现</h2><p>核心思路：将延时消息写入到独立的存储中，然后通过构建多级时间轮，在每个时间刻度上挂载需要处理的延时消息的索引列表。再依赖时间轮的推进，获取到需要处理的延时消息列表，进行后续的处理。</p>
+<p>时间轮是一个很成熟的算法，分为<strong>单级时间轮</strong>和<strong>多级时间轮</strong>，具体结构如下：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230906111154935.png" alt="image-20230906111154935"></p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入拆解消息队列 47 讲》</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/">消息队列</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/09/09/%E5%88%86%E5%B8%83%E5%BC%8F/%E6%95%B0%E6%8D%AE%E5%88%86%E5%8C%BA%E5%86%8D%E5%B9%B3%E8%A1%A1/" title="数据分区再平衡"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">数据分区再平衡</div></div></a></div><div class="next-post pull-right"><a href="/2023/09/01/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E5%88%86%E5%B8%83%E5%BC%8F%E9%99%90%E6%B5%81%E6%96%B9%E6%A1%88/" title="消息队列分布式限流方案"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">消息队列分布式限流方案</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2023/03/28/Redis/%E4%BD%BF%E7%94%A8Redis%E5%BD%93%E4%BD%9C%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/" title="如何使用Redis作为消息队列"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-03-28</div><div class="title">如何使用Redis作为消息队列</div></div></a></div><div><a href="/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/Kafka%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E9%AB%98%E6%80%A7%E8%83%BDI-O/" title="Kafka如何实现高性能I&#x2F;O"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-05</div><div class="title">Kafka如何实现高性能I&#x2F;O</div></div></a></div><div><a href="/2023/07/16/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E4%B8%BB%E6%B5%81%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97%E7%9A%84%E7%BD%91%E7%BB%9C%E6%A8%A1%E5%9E%8B/" title="主流消息队列的网络模型"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-16</div><div class="title">主流消息队列的网络模型</div></div></a></div><div><a href="/2023/07/24/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/RabbitMQ%E7%9A%84%E8%AE%BE%E8%AE%A1/" title="RabbitMQ的设计"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-24</div><div class="title">RabbitMQ的设计</div></div></a></div><div><a href="/2023/07/06/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%88%86%E5%B8%83%E5%BC%8F%E9%98%9F%E5%88%97%E7%BC%96%E7%A8%8B%E4%BC%98%E5%8C%96/" title="分布式队列编程优化"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-07-06</div><div class="title">分布式队列编程优化</div></div></a></div><div><a href="/2023/05/05/%E6%B6%88%E6%81%AF%E9%98%9F%E5%88%97/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%BB%85%E8%A2%AB%E6%B6%88%E8%B4%B9%E4%B8%80%E6%AC%A1/" title="如何保证消息仅被消费一次"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-05-05</div><div class="title">如何保证消息仅被消费一次</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">179</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">43</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">40</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BB%B6%E6%97%B6%E6%B6%88%E6%81%AF%E4%BD%BF%E7%94%A8%E5%9C%BA%E6%99%AF"><span class="toc-number">1.</span> <span class="toc-text">延时消息使用场景</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.</span> <span class="toc-text">如何实现</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E8%AE%A9%E6%B6%88%E6%81%AF%E5%8F%AF%E8%A7%81"><span class="toc-number">2.1.</span> <span class="toc-text">如何让消息可见</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%AE%9A%E6%97%B6%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">2.2.</span> <span class="toc-text">定时机制的实现</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%BB%B6%E6%97%B6%E6%B6%88%E6%81%AF%E7%9A%84%E6%8A%80%E6%9C%AF%E6%96%B9%E6%A1%88"><span class="toc-number">3.</span> <span class="toc-text">延时消息的技术方案</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E%E8%BD%AE%E8%AF%A2%E6%A3%80%E6%B5%8B%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">3.1.</span> <span class="toc-text">基于轮询检测机制的实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%9F%BA%E4%BA%8E%E6%97%B6%E9%97%B4%E8%BD%AE%E6%9C%BA%E5%88%B6%E7%9A%84%E5%AE%9E%E7%8E%B0"><span class="toc-number">3.2.</span> <span class="toc-text">基于时间轮机制的实现</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">4.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/25/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/" title="服务熔断">服务熔断</a><time datetime="2023-09-25T05:18:00.000Z" title="Created 2023-09-25 13:18:00">2023-09-25</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/21/%E8%B7%AF%E7%94%B1%E9%80%89%E6%8B%A9%E7%AE%97%E6%B3%95/" title="路由选择算法">路由选择算法</a><time datetime="2023-09-21T13:01:14.000Z" title="Created 2023-09-21 21:01:14">2023-09-21</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/21/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/" title="分布式场景下的CAP理论">分布式场景下的CAP理论</a><time datetime="2023-09-21T06:42:13.000Z" title="Created 2023-09-21 14:42:13">2023-09-21</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/19/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/" title="分布式锁">分布式锁</a><time datetime="2023-09-19T07:11:08.000Z" title="Created 2023-09-19 15:11:08">2023-09-19</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/17/%E5%88%86%E5%B8%83%E5%BC%8F/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/" title="负载均衡">负载均衡</a><time datetime="2023-09-17T06:18:17.000Z" title="Created 2023-09-17 14:18:17">2023-09-17</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
