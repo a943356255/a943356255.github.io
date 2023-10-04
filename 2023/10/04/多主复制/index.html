@@ -1,0 +1,203 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>多主复制 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="多主复制在主从复制的场景中，只有一个主节点，所有的写入操作都要先经过主节点，主节点压力大的问题还是没能解决。而且单主节点的容灾效果也不是很好。 为了达到好的容灾效果，各个机房的距离应该足够远，尽可能的分布在不同的地区，那么这种场景下，用户直接读写自己最近的数据中心，网络延迟最小，效果最好。因此就出现了多住复制。 如何实现它是指在一个数据系统中，存在多个主从 复制单元，每一个主从复制单元都可以处理读">
+<meta property="og:type" content="article">
+<meta property="og:title" content="多主复制">
+<meta property="og:url" content="http://example.com/2023/10/04/%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="多主复制在主从复制的场景中，只有一个主节点，所有的写入操作都要先经过主节点，主节点压力大的问题还是没能解决。而且单主节点的容灾效果也不是很好。 为了达到好的容灾效果，各个机房的距离应该足够远，尽可能的分布在不同的地区，那么这种场景下，用户直接读写自己最近的数据中心，网络延迟最小，效果最好。因此就出现了多住复制。 如何实现它是指在一个数据系统中，存在多个主从 复制单元，每一个主从复制单元都可以处理读">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-10-04T07:50:22.000Z">
+<meta property="article:modified_time" content="2023-10-04T07:56:20.299Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="分布式">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/10/04/%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '多主复制',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-10-04 15:56:20'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">184</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">43</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">40</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">多主复制</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-10-04T07:50:22.000Z" title="Created 2023-10-04 15:50:22">2023-10-04</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-10-04T07:56:20.299Z" title="Updated 2023-10-04 15:56:20">2023-10-04</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="多主复制"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h1 id="多主复制"><a href="#多主复制" class="headerlink" title="多主复制"></a>多主复制</h1><p>在主从复制的场景中，只有一个主节点，所有的写入操作都要先经过主节点，主节点压力大的问题还是没能解决。而且单主节点的容灾效果也不是很好。</p>
+<p>为了达到好的容灾效果，各个机房的距离应该足够远，尽可能的分布在不同的地区，那么这种场景下，用户直接读写自己最近的数据中心，网络延迟最小，效果最好。因此就出现了多住复制。</p>
+<h2 id="如何实现"><a href="#如何实现" class="headerlink" title="如何实现"></a>如何实现</h2><p>它是指在一个数据系统中，存在多个主从 复制单元，每一个主从复制单元都可以处理读写请求，一个主从复制单元的主副本处理了写请 求后，需要复制到其他的主从复制单元的主副本，具体的流程见下图：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004112141400.png" alt="image-20231004112141400" style="zoom: 80%;" />
+
+<p>有几点需要注意：</p>
+<p>首先，每一个主从复制单元内部是一个常规的主 从复制模式，这里的主副本、从副本之间的复制可以是同步的，也可以是异步的。</p>
+<p>其次，多个主从复制单元之间，每一个主副本都会将自己的修改复制到其他的主副本，主副本 之间的复制可以是同步的，也可以是异步的。</p>
+<p>如果主副本之间的复制是同步的，那么一个主副本的写入，需要等待复制到其他的主副本成功 后，才能返回给用户，但是，这样却失去了多主复制最重要的一个优点，即多个主副本都可以独立处理写入，这就导致整个模式 退化为主从复制的形式。所以一般来说，多主复制的主副本之间，大多采用异步模式。</p>
+<p>但采用异步复制也会出现问题，如果多个主副本同时成功修 改一个数据，当主副本之间复制这个数据的修改时，会出现冲突，我们就不知道以哪一个主副 本的写入结果为准了，该问题在同步复制时可以让用户决定哪个为主。</p>
+<h2 id="冲突解决"><a href="#冲突解决" class="headerlink" title="冲突解决"></a>冲突解决</h2><p>冲突主要由两种形式，</p>
+<p>首先是由于更新导致的冲突，多个主副本同时更新了一个数据，导致这个数据的版本是非线性的，出现了分叉，具体见下图：</p>
+<p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004124557885.png" alt="image-20231004124557885">其次，由于新增导致的冲突，多个主副本同时新增了一个含有唯一性约束的数据，导致数据的唯一性约束被破坏。例如，在酒店预订业务中，一个时段内一个房间只能预订给一个用户，如 果多个用户在多个主副本上，同时发起预订操作，就可能出现同一个时段内，一个房间被多个 用户预定成功的情况。</p>
+<h3 id="避免冲突"><a href="#避免冲突" class="headerlink" title="避免冲突"></a>避免冲突</h3><p>由上可知，冲突是多个主副本同时 修改了一个数据，或者破坏了数据的唯一性约束导致的，那么我们就对数据进行分片，让不同的主数据负责不同的数据分片，这个方式可以在一定程度上避免冲突，但是会导致两个问题：</p>
+<p>首先，一个修改操作可能会修改多个分片数据，这样我们就没有办法通过分片来隔离修改了。</p>
+<p>其次，由于就近接入和故障等原因，我们会将出现故障的主副本流量切换到其他的主副本，这 时也会出现写入冲突的情况。</p>
+<p>注意：这里的分片，并不是每个主副本只保留一部分数据，而是每个主副本仍然保留全量的数据，但是只负责主动的修改某一部分，其他部分等待其他主副本进行同步。</p>
+<h4 id="写时解决冲突"><a href="#写时解决冲突" class="headerlink" title="写时解决冲突"></a>写时解决冲突</h4><p>写时解决冲突有两种实现，预定义解决冲突和自定义解决冲突。</p>
+<p>预定义解决冲突，是指由存储系统预先定义好规则，在冲突发生时依据预先定义好的规则，自动来解决冲突，主要有以下几种：</p>
+<ol>
+<li>从操作维度来处理，最后写入获胜。也就是为每一个写操作分配一个时间戳，如果发生 冲突，只保留时间戳最大的版本数据，其他的修改都丢弃，但是这个方法会导致修改丢失。</li>
+<li>从副本维度来处理，最高优先级写入获胜。也就是为每一个副本都排好优先级，如果发 生冲突，只保留优先级最高的副本修改数据，其他的修改都丢弃。</li>
+<li>从数据结构和算法的维度来处理，通过研究一些可以自动解决冲突的数据结构来解决问题。目前不成熟。</li>
+</ol>
+<p>自定义解决冲突，它是由业务系统来定义冲突的解决方式，如果发生冲突 了，存储系统就依据业务系统定义的方式执行。</p>
+<p>自定义冲突解决的处理逻辑是，在主副本之间复制变更日志时，如果检测到冲突，就调用用户 自定义的冲突处理程序来进行处理。由于主副本之间的数据复制是异步的，所以一般都是后台 执行，不会提示用户。</p>
+<h4 id="读时解决冲突"><a href="#读时解决冲突" class="headerlink" title="读时解决冲突"></a>读时解决冲突</h4><p>读时解决冲突的思路和写时解决冲突的思路正好相反，即在写入数据时，如果检测到冲突，不 用立即进行处理，只需要将所有冲突的写入版本都记录下来。当下一次读取数据时，会将所有的数据版本都返回给业务层，在业务层解决冲突，那么读时解决冲突的方式有下面两种：</p>
+<ol>
+<li>由用户来解决冲突。业务层将冲突提示给用户，让用户来解决。</li>
+<li>自定义解决冲突。业务层先依据业务情况，自定义好解决冲突的处理程序，当检 测到冲突时，直接调用处理程序来解决。</li>
+</ol>
+<h2 id="多主复制的关键问题"><a href="#多主复制的关键问题" class="headerlink" title="多主复制的关键问题"></a>多主复制的关键问题</h2><p>1、正确解决冲突的难度非常大。</p>
+<p>2、异步模式的多主复制会存在数据一致性的问题。因为多个主副本都是独立写入的，而他们之间是通过异步复制的方式。</p>
+<p>3、多个主副本之间的复制拓扑结构问题。一般来说，多主复制的主副本之间的复制拓扑结 构主要有三种：环形拓扑、星形拓扑以及全部至全部拓扑，具体见下图：</p>
+<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004155403956.png" alt="image-20231004155403956" style="zoom:80%;" />
+
+<p>前两种，如果一个主副本出现问题，则会导致整个副本的数据无法同步，而第三种虽然一个挂了不影响，但是他们主副本之间同步的时延却要大很多。</p>
+<h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%88%86%E5%B8%83%E5%BC%8F/">分布式</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2023/10/02/%E6%95%B0%E6%8D%AE%E5%88%86%E7%89%87/" title="数据分片"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">数据分片</div></div></a></div></nav><div class="relatedPosts"><div class="headline"><i class="fas fa-thumbs-up fa-fw"></i><span>Related Articles</span></div><div class="relatedPosts-list"><div><a href="/2023/09/21/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/" title="分布式场景下的CAP理论"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-21</div><div class="title">分布式场景下的CAP理论</div></div></a></div><div><a href="/2023/10/02/%E6%95%B0%E6%8D%AE%E5%88%86%E7%89%87/" title="数据分片"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-10-02</div><div class="title">数据分片</div></div></a></div><div><a href="/2023/09/25/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/" title="服务熔断"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-25</div><div class="title">服务熔断</div></div></a></div><div><a href="/2023/09/27/%E9%99%8D%E7%BA%A7/" title="降级"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-27</div><div class="title">降级</div></div></a></div><div><a href="/2023/09/26/%E9%99%90%E6%B5%81/" title="限流"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-26</div><div class="title">限流</div></div></a></div><div><a href="/2023/09/11/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E4%B8%8B%E5%A6%82%E4%BD%95%E8%AE%BF%E9%97%AE%E5%85%B1%E4%BA%AB%E8%B5%84%E6%BA%90/" title="分布式下如何访问共享资源"><div class="cover" style="background: var(--default-bg-color)"></div><div class="content is-center"><div class="date"><i class="far fa-calendar-alt fa-fw"></i> 2023-09-11</div><div class="title">分布式下如何访问共享资源</div></div></a></div></div></div></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">184</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">43</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">40</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6"><span class="toc-number">1.</span> <span class="toc-text">多主复制</span></a><ol class="toc-child"><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0"><span class="toc-number">1.1.</span> <span class="toc-text">如何实现</span></a></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%B2%E7%AA%81%E8%A7%A3%E5%86%B3"><span class="toc-number">1.2.</span> <span class="toc-text">冲突解决</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E9%81%BF%E5%85%8D%E5%86%B2%E7%AA%81"><span class="toc-number">1.2.1.</span> <span class="toc-text">避免冲突</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%86%99%E6%97%B6%E8%A7%A3%E5%86%B3%E5%86%B2%E7%AA%81"><span class="toc-number">1.2.1.1.</span> <span class="toc-text">写时解决冲突</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%AF%BB%E6%97%B6%E8%A7%A3%E5%86%B3%E5%86%B2%E7%AA%81"><span class="toc-number">1.2.1.2.</span> <span class="toc-text">读时解决冲突</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6%E7%9A%84%E5%85%B3%E9%94%AE%E9%97%AE%E9%A2%98"><span class="toc-number">1.3.</span> <span class="toc-text">多主复制的关键问题</span></a></li></ol></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">2.</span> <span class="toc-text">参考</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/04/%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6/" title="多主复制">多主复制</a><time datetime="2023-10-04T07:50:22.000Z" title="Created 2023-10-04 15:50:22">2023-10-04</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/02/%E6%95%B0%E6%8D%AE%E5%88%86%E7%89%87/" title="数据分片">数据分片</a><time datetime="2023-10-02T11:31:22.000Z" title="Created 2023-10-02 19:31:22">2023-10-02</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/30/Spring%E7%9A%84IoC/" title="Spring的IoC">Spring的IoC</a><time datetime="2023-09-30T06:54:11.000Z" title="Created 2023-09-30 14:54:11">2023-09-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/27/%E9%99%8D%E7%BA%A7/" title="降级">降级</a><time datetime="2023-09-27T02:16:37.000Z" title="Created 2023-09-27 10:16:37">2023-09-27</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/09/26/%E9%99%90%E6%B5%81/" title="限流">限流</a><time datetime="2023-09-26T05:48:45.000Z" title="Created 2023-09-26 13:48:45">2023-09-26</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
