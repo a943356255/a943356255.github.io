@@ -4123,9 +4123,9 @@
       
         <tags>
             
-            <tag> MySQL45讲 </tag>
-            
             <tag> 锁 </tag>
+            
+            <tag> MySQL45讲 </tag>
             
         </tags>
       
@@ -4218,11 +4218,11 @@
       
         <tags>
             
-            <tag> 锁 </tag>
-            
             <tag> Jvm </tag>
             
             <tag> 深入理解Java虚拟机 </tag>
+            
+            <tag> 锁 </tag>
             
         </tags>
       
