@@ -1,0 +1,217 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>如何使用3m内存来找到1G文件中词频前100的单词 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="题目原场景与标题相似，只不过文件的每一行是一个单词，然后在内存只有3m空间，需要获取到1G文件中所有单词频率前100的单词。 想到了用bitmap。 bitmapbitmap往往是做一个映射，来减小数原数据占用空间的大小。在Java中，一个int类型的大小是32位，也就是32bit，它占4字节，也就是4byte，现考虑如下场景： 现在要存储三个数字，比如说5，16，20，如果用一个int数组存储，">
+<meta property="og:type" content="article">
+<meta property="og:title" content="如何使用3m内存来找到1G文件中词频前100的单词">
+<meta property="og:url" content="http://example.com/2023/10/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A81m%E5%86%85%E5%AD%98%E6%9D%A5%E6%89%BE%E5%88%B01G%E6%96%87%E4%BB%B6%E4%B8%AD%E8%AF%8D%E9%A2%91%E5%89%8D100%E7%9A%84%E5%8D%95%E8%AF%8D/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="题目原场景与标题相似，只不过文件的每一行是一个单词，然后在内存只有3m空间，需要获取到1G文件中所有单词频率前100的单词。 想到了用bitmap。 bitmapbitmap往往是做一个映射，来减小数原数据占用空间的大小。在Java中，一个int类型的大小是32位，也就是32bit，它占4字节，也就是4byte，现考虑如下场景： 现在要存储三个数字，比如说5，16，20，如果用一个int数组存储，">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-10-17T01:36:12.000Z">
+<meta property="article:modified_time" content="2023-10-26T02:49:01.410Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="场景分析">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/10/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A81m%E5%86%85%E5%AD%98%E6%9D%A5%E6%89%BE%E5%88%B01G%E6%96%87%E4%BB%B6%E4%B8%AD%E8%AF%8D%E9%A2%91%E5%89%8D100%E7%9A%84%E5%8D%95%E8%AF%8D/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: '如何使用3m内存来找到1G文件中词频前100的单词',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-10-26 10:49:01'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">189</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">42</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">如何使用3m内存来找到1G文件中词频前100的单词</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-10-17T01:36:12.000Z" title="Created 2023-10-17 09:36:12">2023-10-17</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-10-26T02:49:01.410Z" title="Updated 2023-10-26 10:49:01">2023-10-26</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/">个人心得</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90/">场景分析</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="如何使用3m内存来找到1G文件中词频前100的单词"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><p>题目原场景与标题相似，只不过文件的每一行是一个单词，然后在内存只有3m空间，需要获取到1G文件中所有单词频率前100的单词。</p>
+<p>想到了用bitmap。</p>
+<h1 id="bitmap"><a href="#bitmap" class="headerlink" title="bitmap"></a>bitmap</h1><p>bitmap往往是做一个映射，来减小数原数据占用空间的大小。在Java中，一个int类型的大小是32位，也就是32bit，它占4字节，也就是4byte，现考虑如下场景：</p>
+<p>现在要存储三个数字，比如说5，16，20，如果用一个int数组存储，那么就需要3 * 4 &#x3D; 12字节，但是我们可以换一个思路，比如说使用byte数组，1byte是8位，也就是说可以通过这8位的值位0或1，来代表是否存在数字0-7。那么原来的4字节，就可以代表数字0-31是否存在于集合当中。具体如下表所示</p>
+<table>
+<thead>
+<tr>
+<th>数组值</th>
+<th>1</th>
+<th>1</th>
+<th>0</th>
+<th>0</th>
+<th>0</th>
+<th>0</th>
+<th>1</th>
+<th>1</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>下标</td>
+<td>0</td>
+<td>1</td>
+<td>2</td>
+<td>3</td>
+<td>4</td>
+<td>5</td>
+<td>6</td>
+<td>7</td>
+</tr>
+<tr>
+<td>说明</td>
+<td>值为1，代表存在数字0</td>
+<td>值为1，代表存在数字1</td>
+<td>值为0，代表不存在数字2</td>
+<td>值为0，代表不存在数字3</td>
+<td>值为0，代表不存在数字4</td>
+<td>值为0，代表不存在数字5</td>
+<td>值为1，代表存在数字6</td>
+<td>值为1，代表存在数字7</td>
+</tr>
+</tbody></table>
+<p>通过这种转换，我们就使用了1字节存储原来需要16字节（4个数字0，1，6，7）才可以存储的集合。</p>
+<p>在具体的实现中，我们初始化一个byte数组</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">byte</span>[] bytes = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">20</span>];</span><br></pre></td></tr></table></figure>
+
+<p>我们在计算某一个数字是否存在时，我们要先计算该数字在byte[]数组中的下标，当计算完下标之后，我们就需要将该数字移位，计算出它在该下标在哪一位。</p>
+<p>这里的bytes[i]就是上面表格中的样子。每一个byte的大小为2^8 - 1，可以表示0~2^8 - 1。</p>
+<h1 id="题目思路"><a href="#题目思路" class="headerlink" title="题目思路"></a>题目思路</h1><p>1GB大小的文件，全部存储单词，我们假设平均每个单词的长度为10，查阅资料得知Java中空字符串占用40字节，我们做一个大致的估算，一个单词长度为10，那么每个单词占用空间大小就是60字节（一个char[]数组中每个字符占2字节）。那么这1GB大小的文件当中一共有1 * 1024 * 1024 &#x2F; 60 &#x3D; 17476个单词。</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">对象头（<span class="number">8</span> 字节）+ 引用 (<span class="number">4</span> 字节 )  + <span class="type">char</span> 数组（<span class="number">16</span> 字节）+ <span class="number">1</span>个 <span class="type">int</span>（<span class="number">4</span>字节）+ <span class="number">1</span>个<span class="type">long</span>（<span class="number">8</span>字节）= <span class="number">40</span> 字节</span><br></pre></td></tr></table></figure>
+
+<p>一个最笼统的思路，我们可以对每一个单词做一个Hash，然后将他映射到一个bitmap上，通过这种转化，原先1G大小的单词，就可以通过该映射存储到对应的位置。</p>
+<p>但是这种思路好像没办法解决对应的问题，因为bitmap只能存储0或者1，如果存在两个相同的单词，并不能够进行统计，并且还有Hash冲突的可能。</p>
+</article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90/">场景分析</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="prev-post pull-left"><a href="/2023/10/21/ThreadLocal%E6%BA%90%E7%A0%81/" title="ThreadLocal源码"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Previous Post</div><div class="prev_info">ThreadLocal源码</div></div></a></div><div class="next-post pull-right"><a href="/2023/10/14/HashMap%E6%BA%90%E7%A0%81/" title="HashMap源码"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">HashMap源码</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">189</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">45</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">42</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-1"><a class="toc-link" href="#bitmap"><span class="toc-number">1.</span> <span class="toc-text">bitmap</span></a></li><li class="toc-item toc-level-1"><a class="toc-link" href="#%E9%A2%98%E7%9B%AE%E6%80%9D%E8%B7%AF"><span class="toc-number">2.</span> <span class="toc-text">题目思路</span></a></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/24/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/%E5%8D%95%E4%BE%8B%E6%A8%A1%E5%BC%8F%E7%9A%84%E5%8F%8C%E9%87%8D%E9%94%81%E6%A3%80%E6%9F%A5/" title="单例模式的双重锁检查">单例模式的双重锁检查</a><time datetime="2023-10-24T02:52:22.000Z" title="Created 2023-10-24 10:52:22">2023-10-24</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/21/ThreadLocal%E6%BA%90%E7%A0%81/" title="ThreadLocal源码">ThreadLocal源码</a><time datetime="2023-10-21T07:04:29.000Z" title="Created 2023-10-21 15:04:29">2023-10-21</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A81m%E5%86%85%E5%AD%98%E6%9D%A5%E6%89%BE%E5%88%B01G%E6%96%87%E4%BB%B6%E4%B8%AD%E8%AF%8D%E9%A2%91%E5%89%8D100%E7%9A%84%E5%8D%95%E8%AF%8D/" title="如何使用3m内存来找到1G文件中词频前100的单词">如何使用3m内存来找到1G文件中词频前100的单词</a><time datetime="2023-10-17T01:36:12.000Z" title="Created 2023-10-17 09:36:12">2023-10-17</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/14/HashMap%E6%BA%90%E7%A0%81/" title="HashMap源码">HashMap源码</a><time datetime="2023-10-14T02:29:37.000Z" title="Created 2023-10-14 10:29:37">2023-10-14</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/08/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8/" title="远程调用">远程调用</a><time datetime="2023-10-08T03:14:44.000Z" title="Created 2023-10-08 11:14:44">2023-10-08</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>
