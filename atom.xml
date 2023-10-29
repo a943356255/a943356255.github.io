@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-10-29T03:27:38.060Z</updated>
+  <updated>2023-10-29T07:08:37.037Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,26 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>服务治理</title>
+    <link href="http://example.com/2023/10/29/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/"/>
+    <id>http://example.com/2023/10/29/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/</id>
+    <published>2023-10-29T07:07:56.000Z</published>
+    <updated>2023-10-29T07:08:37.037Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="服务治理手段"><a href="#服务治理手段" class="headerlink" title="服务治理手段"></a>服务治理手段</h1><p>服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出现问题，还是说这三者中任意一个出现问题，此次调用都会失败。所以就需要服务治理。</p><h2 id="节点管理"><a href="#节点管理" class="headerlink" title="节点管理"></a>节点管理</h2><p>该部分可以分为两点。</p><ol><li>注册中心主动摘除机制。这种机制要求服务提供者定时向注册中心汇报心跳，当两次汇报中间的时间超过规定时间后，就认为服务提供者出现问题，进行摘除，然后把最近的可用服务列表推送给服务消费者。</li><li>服务消费者摘除机制。上述机制可能因为网络问题导致一个正常的服务被摘除，最坏情况所有服务都正常，但是全被摘除。一个更合理的摘除办法就是让服务的调用者去执行。即服务调用者调用失败时，就从本地缓存的可用服务列表中去移除该服务，而不进行实际的摘除。</li></ol><h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>这里边有几个算法：</p><ol><li>随机算法</li><li>轮询算法</li><li>最少活跃调用算法</li><li>一致性Hash算法</li></ol><h2 id="服务路由"><a href="#服务路由" class="headerlink" title="服务路由"></a>服务路由</h2><p>对于服务消费者而言，在内存中的可用服务节点列表中选择哪个节点不仅由负载均衡算法决定，还由路由规则确定。而指定路由规则的主要原因有以下两点：</p><ol><li>服务功能做了变更，需要灰度发布，根据这部分人的使用反馈来决定是否全量发布时，就可以做一些路由规则的限制，比如说使用尾号限制，让特定比例的人群才会访问到新发布的服务节点。</li><li>部分规模比较大的公司，为了业务高可用，会将业务部署在不止一个IDC中，这时候不同IDC之间访问要跨IDC，而距离比较远时延迟就会比较大。所以一次服务调用尽可能选择同一个IDC内部的节点，减少网络开销，提高性能。</li></ol><p>路由的配置规则一般有<strong>静态配置</strong>和<strong>动态配置</strong>。其中静态配置是防止在每一个服务本地的，服务上线后规则不发生改变。而动态配置一般都是放在注册中心，需要修改时改动注册中心的内容即可。</p><h2 id="服务容错"><a href="#服务容错" class="headerlink" title="服务容错"></a>服务容错</h2><p>对于服务调用失败的情况，需要有手段自动恢复，来保证调用成功。常用手段有以下几种：</p><ol><li>失败自动切换。顾名思义，调用失败了后就从最近的可用服务列表中选一个进行重试，可以限制重试次数，但是这种操作要求服务的调用操作是<strong>幂等</strong>的。</li><li>失败通知。服务调用失败后，不再进行重试，而是根据失败返回的信息而决定后续的操作。</li><li>失败缓存。服务调用失败后，并不立即进行重试，而是隔一段时间后再进行重试。</li><li>快速失败。调用失败后就不管了。</li></ol><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《从0开始学微服务》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;服务治理手段&quot;&gt;&lt;a href=&quot;#服务治理手段&quot; class=&quot;headerlink&quot; title=&quot;服务治理手段&quot;&gt;&lt;/a&gt;服务治理手段&lt;/h1&gt;&lt;p&gt;服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出</summary>
+      
+    
+    
+    
+    
+  </entry>
   
   <entry>
     <title>Netty源码简单解读</title>
@@ -523,33 +543,6 @@
     
     
     <category term="计算机网络" scheme="http://example.com/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>如何保证幂等</title>
-    <link href="http://example.com/2023/09/14/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E5%B9%82%E7%AD%89/"/>
-    <id>http://example.com/2023/09/14/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E5%B9%82%E7%AD%89/</id>
-    <published>2023-09-14T04:05:29.000Z</published>
-    <updated>2023-09-22T06:19:49.491Z</updated>
-    
-    <content type="html"><![CDATA[<p> 考虑如下问题：在一个电商系统中，如果用户下单后，在模块之间及逆行远程调用的过程中，出现了问题，给用户响应了请求超时，那么会影响到用户购买，导致损失订单。</p><p>但是，如果对请求超时进行重试，那么会导致用户重复下单，用户明明点击了一次，却显示购买了两次，导致一些问题。</p><p>这里就涉及到了一个问题，接口的幂等性，即不管执行几次，它的影响都和执行一次一样。</p><h1 id="如何保证Exactly-once"><a href="#如何保证Exactly-once" class="headerlink" title="如何保证Exactly-once"></a>如何保证Exactly-once</h1><p>不能保证 Exactly-once 的原因主要有两个，一个是网络出现丢包或者分区等故障，另一个是远端服务发生了故障。</p><p>一般来说，在分布式系统中，实现消息的 Exactly-once 传递，主要有三种方式：一种是至少一次消息传递加消息幂等性，一种是分布式快照加状态回滚，一种是整体重做。</p><h2 id="一次传递加幂等"><a href="#一次传递加幂等" class="headerlink" title="一次传递加幂等"></a>一次传递加幂等</h2><p>该思路比较简单，就是当处理失败后，并不给用户返回请求超时，而是进行重试，保证至少请求一次成功，然后每次请求带上一个全局的唯一id，当失败重试的时候，该id并不会发生改变，成功后，将本次请求保存在数据库中，如果第二次发现该id后，并不会执行，直接返回。</p><h2 id="分布式快照加回滚"><a href="#分布式快照加回滚" class="headerlink" title="分布式快照加回滚"></a>分布式快照加回滚</h2><p>分布式快照加状态回滚指的是，在整个分布式系统运行的过程中，定期对整个系统的状态做快照，在系统运行时，不论系统的哪个地方出现故障，就将整个系统回滚到上一个快照状态，然 后再重放上一个快照状态之后的情况，直到所有的消息都被正常处理。</p><p>但是该方式并不适合在线业务，因为对在线业务做快照很难，而且对整个系统做快照，耗费资源，而且做快照的时候会导致当前系统不可处理新的业务。</p><p>该方案只适合针对于像流式计算的场景。</p><h2 id="整体重做"><a href="#整体重做" class="headerlink" title="整体重做"></a>整体重做</h2><p>整体重做的 Exactly-once 的方式，可以看成是分布式快照加状态回滚的一种特殊情况。</p><h1 id="Exactly-once-的挑战"><a href="#Exactly-once-的挑战" class="headerlink" title="Exactly-once 的挑战"></a>Exactly-once 的挑战</h1><h2 id="重试面临的挑战"><a href="#重试面临的挑战" class="headerlink" title="重试面临的挑战"></a>重试面临的挑战</h2><p>当采用重试策略来保证消息最少传递一次时，我们需要限制重试的次数，来确保不会因为重试导致系统雪崩。而且重试的时间间隔也会因为重试的次数而增加。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt; 考虑如下问题：在一个电商系统中，如果用户下单后，在模块之间及逆行远程调用的过程中，出现了问题，给用户响应了请求超时，那么会影响到用户购买，导致损失订单。&lt;/p&gt;
-&lt;p&gt;但是，如果对请求超时进行重试，那么会导致用户重复下单，用户明明点击了一次，却显示购买了两次，导致一些问题</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
     
   </entry>
   
