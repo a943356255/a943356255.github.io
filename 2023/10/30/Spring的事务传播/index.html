@@ -1,0 +1,209 @@
+<!DOCTYPE html><html lang="en" data-theme="light"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"><title>Spring的事务传播 | 随便起个名字吧</title><meta name="author" content="Guo Junhao"><meta name="copyright" content="Guo Junhao"><meta name="format-detection" content="telephone=no"><meta name="theme-color" content="#ffffff"><meta name="description" content="事务传播 写在前面 Spring的事务是通过AOP这种代理的方式实现的。  事务传播就是多个事务方法相互调用时，事务如何在这些方法间传播。比如事务方法A调用了方法B，那么方法B有无事务以及方法B对事务的要求不同都会对方法A的事务执行造成影响，而方法A的事务对方法B的事务执行也有影响，这种影响就由两个方法定义的事务传播类型所决定。 spring中的事务传播定义了七种类型：REQUIRED、SUPPO">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Spring的事务传播">
+<meta property="og:url" content="http://example.com/2023/10/30/Spring%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD/index.html">
+<meta property="og:site_name" content="随便起个名字吧">
+<meta property="og:description" content="事务传播 写在前面 Spring的事务是通过AOP这种代理的方式实现的。  事务传播就是多个事务方法相互调用时，事务如何在这些方法间传播。比如事务方法A调用了方法B，那么方法B有无事务以及方法B对事务的要求不同都会对方法A的事务执行造成影响，而方法A的事务对方法B的事务执行也有影响，这种影响就由两个方法定义的事务传播类型所决定。 spring中的事务传播定义了七种类型：REQUIRED、SUPPO">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp">
+<meta property="article:published_time" content="2023-10-30T07:39:21.000Z">
+<meta property="article:modified_time" content="2023-10-30T07:40:14.695Z">
+<meta property="article:author" content="Guo Junhao">
+<meta property="article:tag" content="Spring">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp"><link rel="shortcut icon" href="/img/favicon.png"><link rel="canonical" href="http://example.com/2023/10/30/Spring%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD/index.html"><link rel="preconnect" href="//cdn.jsdelivr.net"/><link rel="preconnect" href="//busuanzi.ibruce.info"/><link rel="stylesheet" href="/css/index.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free/css/all.min.css" media="print" onload="this.media='all'"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.min.css" media="print" onload="this.media='all'"><script>const GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"/search.xml","preload":true,"languages":{"hits_empty":"We didn't find any results for the search: ${query}"}},
+  translate: undefined,
+  noticeOutdate: undefined,
+  highlight: {"plugin":"highlighjs","highlightCopy":true,"highlightLang":true,"highlightHeightLimit":false},
+  copy: {
+    success: 'Copy successfully',
+    error: 'Copy error',
+    noSupport: 'The browser does not support'
+  },
+  relativeDate: {
+    homepage: false,
+    post: false
+  },
+  runtime: '',
+  date_suffix: {
+    just: 'Just',
+    min: 'minutes ago',
+    hour: 'hours ago',
+    day: 'days ago',
+    month: 'months ago'
+  },
+  copyright: undefined,
+  lightbox: 'fancybox',
+  Snackbar: undefined,
+  source: {
+    justifiedGallery: {
+      js: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.js',
+      css: 'https://cdn.jsdelivr.net/npm/flickr-justified-gallery/dist/fjGallery.min.css'
+    }
+  },
+  isPhotoFigcaption: false,
+  islazyload: false,
+  isAnchor: false,
+  percent: {
+    toc: true,
+    rightside: false,
+  }
+}</script><script id="config-diff">var GLOBAL_CONFIG_SITE = {
+  title: 'Spring的事务传播',
+  isPost: true,
+  isHome: false,
+  isHighlightShrink: false,
+  isToc: true,
+  postUpdate: '2023-10-30 15:40:14'
+}</script><noscript><style type="text/css">
+  #nav {
+    opacity: 1
+  }
+  .justified-gallery img {
+    opacity: 1
+  }
+
+  #recent-posts time,
+  #post-meta time {
+    display: inline !important
+  }
+</style></noscript><script>(win=>{
+    win.saveToLocal = {
+      set: function setWithExpiry(key, value, ttl) {
+        if (ttl === 0) return
+        const now = new Date()
+        const expiryDay = ttl * 86400000
+        const item = {
+          value: value,
+          expiry: now.getTime() + expiryDay,
+        }
+        localStorage.setItem(key, JSON.stringify(item))
+      },
+
+      get: function getWithExpiry(key) {
+        const itemStr = localStorage.getItem(key)
+
+        if (!itemStr) {
+          return undefined
+        }
+        const item = JSON.parse(itemStr)
+        const now = new Date()
+
+        if (now.getTime() > item.expiry) {
+          localStorage.removeItem(key)
+          return undefined
+        }
+        return item.value
+      }
+    }
+  
+    win.getScript = url => new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = url
+      script.async = true
+      script.onerror = reject
+      script.onload = script.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        script.onload = script.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(script)
+    })
+  
+    win.getCSS = (url,id = false) => new Promise((resolve, reject) => {
+      const link = document.createElement('link')
+      link.rel = 'stylesheet'
+      link.href = url
+      if (id) link.id = id
+      link.onerror = reject
+      link.onload = link.onreadystatechange = function() {
+        const loadState = this.readyState
+        if (loadState && loadState !== 'loaded' && loadState !== 'complete') return
+        link.onload = link.onreadystatechange = null
+        resolve()
+      }
+      document.head.appendChild(link)
+    })
+  
+      win.activateDarkMode = function () {
+        document.documentElement.setAttribute('data-theme', 'dark')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#0d0d0d')
+        }
+      }
+      win.activateLightMode = function () {
+        document.documentElement.setAttribute('data-theme', 'light')
+        if (document.querySelector('meta[name="theme-color"]') !== null) {
+          document.querySelector('meta[name="theme-color"]').setAttribute('content', '#ffffff')
+        }
+      }
+      const t = saveToLocal.get('theme')
+    
+          if (t === 'dark') activateDarkMode()
+          else if (t === 'light') activateLightMode()
+        
+      const asideStatus = saveToLocal.get('aside-status')
+      if (asideStatus !== undefined) {
+        if (asideStatus === 'hide') {
+          document.documentElement.classList.add('hide-aside')
+        } else {
+          document.documentElement.classList.remove('hide-aside')
+        }
+      }
+    
+    const detectApple = () => {
+      if(/iPad|iPhone|iPod|Macintosh/.test(navigator.userAgent)){
+        document.documentElement.classList.add('apple')
+      }
+    }
+    detectApple()
+    })(window)</script><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="随便起个名字吧" type="application/atom+xml">
+</head><body><div id="sidebar"><div id="menu-mask"></div><div id="sidebar-menus"><div class="avatar-img is-center"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="onerror=null;src='/img/friend_404.gif'" alt="avatar"/></div><div class="sidebar-site-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">196</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">46</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">45</div></a></div><hr/><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div></div></div><div class="post" id="body-wrap"><header class="post-bg" id="page-header" style="background-image: url('https://image-1314238346.cos.ap-chongqing.myqcloud.com/1ffe579a-df68-4d05-9b67-4a32be7384c9.png')"><nav id="nav"><span id="blog-info"><a href="/" title="随便起个名字吧"><span class="site-name">随便起个名字吧</span></a></span><div id="menus"><div id="search-button"><a class="site-page social-icon search" href="javascript:void(0);"><i class="fas fa-search fa-fw"></i><span> Search</span></a></div><div class="menus_items"><div class="menus_item"><a class="site-page" href="/archives/"><i class="fa-fw fas fa-archive"></i><span> Archives</span></a></div><div class="menus_item"><a class="site-page" href="/tags/"><i class="fa-fw fas fa-tags"></i><span> Tags</span></a></div><div class="menus_item"><a class="site-page" href="/categories/"><i class="fa-fw fas fa-folder-open"></i><span> Categories</span></a></div></div><div id="toggle-menu"><a class="site-page" href="javascript:void(0);"><i class="fas fa-bars fa-fw"></i></a></div></div></nav><div id="post-info"><h1 class="post-title">Spring的事务传播</h1><div id="post-meta"><div class="meta-firstline"><span class="post-meta-date"><i class="far fa-calendar-alt fa-fw post-meta-icon"></i><span class="post-meta-label">Created</span><time class="post-meta-date-created" datetime="2023-10-30T07:39:21.000Z" title="Created 2023-10-30 15:39:21">2023-10-30</time><span class="post-meta-separator">|</span><i class="fas fa-history fa-fw post-meta-icon"></i><span class="post-meta-label">Updated</span><time class="post-meta-date-updated" datetime="2023-10-30T07:40:14.695Z" title="Updated 2023-10-30 15:40:14">2023-10-30</time></span><span class="post-meta-categories"><span class="post-meta-separator">|</span><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/">学习笔记</a><i class="fas fa-angle-right post-meta-separator"></i><i class="fas fa-inbox fa-fw post-meta-icon"></i><a class="post-meta-categories" href="/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Spring/">Spring</a></span></div><div class="meta-secondline"><span class="post-meta-separator">|</span><span class="post-meta-pv-cv" id="" data-flag-title="Spring的事务传播"><i class="far fa-eye fa-fw post-meta-icon"></i><span class="post-meta-label">Post View:</span><span id="busuanzi_value_page_pv"><i class="fa-solid fa-spinner fa-spin"></i></span></span></div></div></div></header><main class="layout" id="content-inner"><div id="post"><article class="post-content" id="article-container"><h3 id="事务传播"><a href="#事务传播" class="headerlink" title="事务传播"></a>事务传播</h3><blockquote>
+<p>写在前面</p>
+<p><strong>Spring的事务是通过AOP这种代理的方式实现的。</strong></p>
+</blockquote>
+<p>事务传播就是多个事务方法相互调用时，事务如何在这些方法间传播。比如事务方法A调用了方法B，那么方法B有无事务以及方法B对事务的要求不同都会对方法A的事务执行造成影响，而方法A的事务对方法B的事务执行也有影响，这种影响就由两个方法定义的事务传播类型所决定。</p>
+<p>spring中的事务传播定义了七种类型：<strong>REQUIRED、SUPPORTS、MANDATORY、REQUIRES_NEW、NOT_SUPPORTED、NEVER、NESTED</strong>。这七种类型以枚举的形式存储在<code>org.springframework.transaction.annotation</code>的<code>Propagation</code>。</p>
+<p>下面根据集体的例子来解释每一个情况。</p>
+<p>假设现在有两个方法A和B，A会在ATable中插入一条数据，B会在BTable中插入一条数据。伪代码如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将传入参数a存入ATable</span></span><br><span class="line">pubilc <span class="keyword">void</span> <span class="title function_">A</span><span class="params">(a)</span>&#123;</span><br><span class="line">    insertIntoATable(a);    </span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 将传入参数b存入BTable</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">B</span><span class="params">(b)</span>&#123;</span><br><span class="line">    insertIntoBTable(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>假设没有事务时，如下场景：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用A入参a1</span></span><br><span class="line">    A(a1);</span><br><span class="line">    <span class="comment">// 调用testB</span></span><br><span class="line">    testB();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用B入参b1</span></span><br><span class="line">    B(b1);</span><br><span class="line">    <span class="comment">// 发生异常抛出</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;</span><br><span class="line">    <span class="comment">// 调用B入参b2</span></span><br><span class="line">    B(b2);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，a1和b1这两条数据会存入对用的数据库，而b2这条数据会因为异常而没有入库。</p>
+<h4 id="REQUIRED（Spring默认的事务传播）"><a href="#REQUIRED（Spring默认的事务传播）" class="headerlink" title="REQUIRED（Spring默认的事务传播）"></a>REQUIRED（Spring默认的事务传播）</h4><blockquote>
+<p><strong>如果当前没有事务，则自己新建一个事务，如果当前存在事务，则加入这个事务</strong></p>
+</blockquote>
+<p>使用场景如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用A入参a1</span></span><br><span class="line">    A(a1);</span><br><span class="line">    <span class="comment">// 调用testB</span></span><br><span class="line">    testB();    </span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用B入参b1</span></span><br><span class="line">    B(b1);</span><br><span class="line">    <span class="comment">// 发生异常抛出</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;</span><br><span class="line">    <span class="comment">// 调用B入参b2</span></span><br><span class="line">    B(b2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，数据库的状态会停留在没有执行这两个方法的状态。</p>
+<p><code>testMain()</code>声明了事务，它执行时会创建事务，在执行<code>testB()</code>的时候，它就会加入<code>testMain()</code>的事务，而不会自己创建。</p>
+<h4 id="SUPPORTS"><a href="#SUPPORTS" class="headerlink" title="SUPPORTS"></a>SUPPORTS</h4><blockquote>
+<p><strong>当前存在事务，则加入当前事务，如果当前没有事务，就以非事务方法执行</strong></p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    A(a1);  <span class="comment">//调用A入参a1</span></span><br><span class="line">    testB();    <span class="comment">//调用testB</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.SUPPORTS)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    B(b1);  <span class="comment">//调用B入参b1</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;     <span class="comment">//发生异常抛出</span></span><br><span class="line">    B(b2);  <span class="comment">//调用B入参b2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，a1和b1会插入数据库，b2不会插入，因为<code>testMain()</code>是没有事务的，所以执行<code>testB()</code>方法时，无法加入其他的事务。</p>
+<h4 id="MANDATORY"><a href="#MANDATORY" class="headerlink" title="MANDATORY"></a>MANDATORY</h4><blockquote>
+<p><strong>当前存在事务，则加入当前事务，如果当前事务不存在，则抛出异常。</strong></p>
+</blockquote>
+<p>上面的代码在这种情况下，执行结果就是a1存储数据库，而b1和b2没有存入，因为<code>testMain()</code>没有事务而产生报错。</p>
+<h4 id="REQUIRES-NEW"><a href="#REQUIRES-NEW" class="headerlink" title="REQUIRES_NEW"></a>REQUIRES_NEW</h4><blockquote>
+<p><strong>创建一个新事务，如果存在当前事务，则挂起该事务。</strong>可以理解为在执行时，不论当前是否存在事务，总是会新建一个事务。</p>
+</blockquote>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    A(a1);  <span class="comment">//调用A入参a1</span></span><br><span class="line">    testB();    <span class="comment">//调用testB</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;     <span class="comment">//发生异常抛出</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRES_NEW)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    B(b1);  <span class="comment">//调用B入参b1</span></span><br><span class="line">    B(b2);  <span class="comment">//调用B入参b2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>这种情况下，a1没有存入成功，而b1和b2会存入成功。因为<code>testB()</code>会新建一个事务，而不是采用<code>testMain()</code>的事务。</p>
+<h4 id="NOT-SUPPORTED"><a href="#NOT-SUPPORTED" class="headerlink" title="NOT_SUPPORTED"></a>NOT_SUPPORTED</h4><blockquote>
+<p><strong>始终以非事务方式执行,如果当前存在事务，则挂起当前事务</strong>，可以理解为始终不执行事务。</p>
+</blockquote>
+<h4 id="NEVER"><a href="#NEVER" class="headerlink" title="NEVER"></a>NEVER</h4><blockquote>
+<p><strong>不使用事务，如果当前事务存在，则抛出异常</strong></p>
+</blockquote>
+<h4 id="NESTED"><a href="#NESTED" class="headerlink" title="NESTED"></a>NESTED</h4></article><div class="tag_share"><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/Spring/">Spring</a></div><div class="post_share"></div></div><nav class="pagination-post" id="pagination"><div class="next-post pull-full"><a href="/2023/10/30/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/" title="单点登录"><div class="cover" style="background: var(--default-bg-color)"></div><div class="pagination-info"><div class="label">Next Post</div><div class="next_info">单点登录</div></div></a></div></nav></div><div class="aside-content" id="aside-content"><div class="card-widget card-info"><div class="is-center"><div class="avatar-img"><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/5d477a33-7331-48db-8da8-ce0b2df9f8f9.bmp" onerror="this.onerror=null;this.src='/img/friend_404.gif'" alt="avatar"/></div><div class="author-info__name">Guo Junhao</div><div class="author-info__description"></div></div><div class="card-info-data site-data is-center"><a href="/archives/"><div class="headline">Articles</div><div class="length-num">196</div></a><a href="/tags/"><div class="headline">Tags</div><div class="length-num">46</div></a><a href="/categories/"><div class="headline">Categories</div><div class="length-num">45</div></a></div><a id="card-info-btn" target="_blank" rel="noopener" href="https://github.com/a943356255?tab=repositories"><i class="fab fa-github"></i><span>My Project</span></a></div><div class="card-widget card-announcement"><div class="item-headline"><i class="fas fa-bullhorn fa-shake"></i><span>Announcement</span></div><div class="announcement_content">Time is on your side</div></div><div class="sticky_layout"><div class="card-widget" id="card-toc"><div class="item-headline"><i class="fas fa-stream"></i><span>Catalog</span><span class="toc-percentage"></span></div><div class="toc-content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD"><span class="toc-number">1.</span> <span class="toc-text">事务传播</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#REQUIRED%EF%BC%88Spring%E9%BB%98%E8%AE%A4%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD%EF%BC%89"><span class="toc-number">1.1.</span> <span class="toc-text">REQUIRED（Spring默认的事务传播）</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#SUPPORTS"><span class="toc-number">1.2.</span> <span class="toc-text">SUPPORTS</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#MANDATORY"><span class="toc-number">1.3.</span> <span class="toc-text">MANDATORY</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#REQUIRES-NEW"><span class="toc-number">1.4.</span> <span class="toc-text">REQUIRES_NEW</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#NOT-SUPPORTED"><span class="toc-number">1.5.</span> <span class="toc-text">NOT_SUPPORTED</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#NEVER"><span class="toc-number">1.6.</span> <span class="toc-text">NEVER</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#NESTED"><span class="toc-number">1.7.</span> <span class="toc-text">NESTED</span></a></li></ol></li></ol></div></div><div class="card-widget card-recent-post"><div class="item-headline"><i class="fas fa-history"></i><span>Recent Post</span></div><div class="aside-list"><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/30/Spring%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD/" title="Spring的事务传播">Spring的事务传播</a><time datetime="2023-10-30T07:39:21.000Z" title="Created 2023-10-30 15:39:21">2023-10-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/30/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/" title="单点登录">单点登录</a><time datetime="2023-10-30T06:33:30.000Z" title="Created 2023-10-30 14:33:30">2023-10-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/30/%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB%E4%BC%9A%E5%87%BA%E7%8E%B0%E5%B9%BB%E8%AF%BB%E5%90%97/" title="可重复读隔离级别会出现幻读吗">可重复读隔离级别会出现幻读吗</a><time datetime="2023-10-30T01:10:16.000Z" title="Created 2023-10-30 09:10:16">2023-10-30</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/29/Java/Netty%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E8%A7%A3%E8%AF%BB/" title="Netty源码简单解读">Netty源码简单解读</a><time datetime="2023-10-29T01:56:54.000Z" title="Created 2023-10-29 09:56:54">2023-10-29</time></div></div><div class="aside-list-item no-cover"><div class="content"><a class="title" href="/2023/10/26/Java/%E4%BC%A0%E7%BB%9F%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E4%B8%8ENIO%E7%BC%96%E7%A8%8B/" title="传统网络编程与NIO编程">传统网络编程与NIO编程</a><time datetime="2023-10-26T02:47:23.000Z" title="Created 2023-10-26 10:47:23">2023-10-26</time></div></div></div></div></div></div></main><footer id="footer"><div id="footer-wrap"><div class="copyright">&copy;2020 - 2023 By Guo Junhao</div><div class="framework-info"><span>Framework </span><a target="_blank" rel="noopener" href="https://hexo.io">Hexo</a><span class="footer-separator">|</span><span>Theme </span><a target="_blank" rel="noopener" href="https://github.com/jerryc127/hexo-theme-butterfly">Butterfly</a></div></div></footer></div><div id="rightside"><div id="rightside-config-hide"><button id="readmode" type="button" title="Read Mode"><i class="fas fa-book-open"></i></button><button id="darkmode" type="button" title="Switch Between Light And Dark Mode"><i class="fas fa-adjust"></i></button><button id="hide-aside-btn" type="button" title="Toggle between single-column and double-column"><i class="fas fa-arrows-alt-h"></i></button></div><div id="rightside-config-show"><button id="rightside_config" type="button" title="Setting"><i class="fas fa-cog fa-spin"></i></button><button class="close" id="mobile-toc-button" type="button" title="Table Of Contents"><i class="fas fa-list-ul"></i></button><button id="go-up" type="button" title="Back To Top"><span class="scroll-percent"></span><i class="fas fa-arrow-up"></i></button></div></div><div><script src="/js/utils.js"></script><script src="/js/main.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/ui/dist/fancybox/fancybox.umd.min.js"></script><div class="js-pjax"></div><script async data-pjax src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script></div><div id="local-search"><div class="search-dialog"><nav class="search-nav"><span class="search-dialog-title">Search</span><span id="loading-status"></span><button class="search-close-button"><i class="fas fa-times"></i></button></nav><div class="is-center" id="loading-database"><i class="fas fa-spinner fa-pulse"></i><span>  Loading the Database</span></div><div class="search-wrap"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="Search for Posts" type="text"/></div></div><hr/><div id="local-search-results"></div></div></div><div id="search-mask"></div><script src="/js/search/local-search.js"></script></div></body></html>

@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-10-30T06:36:23.449Z</updated>
+  <updated>2023-10-30T07:40:14.695Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Spring的事务传播</title>
+    <link href="http://example.com/2023/10/30/Spring%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD/"/>
+    <id>http://example.com/2023/10/30/Spring%E7%9A%84%E4%BA%8B%E5%8A%A1%E4%BC%A0%E6%92%AD/</id>
+    <published>2023-10-30T07:39:21.000Z</published>
+    <updated>2023-10-30T07:40:14.695Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="事务传播"><a href="#事务传播" class="headerlink" title="事务传播"></a>事务传播</h3><blockquote><p>写在前面</p><p><strong>Spring的事务是通过AOP这种代理的方式实现的。</strong></p></blockquote><p>事务传播就是多个事务方法相互调用时，事务如何在这些方法间传播。比如事务方法A调用了方法B，那么方法B有无事务以及方法B对事务的要求不同都会对方法A的事务执行造成影响，而方法A的事务对方法B的事务执行也有影响，这种影响就由两个方法定义的事务传播类型所决定。</p><p>spring中的事务传播定义了七种类型：<strong>REQUIRED、SUPPORTS、MANDATORY、REQUIRES_NEW、NOT_SUPPORTED、NEVER、NESTED</strong>。这七种类型以枚举的形式存储在<code>org.springframework.transaction.annotation</code>的<code>Propagation</code>。</p><p>下面根据集体的例子来解释每一个情况。</p><p>假设现在有两个方法A和B，A会在ATable中插入一条数据，B会在BTable中插入一条数据。伪代码如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">// 将传入参数a存入ATable</span></span><br><span class="line">pubilc <span class="keyword">void</span> <span class="title function_">A</span><span class="params">(a)</span>&#123;</span><br><span class="line">    insertIntoATable(a);    </span><br><span class="line">&#125;</span><br><span class="line"><span class="comment">// 将传入参数b存入BTable</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">B</span><span class="params">(b)</span>&#123;</span><br><span class="line">    insertIntoBTable(b);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>假设没有事务时，如下场景：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用A入参a1</span></span><br><span class="line">    A(a1);</span><br><span class="line">    <span class="comment">// 调用testB</span></span><br><span class="line">    testB();</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用B入参b1</span></span><br><span class="line">    B(b1);</span><br><span class="line">    <span class="comment">// 发生异常抛出</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;</span><br><span class="line">    <span class="comment">// 调用B入参b2</span></span><br><span class="line">    B(b2);  </span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种情况下，a1和b1这两条数据会存入对用的数据库，而b2这条数据会因为异常而没有入库。</p><h4 id="REQUIRED（Spring默认的事务传播）"><a href="#REQUIRED（Spring默认的事务传播）" class="headerlink" title="REQUIRED（Spring默认的事务传播）"></a>REQUIRED（Spring默认的事务传播）</h4><blockquote><p><strong>如果当前没有事务，则自己新建一个事务，如果当前存在事务，则加入这个事务</strong></p></blockquote><p>使用场景如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用A入参a1</span></span><br><span class="line">    A(a1);</span><br><span class="line">    <span class="comment">// 调用testB</span></span><br><span class="line">    testB();    </span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    <span class="comment">// 调用B入参b1</span></span><br><span class="line">    B(b1);</span><br><span class="line">    <span class="comment">// 发生异常抛出</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;</span><br><span class="line">    <span class="comment">// 调用B入参b2</span></span><br><span class="line">    B(b2);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种情况下，数据库的状态会停留在没有执行这两个方法的状态。</p><p><code>testMain()</code>声明了事务，它执行时会创建事务，在执行<code>testB()</code>的时候，它就会加入<code>testMain()</code>的事务，而不会自己创建。</p><h4 id="SUPPORTS"><a href="#SUPPORTS" class="headerlink" title="SUPPORTS"></a>SUPPORTS</h4><blockquote><p><strong>当前存在事务，则加入当前事务，如果当前没有事务，就以非事务方法执行</strong></p></blockquote><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    A(a1);  <span class="comment">//调用A入参a1</span></span><br><span class="line">    testB();    <span class="comment">//调用testB</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.SUPPORTS)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    B(b1);  <span class="comment">//调用B入参b1</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;     <span class="comment">//发生异常抛出</span></span><br><span class="line">    B(b2);  <span class="comment">//调用B入参b2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种情况下，a1和b1会插入数据库，b2不会插入，因为<code>testMain()</code>是没有事务的，所以执行<code>testB()</code>方法时，无法加入其他的事务。</p><h4 id="MANDATORY"><a href="#MANDATORY" class="headerlink" title="MANDATORY"></a>MANDATORY</h4><blockquote><p><strong>当前存在事务，则加入当前事务，如果当前事务不存在，则抛出异常。</strong></p></blockquote><p>上面的代码在这种情况下，执行结果就是a1存储数据库，而b1和b2没有存入，因为<code>testMain()</code>没有事务而产生报错。</p><h4 id="REQUIRES-NEW"><a href="#REQUIRES-NEW" class="headerlink" title="REQUIRES_NEW"></a>REQUIRES_NEW</h4><blockquote><p><strong>创建一个新事务，如果存在当前事务，则挂起该事务。</strong>可以理解为在执行时，不论当前是否存在事务，总是会新建一个事务。</p></blockquote><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRED)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testMain</span><span class="params">()</span>&#123;</span><br><span class="line">    A(a1);  <span class="comment">//调用A入参a1</span></span><br><span class="line">    testB();    <span class="comment">//调用testB</span></span><br><span class="line">    <span class="keyword">throw</span> Exception;     <span class="comment">//发生异常抛出</span></span><br><span class="line">&#125;</span><br><span class="line"><span class="meta">@Transactional(propagation = Propagation.REQUIRES_NEW)</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testB</span><span class="params">()</span>&#123;</span><br><span class="line">    B(b1);  <span class="comment">//调用B入参b1</span></span><br><span class="line">    B(b2);  <span class="comment">//调用B入参b2</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>这种情况下，a1没有存入成功，而b1和b2会存入成功。因为<code>testB()</code>会新建一个事务，而不是采用<code>testMain()</code>的事务。</p><h4 id="NOT-SUPPORTED"><a href="#NOT-SUPPORTED" class="headerlink" title="NOT_SUPPORTED"></a>NOT_SUPPORTED</h4><blockquote><p><strong>始终以非事务方式执行,如果当前存在事务，则挂起当前事务</strong>，可以理解为始终不执行事务。</p></blockquote><h4 id="NEVER"><a href="#NEVER" class="headerlink" title="NEVER"></a>NEVER</h4><blockquote><p><strong>不使用事务，如果当前事务存在，则抛出异常</strong></p></blockquote><h4 id="NESTED"><a href="#NESTED" class="headerlink" title="NESTED"></a>NESTED</h4>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;事务传播&quot;&gt;&lt;a href=&quot;#事务传播&quot; class=&quot;headerlink&quot; title=&quot;事务传播&quot;&gt;&lt;/a&gt;事务传播&lt;/h3&gt;&lt;blockquote&gt;
+&lt;p&gt;写在前面&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;Spring的事务是通过AOP这种代理的方式实现的。&lt;/s</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Spring" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Spring/"/>
+    
+    
+    <category term="Spring" scheme="http://example.com/tags/Spring/"/>
+    
+  </entry>
   
   <entry>
     <title>单点登录</title>
@@ -507,32 +535,6 @@
       
       
     <summary type="html">&lt;h1 id=&quot;CAP-理论&quot;&gt;&lt;a href=&quot;#CAP-理论&quot; class=&quot;headerlink&quot; title=&quot;CAP 理论&quot;&gt;&lt;/a&gt;CAP 理论&lt;/h1&gt;&lt;p&gt;CAP理论是关于数据一致性（ C：Consistency ）、服务可用性（ A：Availability ）</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>分布式锁</title>
-    <link href="http://example.com/2023/09/19/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/"/>
-    <id>http://example.com/2023/09/19/%E5%88%86%E5%B8%83%E5%BC%8F/%E5%88%86%E5%B8%83%E5%BC%8F%E9%94%81/</id>
-    <published>2023-09-19T07:11:08.000Z</published>
-    <updated>2023-09-23T13:00:59.883Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="分布式锁"><a href="#分布式锁" class="headerlink" title="分布式锁"></a>分布式锁</h1><p>锁存在的意义是为了保证在多CPU，多个线程的环境中，某一个时间点上，只能由一个线程进入临界区代码，从而保证临界区操作数据的一致性。</p><p>进程内的锁，是操作系统直接提供的，对于同一台机器上的多进程，可以直接通过操作系统的锁来实现，只不过是协调了多个进程，需要将锁放在所有进程都可以访问的共享内存中，所有进程通过共享内存中的 锁来进行加锁和解锁。</p><p>但是分布式是在不同机器上，通过操作系统的锁已经无法实现。</p><h1 id="怎么实现分布式锁"><a href="#怎么实现分布式锁" class="headerlink" title="怎么实现分布式锁"></a>怎么实现分布式锁</h1><p>实现分布式锁，需要满足以下几个特性：</p><ol><li><p>互斥：保证不同节点、不同线程的互斥访问。</p></li><li><p>超时机制：即超时设置，防止死锁。因为锁服务和请求锁的服务分散在不同的机器上面，它们之间是通过网络来通信 的，所以我们需要用超时机制，来避免获得锁的节点故障或者网络异常，导致它持有的锁不能 归还，出现死锁的情况。</p><p>同时还要确保留有线程不断延长锁的时间，防止事务还没处理完，而时间到了，导致释放了锁。</p></li><li><p>完备的锁接口：比如说lock接口和trylock接口等。</p></li><li><p>可重入性：即一个节点的一个线程已经获取了锁，那么该节点持有锁的这个线程 可以再次成功获取锁。我们在加锁时，记录好当前获取锁的节点+线程组合的唯一标识，后续如果标识相同，直接返回加锁成功即可，否则按照正常流程处理。</p></li><li><p>公平性：即对于 Lock 接口获取锁失败被阻塞等待的加锁请求，在锁被释放后，如果按 先来后到的顺序，将锁颁发给等待时间最长的一个加锁请求，那么就是公平锁，否则就是非公 平锁。</p></li></ol><h1 id="分布式锁的挑战"><a href="#分布式锁的挑战" class="headerlink" title="分布式锁的挑战"></a>分布式锁的挑战</h1><p>分布式锁面临的挑战有：正确性、高可用和高性能。</p><p>首先考虑进程内的锁，如果一个线程持有锁，只要它不释放，就只有它能操作临界区的资源。同时，因为进程内锁的场景中，不会出现部分失败的情况，所以它崩溃无法释放锁时，会导致整个进程崩溃，不会出现死锁（这里不包括业务逻辑出错而导致的死锁）。</p><p>另一个方面，进程内锁的解锁操作是进程内部的函数调用，这个过程是同步的。只要发起加锁操作，就会成功（这个操作会成功，但是加锁不一定），解锁操作同样。</p><p>当存在多个进程时，加锁操作仍然是函数调用，和上边一样，但是存在一个进程获取锁后崩溃，导致无法释放锁，出现死锁。但是可以通过操作系统来判断一个进程是否存活，并查看它是否获取锁，从而解决问题。</p><p>但是在分布式场景下，发起获取锁的操作需要利用不可靠的网络，意味着发起获取锁的这个操作就有可能失败（这里称为获取锁的时延），而且获取锁后，该进程与服务器通信出现了问题，导致无法释放锁，造成死锁。这就需要设置一个超时时间，如果获取锁的进程超时，就自动释放锁。</p><p>在获取锁的时延上，如果采用超时加心跳，可能会导致服务端给客户端分发了锁，但是由于响应超时，导致客户端以为自己没有获取到锁。</p><p>为了解决这个问题，我们可以在生成锁的时候一并生成一个全局唯一且递增的版本号，当操作共享数据时，会检查版本号，如果出现版本号倒退的现象，则说明出了问题，拒绝该次请求即可。</p><h1 id="分布式锁的权衡"><a href="#分布式锁的权衡" class="headerlink" title="分布式锁的权衡"></a>分布式锁的权衡</h1><p>我们无法保证分布式锁100%的有效，而且正确性要求越高，它的性能会越低。一般来说，会在成本可接受的范围内，提供性能最好的分布式锁服务，如果性能不佳，则需要告知。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;分布式锁&quot;&gt;&lt;a href=&quot;#分布式锁&quot; class=&quot;headerlink&quot; title=&quot;分布式锁&quot;&gt;&lt;/a&gt;分布式锁&lt;/h1&gt;&lt;p&gt;锁存在的意义是为了保证在多CPU，多个线程的环境中，某一个时间点上，只能由一个线程进入临界区代码，从而保证临界区操作数据的一</summary>
       
     
     
