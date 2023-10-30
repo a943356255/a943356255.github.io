@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-10-29T07:08:37.037Z</updated>
+  <updated>2023-10-30T06:36:23.449Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -17,18 +17,19 @@
   <generator uri="https://hexo.io/">Hexo</generator>
   
   <entry>
-    <title>服务治理</title>
-    <link href="http://example.com/2023/10/29/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/"/>
-    <id>http://example.com/2023/10/29/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/</id>
-    <published>2023-10-29T07:07:56.000Z</published>
-    <updated>2023-10-29T07:08:37.037Z</updated>
+    <title>单点登录</title>
+    <link href="http://example.com/2023/10/30/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/"/>
+    <id>http://example.com/2023/10/30/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/</id>
+    <published>2023-10-30T06:33:30.000Z</published>
+    <updated>2023-10-30T06:36:23.449Z</updated>
     
-    <content type="html"><![CDATA[<h1 id="服务治理手段"><a href="#服务治理手段" class="headerlink" title="服务治理手段"></a>服务治理手段</h1><p>服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出现问题，还是说这三者中任意一个出现问题，此次调用都会失败。所以就需要服务治理。</p><h2 id="节点管理"><a href="#节点管理" class="headerlink" title="节点管理"></a>节点管理</h2><p>该部分可以分为两点。</p><ol><li>注册中心主动摘除机制。这种机制要求服务提供者定时向注册中心汇报心跳，当两次汇报中间的时间超过规定时间后，就认为服务提供者出现问题，进行摘除，然后把最近的可用服务列表推送给服务消费者。</li><li>服务消费者摘除机制。上述机制可能因为网络问题导致一个正常的服务被摘除，最坏情况所有服务都正常，但是全被摘除。一个更合理的摘除办法就是让服务的调用者去执行。即服务调用者调用失败时，就从本地缓存的可用服务列表中去移除该服务，而不进行实际的摘除。</li></ol><h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>这里边有几个算法：</p><ol><li>随机算法</li><li>轮询算法</li><li>最少活跃调用算法</li><li>一致性Hash算法</li></ol><h2 id="服务路由"><a href="#服务路由" class="headerlink" title="服务路由"></a>服务路由</h2><p>对于服务消费者而言，在内存中的可用服务节点列表中选择哪个节点不仅由负载均衡算法决定，还由路由规则确定。而指定路由规则的主要原因有以下两点：</p><ol><li>服务功能做了变更，需要灰度发布，根据这部分人的使用反馈来决定是否全量发布时，就可以做一些路由规则的限制，比如说使用尾号限制，让特定比例的人群才会访问到新发布的服务节点。</li><li>部分规模比较大的公司，为了业务高可用，会将业务部署在不止一个IDC中，这时候不同IDC之间访问要跨IDC，而距离比较远时延迟就会比较大。所以一次服务调用尽可能选择同一个IDC内部的节点，减少网络开销，提高性能。</li></ol><p>路由的配置规则一般有<strong>静态配置</strong>和<strong>动态配置</strong>。其中静态配置是防止在每一个服务本地的，服务上线后规则不发生改变。而动态配置一般都是放在注册中心，需要修改时改动注册中心的内容即可。</p><h2 id="服务容错"><a href="#服务容错" class="headerlink" title="服务容错"></a>服务容错</h2><p>对于服务调用失败的情况，需要有手段自动恢复，来保证调用成功。常用手段有以下几种：</p><ol><li>失败自动切换。顾名思义，调用失败了后就从最近的可用服务列表中选一个进行重试，可以限制重试次数，但是这种操作要求服务的调用操作是<strong>幂等</strong>的。</li><li>失败通知。服务调用失败后，不再进行重试，而是根据失败返回的信息而决定后续的操作。</li><li>失败缓存。服务调用失败后，并不立即进行重试，而是隔一段时间后再进行重试。</li><li>快速失败。调用失败后就不管了。</li></ol><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《从0开始学微服务》</p>]]></content>
+    <content type="html"><![CDATA[<h1 id="单点登录"><a href="#单点登录" class="headerlink" title="单点登录"></a>单点登录</h1><p>一个真正的单点登录流程如下：该流程属于不同域下的单点登录。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/637ec3d1265a44629a45aa7571a77c9f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image.png"></p><ul><li>用户进入 A 系统，没有登录凭证（ticket），A 系统给他跳到 SSO。</li><li>SSO 没登录过，也就没有 sso 系统下没有凭证（怎么感知到的）（注意这个和前面 A ticket 是两回事），输入账号密码登录。</li><li>SSO 账号密码验证成功，通过接口返回做两件事：一是种下 sso 系统下凭证（记录用户在 SSO 登录状态）；二是下发一个 ticket。</li><li>客户端拿到 ticket，保存起来，带着请求系统 A 接口。</li><li>系统 A 校验 ticket，成功后正常处理业务请求。</li><li>此时用户第一次进入系统 B，没有登录凭证（ticket），B 系统给他跳到 SSO。</li><li>SSO 登录过，系统下有凭证，不用再次登录，只需要下发 ticket。</li><li>客户端拿到 ticket，保存起来，并携带ticket请求系统B的接口。</li></ul><p>至此，还存在问题，SSO 域下返回的数据要怎么存，才能在访问 A 的时候带上？因为浏览器对跨域有严格限制，cookie、localStorage 等方式都是有域限制的。</p><p>下面这张图是一个更细致的流程：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/6dabc898da7149d9b8972a7830825bc9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image.png"></p><ul><li>在 SSO 域下，SSO 不是通过接口把 ticket 直接返回，而是通过一个带 code 的 URL 重定向到系统 A 的接口上，这个接口通常在 A 向 SSO 注册时约定。相当于提前定义好了一个接口来接收SSO系统返回的code。</li><li>浏览器被重定向到 A 域下，带着 code 访问了 A 的 callback 接口，callback 接口通过 code 换取 ticket。</li><li>这个 code 不同于 ticket，code 是一次性的，暴露在 URL 中，只为了传一下换 ticket，换完就失效。</li><li>callback 接口拿到 ticket 后，在自己的域下 set cookie 成功。</li><li>在后续请求中，只需要把 cookie 中的 ticket 解析出来，去 SSO 验证就好。</li></ul><p>这里，用户第一次请求时，由于本地没有cookie，所以验证会失败，跳转到SSO系统去验证，而这个验证也会因为没有cookie而失败，所以要求用户进行登录。当登录完成过后，会跳转到系统A提前定义好的接口，并携带code，此时也会在用户本地存储SSO域的一个cookie。该接口会拿到code后去SSO系统换取ticket，拿到ticket后会向SSO系统验证这个ticket是否正确（防止有人伪造ticket而直接请求接口），如果正确则可以正常处理。</p><p>此时如果用户使用系统B，因为本地已经有SSO域的cookie 了，携带者去请求SSO就可以，然后可以直接下发凭证。</p>]]></content>
     
     
       
       
-    <summary type="html">&lt;h1 id=&quot;服务治理手段&quot;&gt;&lt;a href=&quot;#服务治理手段&quot; class=&quot;headerlink&quot; title=&quot;服务治理手段&quot;&gt;&lt;/a&gt;服务治理手段&lt;/h1&gt;&lt;p&gt;服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出</summary>
+    <summary type="html">&lt;h1 id=&quot;单点登录&quot;&gt;&lt;a href=&quot;#单点登录&quot; class=&quot;headerlink&quot; title=&quot;单点登录&quot;&gt;&lt;/a&gt;单点登录&lt;/h1&gt;&lt;p&gt;一个真正的单点登录流程如下：该流程属于不同域下的单点登录。&lt;/p&gt;
+&lt;p&gt;&lt;img src=&quot;https://image-1</summary>
       
     
     
@@ -37,9 +38,36 @@
   </entry>
   
   <entry>
+    <title>可重复读隔离级别会出现幻读吗</title>
+    <link href="http://example.com/2023/10/30/%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB%E4%BC%9A%E5%87%BA%E7%8E%B0%E5%B9%BB%E8%AF%BB%E5%90%97/"/>
+    <id>http://example.com/2023/10/30/%E5%8F%AF%E9%87%8D%E5%A4%8D%E8%AF%BB%E9%9A%94%E7%A6%BB%E7%BA%A7%E5%88%AB%E4%BC%9A%E5%87%BA%E7%8E%B0%E5%B9%BB%E8%AF%BB%E5%90%97/</id>
+    <published>2023-10-30T01:10:16.000Z</published>
+    <updated>2023-10-30T01:12:09.965Z</updated>
+    
+    <content type="html"><![CDATA[<p>放在最前面：<strong>InnoDB的默认事务隔离级别是可重复读</strong></p><h1 id="隔离级别"><a href="#隔离级别" class="headerlink" title="隔离级别"></a>隔离级别</h1><p>MySQL的隔离级别包括四种：<strong>读未提交</strong>（read uncommitted）、<strong>读提交</strong>（read committed）、<strong>可重复读</strong>（repeatable read）和<strong>串行化</strong>（serializable ）。</p><ul><li>读未提交是指，一个事务还没提交时，它做的变更就能被别的事务看到。</li><li>读提交是指，一个事务提交之后，它做的变更才会被其他事务看到。</li><li>可重复读是指，一个事务执行过程中看到的数据，总是跟这个事务在启动时看到的数据是一致的。在可重复读隔离级别下，未提交变更对其他事务也是不可见的。</li><li>串行化，对于同一行记录，“写”会加“写锁”，“读”会加“读锁”。当出现读写锁冲突的时候，后访问的事务必须等前一个事务执行完成，才能继续执行。</li></ul><p>前两种隔离级别，是一定会出现幻读。而<strong>可重复读隔离级</strong>别是采用MVCC，即一致性视图来解决<strong>不可重复读的问题</strong>。具体而言，就是采用快照的方式，事务开启的时候会有一个版本号，然后数据是否可见都是基于版本号来判断的，低于该版本号的数据可见，高于的都不可见。</p><p>而可重复读隔离级别下，如果事务A开启后，事务B做了一定的修改并提交事务，在事务A还未提交的时候，对事务B提交的数据做了修改，这个修改是在事务B提交数据的基础上进行修改的，因为不这样的话会导致事务B提交的数据丢失。那也就意味着此次修改会修改数据的事务版本号，后续进行查询的时候，该版本号就可能会导致幻读的问题，以及查询结果与认为中的不一致问题。这也是为什么在可重复读隔离级别下仍然会出现幻读的问题。</p><p>上述问题有一个原因：<strong>更新数据都是先读后写的，而这个读，只能读当前的值，称为“当前读”（current read）。</strong>当前读意味着会读取最新的数据。</p><p>其实除了Update语句外，select语句如果加了锁，即<code>for share</code>或者<code>for update </code>也是当前读。</p><p>实现可重复读的核心是<strong>一致性读</strong>，而更新数据必须使用<strong>当前读</strong>，这也是为什么会失效的原因。</p><h1 id="幻读"><a href="#幻读" class="headerlink" title="幻读"></a>幻读</h1><p>在可重复读的隔离级别下，普通读都是<strong>快照读</strong>，是看不见其他事务修改的数据的，幻读的问题只会发生在<strong>当前读</strong>。即<code>select for update</code>  或者<code>select for share</code>这种。</p><p>幻读是指在一个事务（假定事务A）的两次查询中，第二次查询查到了第一次没有的数据。发生幻读的根本原因是另外的事务（假定事务B）添加或修改了数据，该数据正好满足事务A的查询条件。</p><h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>可重复读的隔离级别，在某些场景下是无法防止幻读的问题，需要用到间隙锁来解决。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;放在最前面：&lt;strong&gt;InnoDB的默认事务隔离级别是可重复读&lt;/strong&gt;&lt;/p&gt;
+&lt;h1 id=&quot;隔离级别&quot;&gt;&lt;a href=&quot;#隔离级别&quot; class=&quot;headerlink&quot; title=&quot;隔离级别&quot;&gt;&lt;/a&gt;隔离级别&lt;/h1&gt;&lt;p&gt;MySQL的隔离级别包</summary>
+      
+    
+    
+    
+    <category term="个人心得" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/"/>
+    
+    <category term="场景分析" scheme="http://example.com/categories/%E4%B8%AA%E4%BA%BA%E5%BF%83%E5%BE%97/%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90/"/>
+    
+    
+    <category term="场景分析" scheme="http://example.com/tags/%E5%9C%BA%E6%99%AF%E5%88%86%E6%9E%90/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Netty源码简单解读</title>
-    <link href="http://example.com/2023/10/29/Netty%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E8%A7%A3%E8%AF%BB/"/>
-    <id>http://example.com/2023/10/29/Netty%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E8%A7%A3%E8%AF%BB/</id>
+    <link href="http://example.com/2023/10/29/Java/Netty%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E8%A7%A3%E8%AF%BB/"/>
+    <id>http://example.com/2023/10/29/Java/Netty%E6%BA%90%E7%A0%81%E7%AE%80%E5%8D%95%E8%A7%A3%E8%AF%BB/</id>
     <published>2023-10-29T01:56:54.000Z</published>
     <updated>2023-10-29T03:27:38.060Z</updated>
     
@@ -65,8 +93,8 @@
   
   <entry>
     <title>传统网络编程与NIO编程</title>
-    <link href="http://example.com/2023/10/26/%E4%BC%A0%E7%BB%9F%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E4%B8%8ENIO%E7%BC%96%E7%A8%8B/"/>
-    <id>http://example.com/2023/10/26/%E4%BC%A0%E7%BB%9F%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E4%B8%8ENIO%E7%BC%96%E7%A8%8B/</id>
+    <link href="http://example.com/2023/10/26/Java/%E4%BC%A0%E7%BB%9F%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E4%B8%8ENIO%E7%BC%96%E7%A8%8B/"/>
+    <id>http://example.com/2023/10/26/Java/%E4%BC%A0%E7%BB%9F%E7%BD%91%E7%BB%9C%E7%BC%96%E7%A8%8B%E4%B8%8ENIO%E7%BC%96%E7%A8%8B/</id>
     <published>2023-10-26T02:47:23.000Z</published>
     <updated>2023-10-28T03:38:02.821Z</updated>
     
@@ -121,8 +149,8 @@
   
   <entry>
     <title>ThreadLocal源码</title>
-    <link href="http://example.com/2023/10/21/ThreadLocal%E6%BA%90%E7%A0%81/"/>
-    <id>http://example.com/2023/10/21/ThreadLocal%E6%BA%90%E7%A0%81/</id>
+    <link href="http://example.com/2023/10/21/Java/ThreadLocal%E6%BA%90%E7%A0%81/"/>
+    <id>http://example.com/2023/10/21/Java/ThreadLocal%E6%BA%90%E7%A0%81/</id>
     <published>2023-10-21T07:04:29.000Z</published>
     <updated>2023-10-22T03:22:34.445Z</updated>
     
@@ -176,8 +204,8 @@
   
   <entry>
     <title>HashMap源码</title>
-    <link href="http://example.com/2023/10/14/HashMap%E6%BA%90%E7%A0%81/"/>
-    <id>http://example.com/2023/10/14/HashMap%E6%BA%90%E7%A0%81/</id>
+    <link href="http://example.com/2023/10/14/Java/HashMap%E6%BA%90%E7%A0%81/"/>
+    <id>http://example.com/2023/10/14/Java/HashMap%E6%BA%90%E7%A0%81/</id>
     <published>2023-10-14T02:29:37.000Z</published>
     <updated>2023-10-21T07:05:27.944Z</updated>
     
@@ -229,8 +257,8 @@
   
   <entry>
     <title>远程调用</title>
-    <link href="http://example.com/2023/10/08/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8/"/>
-    <id>http://example.com/2023/10/08/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8/</id>
+    <link href="http://example.com/2023/10/08/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8/"/>
+    <id>http://example.com/2023/10/08/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E8%BF%9C%E7%A8%8B%E8%B0%83%E7%94%A8/</id>
     <published>2023-10-08T03:14:44.000Z</published>
     <updated>2023-10-18T04:08:01.857Z</updated>
     
@@ -240,6 +268,32 @@
       
       
     <summary type="html">&lt;h1 id=&quot;远程调用&quot;&gt;&lt;a href=&quot;#远程调用&quot; class=&quot;headerlink&quot; title=&quot;远程调用&quot;&gt;&lt;/a&gt;远程调用&lt;/h1&gt;&lt;p&gt;本地调用通常指的是，进程内函数之间的相互调用；而远程调用，是进程间函数的相互调用，是进程间通信 IPC（Inter-Proc</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
+    
+    
+    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>服务治理</title>
+    <link href="http://example.com/2023/10/06/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/"/>
+    <id>http://example.com/2023/10/06/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/</id>
+    <published>2023-10-06T07:07:56.000Z</published>
+    <updated>2023-10-29T07:20:07.548Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="服务治理手段"><a href="#服务治理手段" class="headerlink" title="服务治理手段"></a>服务治理手段</h1><p>服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出现问题，还是说这三者中任意一个出现问题，此次调用都会失败。所以就需要服务治理。</p><h2 id="节点管理"><a href="#节点管理" class="headerlink" title="节点管理"></a>节点管理</h2><p>该部分可以分为两点。</p><ol><li>注册中心主动摘除机制。这种机制要求服务提供者定时向注册中心汇报心跳，当两次汇报中间的时间超过规定时间后，就认为服务提供者出现问题，进行摘除，然后把最近的可用服务列表推送给服务消费者。</li><li>服务消费者摘除机制。上述机制可能因为网络问题导致一个正常的服务被摘除，最坏情况所有服务都正常，但是全被摘除。一个更合理的摘除办法就是让服务的调用者去执行。即服务调用者调用失败时，就从本地缓存的可用服务列表中去移除该服务，而不进行实际的摘除。</li></ol><h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>这里边有几个算法：</p><ol><li>随机算法</li><li>轮询算法</li><li>最少活跃调用算法</li><li>一致性Hash算法</li></ol><h2 id="服务路由"><a href="#服务路由" class="headerlink" title="服务路由"></a>服务路由</h2><p>对于服务消费者而言，在内存中的可用服务节点列表中选择哪个节点不仅由负载均衡算法决定，还由路由规则确定。而指定路由规则的主要原因有以下两点：</p><ol><li>服务功能做了变更，需要灰度发布，根据这部分人的使用反馈来决定是否全量发布时，就可以做一些路由规则的限制，比如说使用尾号限制，让特定比例的人群才会访问到新发布的服务节点。</li><li>部分规模比较大的公司，为了业务高可用，会将业务部署在不止一个IDC中，这时候不同IDC之间访问要跨IDC，而距离比较远时延迟就会比较大。所以一次服务调用尽可能选择同一个IDC内部的节点，减少网络开销，提高性能。</li></ol><p>路由的配置规则一般有<strong>静态配置</strong>和<strong>动态配置</strong>。其中静态配置是防止在每一个服务本地的，服务上线后规则不发生改变。而动态配置一般都是放在注册中心，需要修改时改动注册中心的内容即可。</p><h2 id="服务容错"><a href="#服务容错" class="headerlink" title="服务容错"></a>服务容错</h2><p>对于服务调用失败的情况，需要有手段自动恢复，来保证调用成功。常用手段有以下几种：</p><ol><li>失败自动切换。顾名思义，调用失败了后就从最近的可用服务列表中选一个进行重试，可以限制重试次数，但是这种操作要求服务的调用操作是<strong>幂等</strong>的。</li><li>失败通知。服务调用失败后，不再进行重试，而是根据失败返回的信息而决定后续的操作。</li><li>失败缓存。服务调用失败后，并不立即进行重试，而是隔一段时间后再进行重试。</li><li>快速失败。调用失败后就不管了。</li></ol><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《从0开始学微服务》</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;服务治理手段&quot;&gt;&lt;a href=&quot;#服务治理手段&quot; class=&quot;headerlink&quot; title=&quot;服务治理手段&quot;&gt;&lt;/a&gt;服务治理手段&lt;/h1&gt;&lt;p&gt;服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出</summary>
       
     
     
@@ -333,8 +387,8 @@
   
   <entry>
     <title>降级</title>
-    <link href="http://example.com/2023/09/27/%E9%99%8D%E7%BA%A7/"/>
-    <id>http://example.com/2023/09/27/%E9%99%8D%E7%BA%A7/</id>
+    <link href="http://example.com/2023/09/27/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%99%8D%E7%BA%A7/"/>
+    <id>http://example.com/2023/09/27/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%99%8D%E7%BA%A7/</id>
     <published>2023-09-27T02:16:37.000Z</published>
     <updated>2023-09-27T02:18:44.244Z</updated>
     
@@ -386,8 +440,8 @@
   
   <entry>
     <title>服务熔断</title>
-    <link href="http://example.com/2023/09/25/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/"/>
-    <id>http://example.com/2023/09/25/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/</id>
+    <link href="http://example.com/2023/09/25/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/"/>
+    <id>http://example.com/2023/09/25/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E7%86%94%E6%96%AD/</id>
     <published>2023-09-25T05:18:00.000Z</published>
     <updated>2023-09-25T05:19:15.260Z</updated>
     
@@ -442,8 +496,8 @@
   
   <entry>
     <title>分布式场景下的CAP理论</title>
-    <link href="http://example.com/2023/09/21/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/"/>
-    <id>http://example.com/2023/09/21/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/</id>
+    <link href="http://example.com/2023/09/21/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/"/>
+    <id>http://example.com/2023/09/21/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E5%88%86%E5%B8%83%E5%BC%8F%E5%9C%BA%E6%99%AF%E4%B8%8B%E7%9A%84CAP%E7%90%86%E8%AE%BA/</id>
     <published>2023-09-21T06:42:13.000Z</published>
     <updated>2023-09-21T07:44:01.508Z</updated>
     
@@ -489,60 +543,6 @@
     
     
     <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>负载均衡</title>
-    <link href="http://example.com/2023/09/17/%E5%88%86%E5%B8%83%E5%BC%8F/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/"/>
-    <id>http://example.com/2023/09/17/%E5%88%86%E5%B8%83%E5%BC%8F/%E8%B4%9F%E8%BD%BD%E5%9D%87%E8%A1%A1/</id>
-    <published>2023-09-17T06:18:17.000Z</published>
-    <updated>2023-09-22T06:19:23.417Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h1><p>在分布式的环境下，单个模块往往会部署多个，当调用方通过注册发现组件获得了被调用方的网络地址时，会获得多个地址，这时候就要通过负载均衡组件来确定是调用哪一个具体的组件。</p><p>我们可以根据负载均衡策略是否关心请求中携带的信息，即请求是否有状态，将负载均衡策略分为无状态的负载均衡、半状态的负 载均衡和全状态的负载均衡。</p><h2 id="负载均衡的关键点"><a href="#负载均衡的关键点" class="headerlink" title="负载均衡的关键点"></a>负载均衡的关键点</h2><p>负载均衡需要考虑到各个实例性能差异的情况， 让每一个实例都能充分发挥它的能力，不要出现一些实例负载比较高，而另一些实例的负载却 非常低的情况，这样会造成资源浪费。所以负载均衡的第一个关键点是<strong>公平性</strong>。即要关注被调用服务组之间的公平性，不能旱的旱死，涝的涝死。</p><p>负载均衡需要确保外部对后端服务的请求，一定能被路由到可以提供正确服务的实例上。如果后端是有状态的，那么我们就要考虑在请求上携带状态信息，然后根据状态将请求发送到对应的路由上，所以第二个关键点是<strong>正确性</strong>，即对于有状态的服务来说，负载均 衡需要关心请求的状态，将请求调度到能处理它的后端实例上，不要出现不能处理和错误处理 的情况。</p><h2 id="无状态的负载均衡"><a href="#无状态的负载均衡" class="headerlink" title="无状态的负载均衡"></a>无状态的负载均衡</h2><p>无状态的负载均衡指的是所有后端实例都是对等的，不管请求发送到哪个实力上，都会得到正确的结果，所以无状态的负载均衡不需要关心请求的状态。</p><p>如果这些无状态的实例需要处理像存储数据这种状态，则需要将这些状态信息都交由一个中心存储负责，比如MySQL或者Redis，他们不会在本地磁盘存储任何状态信息。以下是两种具体的方案</p><h3 id="轮询"><a href="#轮询" class="headerlink" title="轮询"></a>轮询</h3><p>轮询的负载均衡策略非常简单，只需要将请求按顺序分配给多个实例，不用再做其他的处理。轮询在路由时，不利用请求的状态信息，属于无状态的负载均衡策略，所以它不能用于有状态 实例的负载均衡器。</p><h3 id="权重轮询"><a href="#权重轮询" class="headerlink" title="权重轮询"></a>权重轮询</h3><p>权重轮询的负载均衡策略是将每一个后端实例分配一个权重，分配请求的数量和实例的权重成 正比轮询。例如有两个实例 A，B，假设我们设置 A 的权重为 20，B 的权重为 80，那么负载 均衡会将 20% 的请求数量分配给 A，80 % 的请求数量分配给 B。</p><h2 id="半状态的负载均衡"><a href="#半状态的负载均衡" class="headerlink" title="半状态的负载均衡"></a>半状态的负载均衡</h2><p>半状态的负载均衡指的是，虽然负载均衡策略利用请求的状态信息进行路由，但是仅仅进行简单的规则处理，比如 Hash 运算加求模来路由请求，它不保证路由的正确性，这个正确性由后端实例来保证。</p><p>一些实例会在内存中存储一些状态数据来提升系统性能，如果一个请求被分配到错误的路由中，可以通过中心存储来读取所需要的数据。</p><p>半状态的负载均衡将请求按一定的策略进行路由，后端实例可以利用路 由规则来进行优化。</p><h3 id="Hash"><a href="#Hash" class="headerlink" title="Hash"></a>Hash</h3><p>Hash 负载均衡策略是指将请求的状态信息，按一定的 Hash 算法固定分配到一个实例上，例 如，按请求的来源 IP 地址或者用户的 ID，将同一个来源 IP 地址或者用户 ID 的请求固定到一 个实例上。</p><p>存在的问题：如果机器数量发生改变，则请求和实例的分配关系则会发生变化，影响正确性。</p><h3 id="一致性Hash"><a href="#一致性Hash" class="headerlink" title="一致性Hash"></a>一致性Hash</h3><p>一致性 Hash可以解决Hash模式下的问题。</p><p>假设Hash环的大小为2^32，那么我们先将0~2^32均匀的分布在Hash环上，然后将所有的实例按照唯一标识来计算他们在环上的位置。</p><p>对于每个请求，也采用同样的方式，都是对2^32取模，然后计算位置。如果该位置没有节点，那么就顺时针往下走，知道找到第一个有节点的位置，该请求就交由该节点执行。</p><p>这样的好处是始终对2^32取模，不管有多少个节点变动，始终不影响结果。</p><h2 id="全状态的负载均衡"><a href="#全状态的负载均衡" class="headerlink" title="全状态的负载均衡"></a>全状态的负载均衡</h2><p>全状态的负载均衡是指，负载均衡策略不仅利用请求的状态信息进行路由，并且在后端实例有 状态的情况下，依然会保证路由的正确性。</p><p>全状态的负载均衡一般以路由服务的形式存在，在路由服务里面，都会存储后端实例 ID 和状 态信息的索引，在进行请求路由的时候，路由服务从请求的状态信息中获得索引的标识，通过 查询索引获得后端实例的 ID，然后再进行路由。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;负载均衡&quot;&gt;&lt;a href=&quot;#负载均衡&quot; class=&quot;headerlink&quot; title=&quot;负载均衡&quot;&gt;&lt;/a&gt;负载均衡&lt;/h1&gt;&lt;p&gt;在分布式的环境下，单个模块往往会部署多个，当调用方通过注册发现组件获得了被调用方的网络地址时，会获得多个地址，这时候就要通过</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>路由器结构</title>
-    <link href="http://example.com/2023/09/15/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E7%BB%93%E6%9E%84/"/>
-    <id>http://example.com/2023/09/15/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E8%B7%AF%E7%94%B1%E5%99%A8%E7%BB%93%E6%9E%84/</id>
-    <published>2023-09-15T06:19:49.000Z</published>
-    <updated>2023-09-21T06:41:23.193Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="结构"><a href="#结构" class="headerlink" title="结构"></a>结构</h1><h1 id="路由器结构"><a href="#路由器结构" class="headerlink" title="路由器结构"></a>路由器结构</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230511101229903.png" alt="image-20230511101229903" style="zoom:80%;" /><p>路由器由输入端口，交换结构，路由选择处理器以及输出端口组成。输入端口负责接收数据报，并且在这里决定好要怎么进行转发，然后经过交换结构，到达输出端口。即在输入端口这里已经找到了他的下一跳的地址，然后传送给交换结构，交换结构只需要根据数据去找对应的输出端口即可，可以大大减小路由表的大小。</p><p>而具体怎么找到该送往那个端口，最简单的是做一个map，包含了所有的映射，但是由于映射数量达到上百亿，不可取。另一种方案是：根据最长前缀匹配，比如说0000发网接口0，0001发网接口1，以此类推。</p><p>这里，输入端口查找的是数据报目的的ip，可能需要经过多个路由器来进行转发，才能到达目地地址。</p><h1 id="交换"><a href="#交换" class="headerlink" title="交换"></a>交换</h1><p>交换技术有三种，经内存的交换，经总线交换，互联网络交换。</p><h2 id="经内存的交换"><a href="#经内存的交换" class="headerlink" title="经内存的交换"></a>经内存的交换</h2><p>这种方案下，输入端口和输出端口的功能有点像传统操作系统中的I&#x2F;O，当一个分组到达端口，改端口通过中断向路由选择处理器发送信号，然后将分组复制到处理器内存当中，路由选择器从分组的首部提取到目的地址，在转发表找适当的输出端口，再将该分组复制到输出端口的缓存当中。</p><h2 id="经总线交换"><a href="#经总线交换" class="headerlink" title="经总线交换"></a>经总线交换</h2><p>这种方案下，输入端口经一根总线将分组直接发送到输出端口，不需要路由选择处理器的干预。这种方案下，输入端口需要预先计划一个交换机内部标签，指示本地输出端口，该分组可以由所有输出端口接受，但是只有标签匹配的才会保留，标签在输出端口被去除。单一总线会对性能造成影响</p><h2 id="经互联网络交换"><a href="#经互联网络交换" class="headerlink" title="经互联网络交换"></a>经互联网络交换</h2><p>这种方案是用2N条总线连接输入和输出端口，总线可以通过交换设备自由闭合，比如A发往X的数据，可以调整只打开A和X，但是如果有多个数据报都发往X，那么在X之前还是需要排队。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《计算机网络自顶向下》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;结构&quot;&gt;&lt;a href=&quot;#结构&quot; class=&quot;headerlink&quot; title=&quot;结构&quot;&gt;&lt;/a&gt;结构&lt;/h1&gt;&lt;h1 id=&quot;路由器结构&quot;&gt;&lt;a href=&quot;#路由器结构&quot; class=&quot;headerlink&quot; title=&quot;路由器结构&quot;&gt;&lt;/a&gt;路由器结</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="计算机网络" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
-    
-    <category term="网络层" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/%E7%BD%91%E7%BB%9C%E5%B1%82/"/>
-    
-    
-    <category term="计算机网络" scheme="http://example.com/tags/%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%BD%91%E7%BB%9C/"/>
     
   </entry>
   
