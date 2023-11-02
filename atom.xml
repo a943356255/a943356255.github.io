@@ -42,28 +42,6 @@
   </entry>
   
   <entry>
-    <title>JDK动态代理和CGlib动态代理</title>
-    <link href="http://example.com/2023/10/31/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8CCGlib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/"/>
-    <id>http://example.com/2023/10/31/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8CCGlib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</id>
-    <published>2023-10-31T02:57:21.000Z</published>
-    <updated>2023-10-31T07:00:50.268Z</updated>
-    
-    <content type="html"><![CDATA[<p>Spring默认的代理方式有JDK动态代理和CGLib动态代理这两种方式。而JDK的动态代理是Spring的默认方式。</p><p>基于JDK的动态代理要求被代理类必须实现某一个接口，然后</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;Spring默认的代理方式有JDK动态代理和CGLib动态代理这两种方式。而JDK的动态代理是Spring的默认方式。&lt;/p&gt;
-&lt;p&gt;基于JDK的动态代理要求被代理类必须实现某一个接口，然后&lt;/p&gt;
-</summary>
-      
-    
-    
-    
-    
-  </entry>
-  
-  <entry>
     <title>Spring事务失效场景</title>
     <link href="http://example.com/2023/10/31/Spring%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%9C%BA%E6%99%AF/"/>
     <id>http://example.com/2023/10/31/Spring%E4%BA%8B%E5%8A%A1%E5%A4%B1%E6%95%88%E5%9C%BA%E6%99%AF/</id>
@@ -198,6 +176,32 @@
     
     
     <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>JDK动态代理和CGlib动态代理</title>
+    <link href="http://example.com/2023/10/23/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8CCGlib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/"/>
+    <id>http://example.com/2023/10/23/JDK%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86%E5%92%8CCGlib%E5%8A%A8%E6%80%81%E4%BB%A3%E7%90%86/</id>
+    <published>2023-10-23T02:57:21.000Z</published>
+    <updated>2023-11-02T02:54:16.814Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="JDK动态代理"><a href="#JDK动态代理" class="headerlink" title="JDK动态代理"></a>JDK动态代理</h1><p>JDK动态代理是Spring动态代理的默认实现方法。如果我们的类实现了一个接口，那么Spring就会使用这种方法，因为使用JDK动态代理的一个缺陷就是代理的类必须实现接口。</p><p><code>JDK</code>实现动态代理需要两个组件，首先第一个就是<code>InvocationHandler</code>接口。我们在使用<code>JDK</code>的动态代理时，需要编写一个类，去实现这个接口，然后重写<code>invoke</code>方法，这个方法其实就是我们提供的代理方法。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment"> * 这里是一个动态的代理类，只需要传入对应的类，就会执行对应类的对应方法</span></span><br><span class="line"><span class="comment"> * 也就是说我们只用实现这一个代理类就行了，我们所有相同的代理实现都可以用该类</span></span><br><span class="line"><span class="comment"> */</span></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">MyInvocationHandler</span> <span class="keyword">implements</span> <span class="title class_">InvocationHandler</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// 目标对象</span></span><br><span class="line">    <span class="keyword">private</span> Object target;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="title function_">MyInvocationHandler</span><span class="params">(Object target)</span> &#123;</span><br><span class="line">        <span class="built_in">this</span>.target = target;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line"><span class="comment">/**</span></span><br><span class="line"><span class="comment">     * 这里的Method，我们通过new Proxy创建的一个代理对象，调用它的哪个方法，这里传过来的就是哪个</span></span><br><span class="line"><span class="comment">     */</span></span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> Object <span class="title function_">invoke</span><span class="params">(Object o, Method method, Object[] args)</span> <span class="keyword">throws</span> Throwable &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;------插入前置通知代码-------------&quot;</span>);</span><br><span class="line">        <span class="comment">// 执行相应的目标方法，rs是方法的返回值</span></span><br><span class="line">        <span class="comment">// 这里是执行被代理对象的方法。由于被代理对象是传进来的，所以一个方法就可以了。</span></span><br><span class="line">        <span class="type">Object</span> <span class="variable">rs</span> <span class="operator">=</span> method.invoke(target, args);</span><br><span class="line">        System.out.println(<span class="string">&quot;------插入后置处理代码-------------&quot;</span>);</span><br><span class="line">        <span class="keyword">return</span> rs;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>然后<code>JDK</code>动态代理需要使用的第二个组件就是<code>Proxy</code>这个类，我们可以通过这个类的<code>newProxyInstance</code>方法，返回一个代理对象。生成的代理类实现了原来那个类的所有接口，并对接口的方法进行了代理，我们通过代理对象调用这些方法时，底层将通过反射，调用我们实现的<code>invoke</code>方法。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">IHello</span> <span class="variable">iHello2</span> <span class="operator">=</span> (IHello) Proxy.newProxyInstance(IHello.class.getClassLoader(), <span class="comment">// 加载接口的类加载器</span></span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">Class</span>[]&#123;IHello.class&#125;, <span class="comment">// 一组接口</span></span><br><span class="line">                <span class="keyword">new</span> <span class="title class_">MyInvocationHandler</span>(<span class="keyword">new</span> <span class="title class_">HelloImpl</span>())); <span class="comment">// 自定义的InvocationHandle</span></span><br><span class="line"><span class="comment">// 这里执行哪个方法，传给MyInvocationHandler的Method就是哪个方法</span></span><br><span class="line">iHello2.sayHello();</span><br></pre></td></tr></table></figure><p>JDK动态代理的要求：</p><ul><li>委托类和代理类实现的公共接口</li><li>实现公共接口的具体委托类</li><li>InvocationHandler接口被Proxy类回调处理，一般实现 InvocationHandler 接口的类具有委托类引用，接口方法 invoke 中添加公共代码并调用委托类的接口方法</li><li>JDK提供生成动态代理类的核心类Proxy</li></ul><p>JDK的动态代理，是创建了一个匿名类来继承Proxy类，然后实现了需要被代理的接口。因为Java只能单继承，所以代理类不能通过继承来实现。</p><h1 id="CGLib动态代理"><a href="#CGLib动态代理" class="headerlink" title="CGLib动态代理"></a>CGLib动态代理</h1><p>若需要代理的类没有实现接口，此时<code>JDK</code>的动态代理将没有办法使用，于是<code>Spring</code>会使用<code>CGLib</code>的动态代理来生成代理对象。</p><p>CGLib是基于继承的，如果对应的类无法被继承，或者对应方法无法被重写，那么CGLib也无法生成代理对象。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;JDK动态代理&quot;&gt;&lt;a href=&quot;#JDK动态代理&quot; class=&quot;headerlink&quot; title=&quot;JDK动态代理&quot;&gt;&lt;/a&gt;JDK动态代理&lt;/h1&gt;&lt;p&gt;JDK动态代理是Spring动态代理的默认实现方法。如果我们的类实现了一个接口，那么Spring就会</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Spring" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Spring/"/>
+    
+    
+    <category term="Spring" scheme="http://example.com/tags/Spring/"/>
     
   </entry>
   
