@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-11-02T02:47:28.431Z</updated>
+  <updated>2023-11-03T08:12:26.526Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL的最左前缀原则</title>
+    <link href="http://example.com/2023/11/03/MySQL%E7%9A%84%E6%9C%80%E5%B7%A6%E5%89%8D%E7%BC%80%E5%8E%9F%E5%88%99/"/>
+    <id>http://example.com/2023/11/03/MySQL%E7%9A%84%E6%9C%80%E5%B7%A6%E5%89%8D%E7%BC%80%E5%8E%9F%E5%88%99/</id>
+    <published>2023-11-03T08:09:51.000Z</published>
+    <updated>2023-11-03T08:12:26.526Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="最左匹配原则"><a href="#最左匹配原则" class="headerlink" title="最左匹配原则"></a>最左匹配原则</h1><p>比如我们建立了一个（姓名，年龄）的索引，那么它可以用来匹配按名字的查找，但是按照年龄就不行。这个最左前缀可以是联合索引的最左N个字段，也可以是字符串索引的最左M个字符。</p><p>MySQL的索引中，有一种形式，叫做联合索引。即它可以创建多个字段联合起来的索引。语法如下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">create index index_name on table_name(column_1, column_2, column_3)</span><br></pre></td></tr></table></figure><p>这种联合索引的好处在于：</p><ol><li><p>创建联合索引，<strong>相当于</strong>创建了column_1，（column_1，column_2），（column_1，column_2，column_3）这三个索引。但是实际上只存在一个索引。这可以大大减小插入数据时修改索引所消耗的时间。</p></li><li><p>存在联合索引时，如果只查询联合索引这些字段，可以省去回表的时间。</p></li><li><p>通过联合索引可以筛选出来更少的数据。比如说下面的查询：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select from table where col1 = 1 and col2 = 2 and col3 = 3</span><br></pre></td></tr></table></figure><p>如果只有第一个索引，那么查询完满足第一个条件的数据后，还需要回表去看是否满足第二个条件，第二个条件满足完后还需要看第三个条件。但是如果有联合索引，可以直接查出来满足所有的，这里其实也是满足不回表。</p></li></ol><h1 id="索引结构"><a href="#索引结构" class="headerlink" title="索引结构"></a>索引结构</h1><p>假设存在联合索引（a，b，c），那么索引结构中，首先是按照a字段有序的，当a相同的时候，b是有序的，b相同后c才是有序的。但是整体来看，索引中b和c都是无序的。</p><p>所以说，当出现以下查询时</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select from table where b = 1 and c = 1</span><br></pre></td></tr></table></figure><p>是无法走索引的。</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select from table where b = 1 and c = 1 and a = 1</span><br></pre></td></tr></table></figure><p>当有a的时候，是可以走索引的。因为MySQL执行器是有优化的，会把sql改成以下：</p><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">select from table where a = 1 and b = 1 and c = 1</span><br></pre></td></tr></table></figure><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231103161043899.png" alt="image-20231103161043899"></p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;最左匹配原则&quot;&gt;&lt;a href=&quot;#最左匹配原则&quot; class=&quot;headerlink&quot; title=&quot;最左匹配原则&quot;&gt;&lt;/a&gt;最左匹配原则&lt;/h1&gt;&lt;p&gt;比如我们建立了一个（姓名，年龄）的索引，那么它可以用来匹配按名字的查找，但是按照年龄就不行。这个最左前缀可以</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    <category term="索引" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E7%B4%A2%E5%BC%95/"/>
+    
+    
+    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL驱动加载</title>
@@ -505,33 +533,6 @@
       
       
     <summary type="html">&lt;h1 id=&quot;降级&quot;&gt;&lt;a href=&quot;#降级&quot; class=&quot;headerlink&quot; title=&quot;降级&quot;&gt;&lt;/a&gt;降级&lt;/h1&gt;&lt;p&gt;上面的熔断，是为了在系统过载时不发生雪崩，限流是为了流量较大时，系统不发生过载。但是这两者都不会区分该服务是核心业务还是非核心业务。而降级，</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>限流</title>
-    <link href="http://example.com/2023/09/26/%E9%99%90%E6%B5%81/"/>
-    <id>http://example.com/2023/09/26/%E9%99%90%E6%B5%81/</id>
-    <published>2023-09-26T05:48:45.000Z</published>
-    <updated>2023-09-26T05:50:25.563Z</updated>
-    
-    <content type="html"><![CDATA[<p>如果系统只有熔断机制，当流量激增的时候，就相当于被动的等待熔断机制的触发，此时就需要另外的手段来防止系统负载过高，限流就是一个很好的方案，要主动出击，防止服务挂掉。</p><h1 id="为什么需要限流"><a href="#为什么需要限流" class="headerlink" title="为什么需要限流"></a>为什么需要限流</h1><ol><li>熔断处理的方式不够优雅。熔断是等到系统过载之后才触发的，即先发生过载，等系统故障后才会介入，让系统恢复。这样的处理方式会导致系统的不必要抖动。</li><li>熔断机制是最后的底线。虽然熔断可以解决雪崩问题，但是它应该作为系统稳定性保障的 最后一道防线，正确使用熔断的思路应该是，在其他方法用尽 之后，如果过载问题依旧存在，这时熔断才会被动触发。</li><li>在快速失败的时候，需要能考虑调用方的重要程度。熔断是调用方依据响应结果自适应来触发的，在被调用方出现过载的时候，所有的调用方都将受到影响。但是不同接口的重要程度不一样，需要保证有些接口优先处理。</li><li>在多租户的情况下，不能让一个租户的问题影响到其他的租户，我们需要对每一个租户分配一定的配额，谁超过了就对谁进行限流，保证租户之间的隔离性。</li></ol><h1 id="如何实现限流"><a href="#如何实现限流" class="headerlink" title="如何实现限流"></a>如何实现限流</h1><p>限流一般有固定的限流算法，有以下几种：</p><h2 id="固定窗口和滑动窗口"><a href="#固定窗口和滑动窗口" class="headerlink" title="固定窗口和滑动窗口"></a>固定窗口和滑动窗口</h2><p>固定窗口就是定义一个“固定”的统计周期，比如 10 秒、30 秒或者 1 分钟，然后在每个周 期里，统计当前周期中被接收到的请求数量，经过计数器累加后，如果超过设定的阈值就触发 限流，直到进入下一个周期后，计数器清零，流量接收再恢复正常状态，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230926104828548.png" alt="image-20230926104828548" style="zoom:80%;" /><p>存在的问题：</p><ol><li><p>抗抖动性差。由于流量突增使请求超过预期，导致流量可能在一个统计周期的前 10 ms 内就达到了 100 次，给服务的处理能力造成一定压力，同时后面的 1990 ms 将会触发限流。 </p><p>这个问题虽然可以通过减小统计周期来改善，但是因为统计周期变小，每个周期的阈值也会变 小，一个小的流量抖动就会导致限流的发生，所以系统的抗抖动能力就变得更差了。</p></li><li><p>如果上一个统计周期的流量集中在最后 10 ms ，而现在这个统计周期的流量集中在前 10 ms ，那么这 20 ms 的时间内会出现 200 次调用，这就超过了我们预期的 2 秒内不能超 过 100 次请求的目的了。这时候，我们就需要使用“滑动窗口”算法来改善这个问题了。</p></li></ol><p>滑动窗口就是固定窗口的优化，它对固定窗口做了进一步切分，将统计周期的粒度切分 得更细，比如 1 分钟的固定窗口，切分为 60 个 1 秒的滑动窗口，然后统计的时间范围随着时 间的推移同步后移，如下图所示。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230926110157298.png" alt="image-20230926110157298" style="zoom:80%;" /><p>但是这里要注意一个问题，如果滑动窗口的统计窗口切分得过细，会增加系统性能和资源损耗 的压力。同时，滑动窗口和固定窗口一样面临抗抖动性差的问题。</p><h2 id="漏桶"><a href="#漏桶" class="headerlink" title="漏桶"></a>漏桶</h2><p>如下图所示，“漏桶”就像一个漏斗，进来的水量就像访问流量一样，而出去的水量 就像是我们的系统处理请求一样。当访问流量过大时，这个漏斗中就会积水，如果水太多了就会溢出。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230926110501239.png" alt="image-20230926110501239"></p><p>该算法相对于滑动窗口和固定窗口做了两个改进点，第一，增加了一个桶来缓存请求，在流量突增的时候，可以先缓存起来，直到超过桶的容量才触发限流；第二，对出口的流量上限做了限制，使上游流量的抖动不会扩散到下游服务。</p><p>漏桶提供流量整形能力有一定的代价，超过漏桶流出速率的请求，需要先在漏桶中排队等待，其中流出速率是漏桶限流的防线，一般会设置得相对保守，可是这样就无法完全利用系 统的性能，就增加了请求的排队时间。</p><h2 id="令牌桶"><a href="#令牌桶" class="headerlink" title="令牌桶"></a>令牌桶</h2><p>令牌桶算法的核心是固定“进口”速率，限流器在一个一定容量的桶内，按照一定的速率放入 Token ，然后在处理程序去处理请求的时候，需要拿到 Token 才能处理；如果拿不到，就进行限流。</p><p>因此，当大量的流量进入时，只要令牌的生成速度大于等于请求被处理的速度，那么此时系统处理能力就是极限的。<img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20230926112343201.png" alt="image-20230926112343201" style="zoom:80%;" /></p><p>令牌桶算法相对于漏桶，虽然提高了系统的资源利用率，但是却放弃了一定的流量整形能力，也就是当请求流量突增的时候，上游流量的抖动可能会扩散到下游服务。</p><h1 id="单节点限流"><a href="#单节点限流" class="headerlink" title="单节点限流"></a>单节点限流</h1><p>单节点限流比较简单，可以基于内存来做，需要注意两点：</p><ol><li><p>限流机制作用的位置是客户端还是服务端，即选择客户端限流还是服务端限流。一般来说，熔断机制作用的位置是客户端，限流机制作用的位置更多是服务端，因为熔断更强调自适应，让作用点分散在客户端是没有问题的，而限流机制则更强调控制，它的作用点在服务端的控制能力会更强。</p><p>将作用点放置在服务端，会给服务端带来性能压力。如果将作用点放置在客户端，这就是一个天然的分布式模式，每一个调用方的客户端执行自己的限流逻辑，而将作用点放置在服务端时，服务端要执行所有请求的限流逻辑， 就需要更多的内存来缓存请求，以及更多的 CPU 来执行限流逻辑。</p></li><li><p>如果触发限流后，我们应该直接抛弃请求还是阻塞等待，即否决式限流和阻塞式限流。一般来说，如果我们可以控制流量产生的速率，那么阻塞式限流就是一个更好的选择，因为它既可以实现限流的目的，又不会抛弃请求；</p><p>如果我们不能控制流量产生的速率，那么阻塞式限流将会因为请求积压，出现大量系统资源占用的情况，很容易引发雪崩，这时否决式限流将是 更好的选择。</p></li></ol><h1 id="分布式限流"><a href="#分布式限流" class="headerlink" title="分布式限流"></a>分布式限流</h1><p>为了系统的高可用，一般每个服务都会有多个实例，所以在进行限流时，需要协调该服务的多个实例，进行统一限流。主要方案有以下几点。</p><p>1、进行集中限流。该方案可以借助一个外部存储，比如Redis，然后采用令牌桶算法。但是会带来问题，每次请求都需要先去Redis获取令牌，会导致Redis成为性能瓶颈，并且限流器故障会导致所有请求都被拒绝，而且每次请求都多了一次网络调用，增加时延。</p><p>2、将分布式限流进行本地化处理。限流器在获得一个服务限额的总阈值后， 将这个总阈值按一定的策略分配给服务的实例，每一个实例依据分配的阈值进行单节点限流。这里要考虑如果每个服务器的配置不一样，那么分配的流量就需要不同.</p><p>一个折中的方案：该方案建立在集中式限流的基础上，为了解决每次请求 都需要，通过网络访问限流器获取令牌的问题，客户端只有在令牌数不足时，才会通过限流器 获取令牌，并且一次获取一批令牌。即令牌由集中式限流器生成，但是具体的限流策略是在每个客户端本地处理。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;如果系统只有熔断机制，当流量激增的时候，就相当于被动的等待熔断机制的触发，此时就需要另外的手段来防止系统负载过高，限流就是一个很好的方案，要主动出击，防止服务挂掉。&lt;/p&gt;
-&lt;h1 id=&quot;为什么需要限流&quot;&gt;&lt;a href=&quot;#为什么需要限流&quot; class=&quot;headerl</summary>
       
     
     
