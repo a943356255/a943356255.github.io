@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-11-03T08:12:26.526Z</updated>
+  <updated>2023-11-21T03:18:29.371Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,142 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>2^32 怎么表示4GB</title>
+    <link href="http://example.com/2023/11/21/Java%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%86%85%E5%AD%98%E5%8E%8B%E7%BC%A9/"/>
+    <id>http://example.com/2023/11/21/Java%E8%99%9A%E6%8B%9F%E6%9C%BA%E7%9A%84%E5%86%85%E5%AD%98%E5%8E%8B%E7%BC%A9/</id>
+    <published>2023-11-21T03:11:54.000Z</published>
+    <updated>2023-11-21T03:18:29.371Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="2-32-怎么表示4GB"><a href="#2-32-怎么表示4GB" class="headerlink" title="2^32 怎么表示4GB"></a>2^32 怎么表示4GB</h1><p>一般来说，32位最大支持4GB内存，怎么计算出来的呢？</p><p>如果按照这样计算： 2^32 bit &#x3D; 2^29 byte &#x3D; 2^19 KB &#x3D; 2^9 MB &#x3D; 0.5 GB，其实并不够4GB。</p><p>但其实，计算机规定8bit&#x3D;1byte 就是1字节&#x3D;8位，内存的大小就根据格子的多少来进行计算的。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231121111621868.png" alt="image-20231121111621868" style="zoom:67%;" /><p>实际上，4GB &#x3D;  2^2 GB &#x3D; 2^12 MB &#x3D; 2^22 KB &#x3D; 2^32 byte &#x3D; 2^35 bit。也就是说，4GB需要35位。</p><p><strong>实际上内存是把8个bit排成1组， 每1组成为1个单位， 大小是1byte(字节）， cpu每一次只能访问1个byte， 而不能单独去访问具体的1个小格子(bit). 1个byte字节就是内存的最小的IO单位。</strong></p><p>即这里3^32次方，后面的单位并不是bit，而是byte。</p><p>计算机操作系统会给内存每1个字节分配1个内存地址, cpu只需要知道某个数据类型的地址, 就可以直接去到读影的内存位置去提取数据了。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;2-32-怎么表示4GB&quot;&gt;&lt;a href=&quot;#2-32-怎么表示4GB&quot; class=&quot;headerlink&quot; title=&quot;2^32 怎么表示4GB&quot;&gt;&lt;/a&gt;2^32 怎么表示4GB&lt;/h1&gt;&lt;p&gt;一般来说，32位最大支持4GB内存，怎么计算出来的呢？&lt;/p</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+  </entry>
+  
+  <entry>
+    <title>Java的方法调用</title>
+    <link href="http://example.com/2023/11/20/Java%E7%9A%84%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8/"/>
+    <id>http://example.com/2023/11/20/Java%E7%9A%84%E6%96%B9%E6%B3%95%E8%B0%83%E7%94%A8/</id>
+    <published>2023-11-20T01:21:21.000Z</published>
+    <updated>2023-11-20T01:22:38.471Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="方法调用"><a href="#方法调用" class="headerlink" title="方法调用"></a>方法调用</h3><p>Java中方法的重载，在编译过程中可以完成识别，而具体调用哪一个方法，Java编译器会根据所传入<strong>参数的声明类型（注意与实际类型区分比如声明的是一个List，实际实例化传入的可能是一个ArrayList）</strong>来选取重载方法。选取过程分以下三个阶段：</p><ol><li>在不考虑对基本类型自动装拆箱（auto-boxing，auto-unboxing），以及可变长参数的情况下选取重载方法；（这里是只找普通方法）</li><li>如果在第 1 个阶段中没有找到适配的方法，那么在允许自动装拆箱，但不允许可变长参数的情况下选取重载方法；（加入自动装箱拆箱的方法）</li><li>如果在第 2 个阶段中没有找到适配的方法，那么在允许自动装拆箱以及可变长参数的情况 下选取重载方法。（所有方法）</li></ol><p>如果 Java 编译器在同一个阶段中找到了多个适配的方法，那么它会在其中选择一个最为贴切的，而决定贴切程度的一个关键就是<strong>形式参数类型的继承关系</strong>。示例如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span> <span class="title function_">invoke</span><span class="params">(Object obj, Object... args)</span> &#123; ... &#125;</span><br><span class="line"><span class="keyword">void</span> <span class="title function_">invoke</span><span class="params">(String s, Object obj, Object... args)</span> &#123; ... &#125;</span><br><span class="line">invoke(<span class="literal">null</span>, <span class="number">1</span>); <span class="comment">// 调用第二个invoke方法</span></span><br><span class="line">invoke(<span class="literal">null</span>, <span class="number">1</span>, <span class="number">2</span>); <span class="comment">// 调用第二个invoke方法</span></span><br><span class="line">invoke(<span class="literal">null</span>, <span class="keyword">new</span> <span class="title class_">Object</span>[]&#123;<span class="number">1</span>&#125;); <span class="comment">// 只有手动绕开可变长参数的语法糖</span></span><br></pre></td></tr></table></figure><p>为什么会调用第二个呢？因为String 类型 是Object 的子类，所以编译器会认为它更贴合（范围更小）。</p><p>而如果子类继承父类，而且有一个方法和父类中非私有的方法同名，而且参数相同，如果两个方法都是静态的，那么子类中会隐藏父类的方法，如果不是静态切都不是私有的，那么子类的方法相当于重写了父类的方法。</p><h4 id="JVM-的静态绑定和动态绑定"><a href="#JVM-的静态绑定和动态绑定" class="headerlink" title="JVM 的静态绑定和动态绑定"></a>JVM 的静态绑定和动态绑定</h4><p>Java 虚拟机识别方法的关键在于类名、方法名以及方法描述符（method descriptor）。方法描述符，是由方法的<strong>参数类型</strong>以及<strong>返回类型</strong>所构成。在同一个类中，如果同时出现多个名字相同且描述符也相同的方法，那么 Java 虚拟机会在<strong>类的验证阶段</strong>报错。</p><p>因为描述符包含了返回类型，所以说并不会限制同一个类中有方法名和参数一样，但返回值不一样的方法。而在上述提到的子类有一个父类同名，同返回值，同参数的非私有，非静态方法，才会被虚拟机判定为重写。</p><p>因为重载方法在编译阶段已经区分，可以认为虚拟机层面没有重载的概念。因此，<strong>重载也被称为静态绑定</strong>（static binding），或者编译时多态 （compile-time polymorphism）；而<strong>重写则被称为动态绑定</strong>（dynamic binding）。</p><p>这个说法在虚拟机语境下并不完全正确，因为某个类的重载方法可能会被它的子类所重写，因此，Java编译器会对所有非私有方法的调用，编译为需要动态绑定的类型（考虑子类继承父类，并重写父类的方法。此时通过子类调用重写的方法，并不能在编译期间确定）。</p><p>确切地说，Java 虚拟机中的<strong>静态绑定指的是在解析时便能够直接识别目标方法的情况</strong>，而<strong>动态绑定则指的是需要在运行过程中根据调用者的动态类型来识别目标方法</strong>的情况。</p><h4 id="调用指令的符号引用"><a href="#调用指令的符号引用" class="headerlink" title="调用指令的符号引用"></a>调用指令的符号引用</h4><p>在编译过程中，并不知道目标方法的具体内存地址（编译阶段该对象并没有被实例化，似乎没实例化说法不太准确，gpt说是并不需要知到。有了符号引用后，在运行时，JVM会将符号引用解析为实际的地址引用）。</p><p>因此，Java 编译器会暂时用<strong>符号引用（这个符号引用应该就是暂时指代该方法）</strong>来表示该目标方法。这一符号引用包括目标方法所在的<strong>类</strong>或<strong>接口</strong>的名字，以及目标方法的<strong>方法名</strong>和<strong>方法描述符</strong>。</p><p>符号引用存储在 class 文件的常量池之中。根据目标方法是否为接口方法，这些引用可分为接口符号引用和非接口符号引用。</p><h4 id="虚方法调用"><a href="#虚方法调用" class="headerlink" title="虚方法调用"></a>虚方法调用</h4><p>Java 里所有非私有实例方法调用都会被编译成 invokevirtual 指令， 而接口方法调用都会被编译成 invokeinterface 指令。这两种指令，均属于 Java 虚拟机中的 <strong>虚方法调用</strong>。</p><p>Java 虚拟机需要根据调用者的动态类型，来确定虚方法调用的目标方法。这个过程我们称之为<strong>动态绑定</strong>。（这里，调用者的动态类型，应该是受Java多态的影响，即List list &#x3D; new ArrayList这种写法，List是一个接口，并不知道它的实例化是哪一个，需要根据具体的动态类型来决定调用的是它的哪一个实现）</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Test</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">Test</span> <span class="variable">test</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Test</span>();</span><br><span class="line">        </span><br><span class="line">        <span class="comment">// 这里的打印结果是123</span></span><br><span class="line">        test.testExe();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">testExe</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="type">Father</span> <span class="variable">father</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Child</span>();</span><br><span class="line">        father.fatherMethod();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Father</span> &#123;</span><br><span class="line">    <span class="type">int</span> test;</span><br><span class="line">    <span class="type">int</span> name;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fatherMethod</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;456&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Child</span> <span class="keyword">extends</span> <span class="title class_">Father</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">childMethod</span><span class="params">()</span> &#123;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">fatherMethod</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;123&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><h4 id="方法表（用于优化动态绑定，即虚方法）"><a href="#方法表（用于优化动态绑定，即虚方法）" class="headerlink" title="方法表（用于优化动态绑定，即虚方法）"></a>方法表（用于优化动态绑定，即虚方法）</h4><p>Java 虚拟机中采取了一种用空间换取时间的策略来实现动态绑定。它为每个类生成一张方法表，用以快速定位目标方法。</p><p>方法表本质上是一个数组，每个数组元素指向一个当前类及其祖先类中非私有的实例方法。这些方法可能是具体的，可执行的方法，也可能是抽象的方法。方法表有以下两个特征：</p><ol><li>子类的方法表中包含了父类的方法表中的所有方法。</li><li>子类重写了父类方法时，该方法在子类中的索引值与父类中的一样。即通过索引只能找到子类的方法。</li></ol><p>在符号引用解析为实际引用的时候，对于静态绑定的调用而言，实际引用是直接指向具体的目标方法，而动态绑定，则是实际引用则是指向了方法表的索引值（并不仅是索引值）。</p><p>在执行过程中，Java 虚拟机将获取调用者的实际类型，并在该实际类型的虚方法表中，根据 索引值获得目标方法。这个过程便是动态绑定。</p><p>使用了方法表的动态绑定与静态绑定相比，仅仅多出几个内存解引用操作：访问栈上的调用者，读取调用者的动态类型，读取该类型的方法表，读取方法表中某个索引值所对应的目标方法。</p><p>这种优化仅存在于<strong>解释执行</strong>中，或者<strong>即时编译代码的最坏情况</strong>中。这是因为即时编译还有另外两种更好的优化，<strong>内联缓存</strong> （inlining cache）和<strong>方法内联</strong>（method inlining）。</p><h4 id="内联缓存"><a href="#内联缓存" class="headerlink" title="内联缓存"></a>内联缓存</h4><p>它能够缓存虚方法调用中调用者的<strong>动态类型</strong>，以及<strong>该类型所对应的目标方法</strong>。在之后的执行过程中，如果碰到已缓存的类型，内联缓存便会直接 调用该类型所对应的目标方法。如果没有碰到已缓存的类型，内联缓存则会退化至使用基于方法表的动态绑定，即当内联缓存没有命中的情况下，Java 虚拟机需要重新使用方法表进行动态绑定。</p><p>Java虚拟机采用的是单态的，即只会缓存对应方法的一种实例，那么在一种极端的情况下，两个不同的类型频繁调同一个 方法，就会导致缓存被频繁的切换，而且每次都需要去重新绑定一下。情况如下：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title class_">Animal</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">makeSound</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Animal makes a sound&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Dog</span> <span class="keyword">extends</span> <span class="title class_">Animal</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">makeSound</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Dog barks&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">Cat</span> <span class="keyword">extends</span> <span class="title class_">Animal</span> &#123;</span><br><span class="line">    <span class="meta">@Override</span></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">void</span> <span class="title function_">makeSound</span><span class="params">()</span> &#123;</span><br><span class="line">        System.out.println(<span class="string">&quot;Cat meows&quot;</span>);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Main</span> &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String[] args)</span> &#123;</span><br><span class="line">        <span class="type">Animal</span> <span class="variable">animal1</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Dog</span>();</span><br><span class="line">        <span class="type">Animal</span> <span class="variable">animal2</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Cat</span>();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> (<span class="type">int</span> <span class="variable">i</span> <span class="operator">=</span> <span class="number">0</span>; i &lt; <span class="number">5</span>; i++) &#123;</span><br><span class="line">            <span class="comment">// 在不同的调用者（不同的对象类型）上轮流调用相同的虚方法</span></span><br><span class="line">            <span class="keyword">if</span> (i % <span class="number">2</span> == <span class="number">0</span>) &#123;</span><br><span class="line">                animal1.makeSound(); <span class="comment">// Dog 调用</span></span><br><span class="line">            &#125; <span class="keyword">else</span> &#123;</span><br><span class="line">                animal2.makeSound(); <span class="comment">// Cat 调用</span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;方法调用&quot;&gt;&lt;a href=&quot;#方法调用&quot; class=&quot;headerlink&quot; title=&quot;方法调用&quot;&gt;&lt;/a&gt;方法调用&lt;/h3&gt;&lt;p&gt;Java中方法的重载，在编译过程中可以完成识别，而具体调用哪一个方法，Java编译器会根据所传入&lt;strong&gt;参数的声明类</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="虚拟机" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>AQS</title>
+    <link href="http://example.com/2023/11/15/AQS/"/>
+    <id>http://example.com/2023/11/15/AQS/</id>
+    <published>2023-11-15T03:14:16.000Z</published>
+    <updated>2023-11-20T01:22:48.134Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="AQS"><a href="#AQS" class="headerlink" title="AQS"></a>AQS</h3><p>AQS是什么：AQS，是AbstractQueuedSynchronizer简称，直翻过来叫抽象的<code>队列式同步器</code>， 也可以称作队列同步器，它是java.util.concurrent.lock包下的一个工具类。直观来讲，AQS是Java提供的一个类，这个类是被Abstract修饰的，需要被子类继承。也就是说<strong>AQS是Java并发中用以解决多线程访问共享资源问题的同步机制的基本的框架</strong>（或者说是一种规范），<strong>为Java并发同步组件提供统一的底层支持</strong>。即，AQS是个为各个同步组件提供基本框架的一个抽象类。</p><p>AQS做了什么：<code>提供解决同步问题的基础框架</code>。AQS类内维护了一个volatile int型的变量state，用于表示同步状态（锁的释放与获取），同时提供了一些列诸如getstate、setstate、compareAndSetState的方法来管理该同步状态，这些方法是子类中需要重写的部分，并且，AQS提供了模板方法去调用这些重写的方法；另外，AQS用一个虚拟的CLH FIFO的双向队列来管理被阻塞的线程。</p><p>AQS的整体框架如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/82077ccf14127a87b77cefd1ccf562d3253591.png" alt="img"></p><ul><li><p>有颜色的为方法，没颜色的为属性。</p></li><li><p>框架共分为5层，从上到下，由浅入深，从AQS对外暴露的API到底层基础数据。</p></li><li><p>当有自定义同步器接入时，只需重写第一层所需要的部分方法即可，不需要关注底层具体的实现流程。</p><p>当自定义同步器进行加锁或者解锁操作时，先经过第一层的API进入AQS内部方法，然后经过第二层进行锁的获取，接着对于获取锁失败的流程，进入第三层和第四层的等待队列处理，而这些处理方式均依赖于第五层的基础数据提供层。</p></li></ul><h4 id="原理概述"><a href="#原理概述" class="headerlink" title="原理概述"></a>原理概述</h4><p>AQS核心思想是：</p><ul><li><p>如果被请求的共享资源空闲，那么就将当前<strong>请求资源的线程</strong>设置为有效的工作线程，将共享资源设置为锁定状态；</p></li><li><p>如果共享资源被占用，就需要一定的阻塞等待唤醒机制来保证锁分配。这个机制主要用的是CLH队列的变体实现的，将暂时获取不到锁的线程加入到队列中。</p></li></ul><p>CLH：Craig、Landin and Hagersten队列，是单向链表，AQS中的队列是CLH变体的<strong>虚拟双向队列（FIFO）</strong>，AQS是通过将每条<strong>请求共享资源的线程</strong>封装成一个节点来实现锁的分配。</p><p>原理如下：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/7132e4cef44c26f62835b197b239147b18062.png" alt="img"></p><p>AOS使用一个Volatile修饰的int类型的成员变量来表示同步状态，通过内置的FIFO队列来完成资源获取的排队工作，通过CAS完成对State值得修改。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;AQS&quot;&gt;&lt;a href=&quot;#AQS&quot; class=&quot;headerlink&quot; title=&quot;AQS&quot;&gt;&lt;/a&gt;AQS&lt;/h3&gt;&lt;p&gt;AQS是什么：AQS，是AbstractQueuedSynchronizer简称，直翻过来叫抽象的&lt;code&gt;队列式同步器&lt;/cod</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="并发" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E5%B9%B6%E5%8F%91/"/>
+    
+    
+    <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>文件系统</title>
+    <link href="http://example.com/2023/11/15/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    <id>http://example.com/2023/11/15/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</id>
+    <published>2023-11-15T02:04:48.000Z</published>
+    <updated>2023-11-15T02:05:43.011Z</updated>
+    
+    <content type="html"><![CDATA[<p>文件系统将硬盘空间以块进行划分，每个文件占用其中的几个块，然后再通过一个<strong>文件控制块 FCB</strong> 记录每个文件占据的硬盘数据块。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231115093943594.png" alt="image-20231115093943594" style="zoom:67%;" /><p>在linux中，这个文件控制块就是inode，想要访问文件，就要先获取这个inode，然后在inode中查找文件数据块的索引表，根据索引中记录的硬盘地址信息来访问硬盘，读写数据。</p><p>inode的结构是固定的，只有15个索引，前12个索引直接指向数据块地址，第13个索引记录索引地址，即不直接指向数据块，而是指向一张索引表，每张索引表可以记录256个索引，访问这里的数据需要多一次查找。第 14 个索引记录二级索引地址，第 15 个索引记录三级索引地址。</p><h1 id="RAID"><a href="#RAID" class="headerlink" title="RAID"></a>RAID</h1><p>RAID，即独立硬盘冗余阵列，将多块硬盘通过硬件 RAID 卡或者软件 RAID 的方案管理起 来，使其共同对外提供服务。</p><p>RAID 的核心思路其实是利用文件系统<strong>将数据写入硬盘中不同数据块的特性</strong>，将多块硬盘上的空闲空间看做一个整体，进行数据写入，也就是说，一个文件的 多个数据块可能写入多个硬盘。</p><p>RAID常用的方式有5种，分别是 RAID 0、RAID 1、RAID 10、 RAID 5 和 RAID 6。</p><h2 id="RAID-0"><a href="#RAID-0" class="headerlink" title="RAID 0"></a>RAID 0</h2><p>该方式是将一个文件的数据分成N块，然后同时写入N个硬盘，这样单个文件可以存储在N个硬盘上，文件容量可以扩大N倍，理论上读写速度也扩大N倍。但是有一个问题，这N个磁盘任何一个损坏，就会导致文件的不完整。文件可用性降低。</p><h2 id="RAID-1"><a href="#RAID-1" class="headerlink" title="RAID 1"></a>RAID 1</h2><p>利用两块硬盘进行数据备份，文件同时向两块硬盘写入，这样任何一块硬盘损坏都不会出现文件数据丢失的情况，文件的可用性得到提升。</p><h2 id="RAID-10"><a href="#RAID-10" class="headerlink" title="RAID 10"></a>RAID 10</h2><p>将多块硬盘进行两两分组，文件数据分成 N 片，每个分组 写入一片，每个分组内的两块硬盘再进行数据备份。这样既扩大了文件的容量，又提高了文件 的可用性。但是这种方式硬盘的利用率只有 50%，有一半的硬盘被用来做数据备份。</p><h2 id="RAID-5"><a href="#RAID-5" class="headerlink" title="RAID 5"></a>RAID 5</h2><p>RAID 5 针对 RAID 10 硬盘浪费的情况，将数据分成 N-1 片，再利用这 N-1 片数据进行位运算，计算一片校验数据，然后将这 N 片数据写入 N 个硬盘。这样任何一块硬盘损坏，都可以 利用校验片的数据和其他数据进行计算得到这片丢失的数据，而硬盘的利用率也提高到( N - 1&#x2F;N)。</p><h1 id="分布式文件系统"><a href="#分布式文件系统" class="headerlink" title="分布式文件系统"></a>分布式文件系统</h1><p>文件的inode，是以索引的方式记录每个文件所在的磁盘位置，如果这些索引记录的不是在本地的磁盘位置，而是记录一个其他服务器的地址，那么查询到的数据块就不止是本地磁盘，还可以是其他服务器的磁盘。这样磁盘的容量就是整个分布式集群的大小，读写速度也会加快。</p><p>这样的文件系统就是分布式文件系统，将文件分成很多片，同时向多台服务器写入，然后做好备份，解决单一服务器崩溃导致文件缺失的情况。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;p&gt;文件系统将硬盘空间以块进行划分，每个文件占用其中的几个块，然后再通过一个&lt;strong&gt;文件控制块 FCB&lt;/strong&gt; 记录每个文件占据的硬盘数据块。&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.my</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
+    
+    
+    <category term="文件系统" scheme="http://example.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
+    
+  </entry>
+  
+  <entry>
+    <title>索引下推</title>
+    <link href="http://example.com/2023/11/07/%E7%B4%A2%E5%BC%95%E4%B8%8B%E6%8E%A8/"/>
+    <id>http://example.com/2023/11/07/%E7%B4%A2%E5%BC%95%E4%B8%8B%E6%8E%A8/</id>
+    <published>2023-11-07T01:27:54.000Z</published>
+    <updated>2023-11-07T01:28:17.394Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h1><p>首先，MySQL的结构图如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231107091604104.png" alt="image-20231107091604104" style="zoom:80%;" /><p>其中，Server层所做的事情，就是负责SQL的语法解析，生成执行计划，并调用存储引擎层去执行数据的存储核检索，<strong>判断引擎返回的数据是否满足where条件</strong>。<code>索引下推</code>就是指将上层（Server层）负责的事情，交给了下层（引擎层）去处理。具体的查询区别如下：</p><p>在没有使用索引下推时：</p><ul><li>存储引擎读取索引记录；</li><li>根据索引中的主键值，定位并读取完整的行记录；</li><li>存储引擎把记录交给<code>Server</code>层去检测该记录是否满足<code>WHERE</code>条件。</li></ul><p>而使用了索引下推的查询过程：</p><ul><li>存储引擎读取索引记录（不是完整的行记录）；</li><li>判断<code>WHERE</code>条件部分能否用<strong>索引中的列来做检查</strong>，条件不满足，则处理下一行索引记录；</li><li>条件满足，使用索引中的主键去定位并读取完整的行记录（就是所谓的回表）；</li><li>存储引擎把记录交给<code>Server</code>层，<code>Server</code>层检测该记录是否满足<code>WHERE</code>条件的<strong>其余部分</strong>。</li></ul><p>这里的优化点在于，可以提前根据索引中的数据过滤掉一部分不满足的值，这一部分数据不需要回表查询，也不需要交由Server层去处理。</p><p>但是要注意，这个提前判断只能判断索引中存在的值，比如说where条件中有a , b , c 三个字段，但是这个索引（<strong>只能是二级索引，也叫辅助索引</strong>）是建立在a 和 b上面的，那么就只能提前判断a 和 b 是否满足，去除这两个不满足的，然后回表查询数据，返回给Server 然后去判断 c 是否满足条件。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;索引下推&quot;&gt;&lt;a href=&quot;#索引下推&quot; class=&quot;headerlink&quot; title=&quot;索引下推&quot;&gt;&lt;/a&gt;索引下推&lt;/h1&gt;&lt;p&gt;首先，MySQL的结构图如下：&lt;/p&gt;
+&lt;img src=&quot;https://image-1314238346.cos.ap-</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    <category term="索引" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E7%B4%A2%E5%BC%95/"/>
+    
+    
+    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL的最左前缀原则</title>
@@ -265,9 +401,9 @@
     <link href="http://example.com/2023/10/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A81m%E5%86%85%E5%AD%98%E6%9D%A5%E6%89%BE%E5%88%B01G%E6%96%87%E4%BB%B6%E4%B8%AD%E8%AF%8D%E9%A2%91%E5%89%8D100%E7%9A%84%E5%8D%95%E8%AF%8D/"/>
     <id>http://example.com/2023/10/17/%E5%A6%82%E4%BD%95%E4%BD%BF%E7%94%A81m%E5%86%85%E5%AD%98%E6%9D%A5%E6%89%BE%E5%88%B01G%E6%96%87%E4%BB%B6%E4%B8%AD%E8%AF%8D%E9%A2%91%E5%89%8D100%E7%9A%84%E5%8D%95%E8%AF%8D/</id>
     <published>2023-10-17T01:36:12.000Z</published>
-    <updated>2023-10-26T02:49:01.410Z</updated>
+    <updated>2023-11-04T01:00:43.157Z</updated>
     
-    <content type="html"><![CDATA[<p>题目原场景与标题相似，只不过文件的每一行是一个单词，然后在内存只有3m空间，需要获取到1G文件中所有单词频率前100的单词。</p><p>想到了用bitmap。</p><h1 id="bitmap"><a href="#bitmap" class="headerlink" title="bitmap"></a>bitmap</h1><p>bitmap往往是做一个映射，来减小数原数据占用空间的大小。在Java中，一个int类型的大小是32位，也就是32bit，它占4字节，也就是4byte，现考虑如下场景：</p><p>现在要存储三个数字，比如说5，16，20，如果用一个int数组存储，那么就需要3 * 4 &#x3D; 12字节，但是我们可以换一个思路，比如说使用byte数组，1byte是8位，也就是说可以通过这8位的值位0或1，来代表是否存在数字0-7。那么原来的4字节，就可以代表数字0-31是否存在于集合当中。具体如下表所示</p><table><thead><tr><th>数组值</th><th>1</th><th>1</th><th>0</th><th>0</th><th>0</th><th>0</th><th>1</th><th>1</th></tr></thead><tbody><tr><td>下标</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr><tr><td>说明</td><td>值为1，代表存在数字0</td><td>值为1，代表存在数字1</td><td>值为0，代表不存在数字2</td><td>值为0，代表不存在数字3</td><td>值为0，代表不存在数字4</td><td>值为0，代表不存在数字5</td><td>值为1，代表存在数字6</td><td>值为1，代表存在数字7</td></tr></tbody></table><p>通过这种转换，我们就使用了1字节存储原来需要16字节（4个数字0，1，6，7）才可以存储的集合。</p><p>在具体的实现中，我们初始化一个byte数组</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">byte</span>[] bytes = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">20</span>];</span><br></pre></td></tr></table></figure><p>我们在计算某一个数字是否存在时，我们要先计算该数字在byte[]数组中的下标，当计算完下标之后，我们就需要将该数字移位，计算出它在该下标在哪一位。</p><p>这里的bytes[i]就是上面表格中的样子。每一个byte的大小为2^8 - 1，可以表示0~2^8 - 1。</p><h1 id="题目思路"><a href="#题目思路" class="headerlink" title="题目思路"></a>题目思路</h1><p>1GB大小的文件，全部存储单词，我们假设平均每个单词的长度为10，查阅资料得知Java中空字符串占用40字节，我们做一个大致的估算，一个单词长度为10，那么每个单词占用空间大小就是60字节（一个char[]数组中每个字符占2字节）。那么这1GB大小的文件当中一共有1 * 1024 * 1024 &#x2F; 60 &#x3D; 17476个单词。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">对象头（<span class="number">8</span> 字节）+ 引用 (<span class="number">4</span> 字节 )  + <span class="type">char</span> 数组（<span class="number">16</span> 字节）+ <span class="number">1</span>个 <span class="type">int</span>（<span class="number">4</span>字节）+ <span class="number">1</span>个<span class="type">long</span>（<span class="number">8</span>字节）= <span class="number">40</span> 字节</span><br></pre></td></tr></table></figure><p>一个最笼统的思路，我们可以对每一个单词做一个Hash，然后将他映射到一个bitmap上，通过这种转化，原先1G大小的单词，就可以通过该映射存储到对应的位置。</p><p>但是这种思路好像没办法解决对应的问题，因为bitmap只能存储0或者1，如果存在两个相同的单词，并不能够进行统计，并且还有Hash冲突的可能。</p>]]></content>
+    <content type="html"><![CDATA[<p>题目原场景与标题相似，只不过文件的每一行是一个单词，然后在内存只有3m空间，需要获取到1G文件中所有单词频率前100的单词。</p><p>想到了用bitmap。</p><h1 id="bitmap"><a href="#bitmap" class="headerlink" title="bitmap"></a>bitmap</h1><p>bitmap往往是做一个映射，来减小数原数据占用空间的大小。在Java中，一个int类型的大小是32位，也就是32bit，它占4字节，也就是4byte，现考虑如下场景：</p><p>现在要存储三个数字，比如说5，16，20，如果用一个int数组存储，那么就需要3 * 4 &#x3D; 12字节，但是我们可以换一个思路，比如说使用byte数组，1byte是8位，也就是说可以通过这8位的值位0或1，来代表是否存在数字0-7。那么原来的4字节，就可以代表数字0-31是否存在于集合当中。具体如下表所示</p><table><thead><tr><th>数组值</th><th>1</th><th>1</th><th>0</th><th>0</th><th>0</th><th>0</th><th>1</th><th>1</th></tr></thead><tbody><tr><td>下标</td><td>0</td><td>1</td><td>2</td><td>3</td><td>4</td><td>5</td><td>6</td><td>7</td></tr><tr><td>说明</td><td>值为1，代表存在数字0</td><td>值为1，代表存在数字1</td><td>值为0，代表不存在数字2</td><td>值为0，代表不存在数字3</td><td>值为0，代表不存在数字4</td><td>值为0，代表不存在数字5</td><td>值为1，代表存在数字6</td><td>值为1，代表存在数字7</td></tr></tbody></table><p>通过这种转换，我们就使用了1字节存储原来需要16字节（4个数字0，1，6，7）才可以存储的集合。</p><p>在具体的实现中，我们初始化一个byte数组</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="type">byte</span>[] bytes = <span class="keyword">new</span> <span class="title class_">byte</span>[<span class="number">20</span>];</span><br></pre></td></tr></table></figure><p>我们在计算某一个数字是否存在时，我们要先计算该数字在byte[]数组中的下标，当计算完下标之后，我们就需要将该数字移位，计算出它在该下标在哪一位。</p><p>这里的bytes[i]就是上面表格中的样子。每一个byte的大小为2^8 - 1，可以表示0~2^8 - 1。</p><h1 id="题目思路"><a href="#题目思路" class="headerlink" title="题目思路"></a>题目思路</h1><p>1GB大小的文件，全部存储单词，我们假设平均每个单词的长度为10，查阅资料得知Java中空字符串占用40字节，我们做一个大致的估算，一个单词长度为10，那么每个单词占用空间大小就是60字节（一个char[]数组中每个字符占2字节）。那么这1GB大小的文件当中一共有1 * 1024 * 1024 &#x2F; 60 &#x3D; 17476个单词。</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">对象头（<span class="number">8</span> 字节）+ 引用 (<span class="number">4</span> 字节 )  + <span class="type">char</span> 数组（<span class="number">16</span> 字节）+ <span class="number">1</span>个 <span class="type">int</span>（<span class="number">4</span>字节）+ <span class="number">1</span>个<span class="type">long</span>（<span class="number">8</span>字节）= <span class="number">40</span> 字节</span><br></pre></td></tr></table></figure><p>一个最笼统的思路，我们可以对每一个单词做一个Hash，然后将他映射到一个bitmap上，通过这种转化，原先1G大小的单词，就可以通过该映射存储到对应的位置。</p><p>但是这种思路好像没办法解决对应的问题，因为bitmap只能存储0或者1，如果存在两个相同的单词，并不能够进行统计，并且还有Hash冲突的可能。</p><h1 id="另外一个思路"><a href="#另外一个思路" class="headerlink" title="另外一个思路"></a>另外一个思路</h1><p>这是一个经典的top k的问题，所以说一般采用大根堆或者小根堆来处理。但是文件比较大，内存又比较小，这时就引入另一种解决问题的方案，分治。</p><p>即我们可以先通过hash，将这一个文件打散，这里可以确定地一点是，相同地单词一定可以hash到一个文件中，不同的单词有可能hash到一个文件中，可以经过多次打散，具体可以看内存中可以读入多少个单词。然后记录每个文件中的top k ，最终将所有文件的统计结果做一个合并即可。</p>]]></content>
     
     
       
@@ -403,136 +539,6 @@
       
       
     <summary type="html">&lt;h1 id=&quot;远程调用&quot;&gt;&lt;a href=&quot;#远程调用&quot; class=&quot;headerlink&quot; title=&quot;远程调用&quot;&gt;&lt;/a&gt;远程调用&lt;/h1&gt;&lt;p&gt;本地调用通常指的是，进程内函数之间的相互调用；而远程调用，是进程间函数的相互调用，是进程间通信 IPC（Inter-Proc</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>服务治理</title>
-    <link href="http://example.com/2023/10/06/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/"/>
-    <id>http://example.com/2023/10/06/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E6%9C%8D%E5%8A%A1%E6%B2%BB%E7%90%86/</id>
-    <published>2023-10-06T07:07:56.000Z</published>
-    <updated>2023-10-29T07:20:07.548Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="服务治理手段"><a href="#服务治理手段" class="headerlink" title="服务治理手段"></a>服务治理手段</h1><p>服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出现问题，还是说这三者中任意一个出现问题，此次调用都会失败。所以就需要服务治理。</p><h2 id="节点管理"><a href="#节点管理" class="headerlink" title="节点管理"></a>节点管理</h2><p>该部分可以分为两点。</p><ol><li>注册中心主动摘除机制。这种机制要求服务提供者定时向注册中心汇报心跳，当两次汇报中间的时间超过规定时间后，就认为服务提供者出现问题，进行摘除，然后把最近的可用服务列表推送给服务消费者。</li><li>服务消费者摘除机制。上述机制可能因为网络问题导致一个正常的服务被摘除，最坏情况所有服务都正常，但是全被摘除。一个更合理的摘除办法就是让服务的调用者去执行。即服务调用者调用失败时，就从本地缓存的可用服务列表中去移除该服务，而不进行实际的摘除。</li></ol><h2 id="负载均衡"><a href="#负载均衡" class="headerlink" title="负载均衡"></a>负载均衡</h2><p>这里边有几个算法：</p><ol><li>随机算法</li><li>轮询算法</li><li>最少活跃调用算法</li><li>一致性Hash算法</li></ol><h2 id="服务路由"><a href="#服务路由" class="headerlink" title="服务路由"></a>服务路由</h2><p>对于服务消费者而言，在内存中的可用服务节点列表中选择哪个节点不仅由负载均衡算法决定，还由路由规则确定。而指定路由规则的主要原因有以下两点：</p><ol><li>服务功能做了变更，需要灰度发布，根据这部分人的使用反馈来决定是否全量发布时，就可以做一些路由规则的限制，比如说使用尾号限制，让特定比例的人群才会访问到新发布的服务节点。</li><li>部分规模比较大的公司，为了业务高可用，会将业务部署在不止一个IDC中，这时候不同IDC之间访问要跨IDC，而距离比较远时延迟就会比较大。所以一次服务调用尽可能选择同一个IDC内部的节点，减少网络开销，提高性能。</li></ol><p>路由的配置规则一般有<strong>静态配置</strong>和<strong>动态配置</strong>。其中静态配置是防止在每一个服务本地的，服务上线后规则不发生改变。而动态配置一般都是放在注册中心，需要修改时改动注册中心的内容即可。</p><h2 id="服务容错"><a href="#服务容错" class="headerlink" title="服务容错"></a>服务容错</h2><p>对于服务调用失败的情况，需要有手段自动恢复，来保证调用成功。常用手段有以下几种：</p><ol><li>失败自动切换。顾名思义，调用失败了后就从最近的可用服务列表中选一个进行重试，可以限制重试次数，但是这种操作要求服务的调用操作是<strong>幂等</strong>的。</li><li>失败通知。服务调用失败后，不再进行重试，而是根据失败返回的信息而决定后续的操作。</li><li>失败缓存。服务调用失败后，并不立即进行重试，而是隔一段时间后再进行重试。</li><li>快速失败。调用失败后就不管了。</li></ol><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《从0开始学微服务》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;服务治理手段&quot;&gt;&lt;a href=&quot;#服务治理手段&quot; class=&quot;headerlink&quot; title=&quot;服务治理手段&quot;&gt;&lt;/a&gt;服务治理手段&lt;/h1&gt;&lt;p&gt;服务的调用涉及到注册中心，服务调用的发起方和提供方三者，这三者中任意两个的通信都是通过网络，那么不论是网络出</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>多主复制</title>
-    <link href="http://example.com/2023/10/04/%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6/"/>
-    <id>http://example.com/2023/10/04/%E5%A4%9A%E4%B8%BB%E5%A4%8D%E5%88%B6/</id>
-    <published>2023-10-04T07:50:22.000Z</published>
-    <updated>2023-10-04T07:56:20.299Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="多主复制"><a href="#多主复制" class="headerlink" title="多主复制"></a>多主复制</h1><p>在主从复制的场景中，只有一个主节点，所有的写入操作都要先经过主节点，主节点压力大的问题还是没能解决。而且单主节点的容灾效果也不是很好。</p><p>为了达到好的容灾效果，各个机房的距离应该足够远，尽可能的分布在不同的地区，那么这种场景下，用户直接读写自己最近的数据中心，网络延迟最小，效果最好。因此就出现了多住复制。</p><h2 id="如何实现"><a href="#如何实现" class="headerlink" title="如何实现"></a>如何实现</h2><p>它是指在一个数据系统中，存在多个主从 复制单元，每一个主从复制单元都可以处理读写请求，一个主从复制单元的主副本处理了写请 求后，需要复制到其他的主从复制单元的主副本，具体的流程见下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004112141400.png" alt="image-20231004112141400" style="zoom: 80%;" /><p>有几点需要注意：</p><p>首先，每一个主从复制单元内部是一个常规的主 从复制模式，这里的主副本、从副本之间的复制可以是同步的，也可以是异步的。</p><p>其次，多个主从复制单元之间，每一个主副本都会将自己的修改复制到其他的主副本，主副本 之间的复制可以是同步的，也可以是异步的。</p><p>如果主副本之间的复制是同步的，那么一个主副本的写入，需要等待复制到其他的主副本成功 后，才能返回给用户，但是，这样却失去了多主复制最重要的一个优点，即多个主副本都可以独立处理写入，这就导致整个模式 退化为主从复制的形式。所以一般来说，多主复制的主副本之间，大多采用异步模式。</p><p>但采用异步复制也会出现问题，如果多个主副本同时成功修 改一个数据，当主副本之间复制这个数据的修改时，会出现冲突，我们就不知道以哪一个主副 本的写入结果为准了，该问题在同步复制时可以让用户决定哪个为主。</p><h2 id="冲突解决"><a href="#冲突解决" class="headerlink" title="冲突解决"></a>冲突解决</h2><p>冲突主要由两种形式，</p><p>首先是由于更新导致的冲突，多个主副本同时更新了一个数据，导致这个数据的版本是非线性的，出现了分叉，具体见下图：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004124557885.png" alt="image-20231004124557885">其次，由于新增导致的冲突，多个主副本同时新增了一个含有唯一性约束的数据，导致数据的唯一性约束被破坏。例如，在酒店预订业务中，一个时段内一个房间只能预订给一个用户，如 果多个用户在多个主副本上，同时发起预订操作，就可能出现同一个时段内，一个房间被多个 用户预定成功的情况。</p><h3 id="避免冲突"><a href="#避免冲突" class="headerlink" title="避免冲突"></a>避免冲突</h3><p>由上可知，冲突是多个主副本同时 修改了一个数据，或者破坏了数据的唯一性约束导致的，那么我们就对数据进行分片，让不同的主数据负责不同的数据分片，这个方式可以在一定程度上避免冲突，但是会导致两个问题：</p><p>首先，一个修改操作可能会修改多个分片数据，这样我们就没有办法通过分片来隔离修改了。</p><p>其次，由于就近接入和故障等原因，我们会将出现故障的主副本流量切换到其他的主副本，这 时也会出现写入冲突的情况。</p><p>注意：这里的分片，并不是每个主副本只保留一部分数据，而是每个主副本仍然保留全量的数据，但是只负责主动的修改某一部分，其他部分等待其他主副本进行同步。</p><h4 id="写时解决冲突"><a href="#写时解决冲突" class="headerlink" title="写时解决冲突"></a>写时解决冲突</h4><p>写时解决冲突有两种实现，预定义解决冲突和自定义解决冲突。</p><p>预定义解决冲突，是指由存储系统预先定义好规则，在冲突发生时依据预先定义好的规则，自动来解决冲突，主要有以下几种：</p><ol><li>从操作维度来处理，最后写入获胜。也就是为每一个写操作分配一个时间戳，如果发生 冲突，只保留时间戳最大的版本数据，其他的修改都丢弃，但是这个方法会导致修改丢失。</li><li>从副本维度来处理，最高优先级写入获胜。也就是为每一个副本都排好优先级，如果发 生冲突，只保留优先级最高的副本修改数据，其他的修改都丢弃。</li><li>从数据结构和算法的维度来处理，通过研究一些可以自动解决冲突的数据结构来解决问题。目前不成熟。</li></ol><p>自定义解决冲突，它是由业务系统来定义冲突的解决方式，如果发生冲突 了，存储系统就依据业务系统定义的方式执行。</p><p>自定义冲突解决的处理逻辑是，在主副本之间复制变更日志时，如果检测到冲突，就调用用户 自定义的冲突处理程序来进行处理。由于主副本之间的数据复制是异步的，所以一般都是后台 执行，不会提示用户。</p><h4 id="读时解决冲突"><a href="#读时解决冲突" class="headerlink" title="读时解决冲突"></a>读时解决冲突</h4><p>读时解决冲突的思路和写时解决冲突的思路正好相反，即在写入数据时，如果检测到冲突，不 用立即进行处理，只需要将所有冲突的写入版本都记录下来。当下一次读取数据时，会将所有的数据版本都返回给业务层，在业务层解决冲突，那么读时解决冲突的方式有下面两种：</p><ol><li>由用户来解决冲突。业务层将冲突提示给用户，让用户来解决。</li><li>自定义解决冲突。业务层先依据业务情况，自定义好解决冲突的处理程序，当检 测到冲突时，直接调用处理程序来解决。</li></ol><h2 id="多主复制的关键问题"><a href="#多主复制的关键问题" class="headerlink" title="多主复制的关键问题"></a>多主复制的关键问题</h2><p>1、正确解决冲突的难度非常大。</p><p>2、异步模式的多主复制会存在数据一致性的问题。因为多个主副本都是独立写入的，而他们之间是通过异步复制的方式。</p><p>3、多个主副本之间的复制拓扑结构问题。一般来说，多主复制的主副本之间的复制拓扑结 构主要有三种：环形拓扑、星形拓扑以及全部至全部拓扑，具体见下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231004155403956.png" alt="image-20231004155403956" style="zoom:80%;" /><p>前两种，如果一个主副本出现问题，则会导致整个副本的数据无法同步，而第三种虽然一个挂了不影响，但是他们主副本之间同步的时延却要大很多。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;多主复制&quot;&gt;&lt;a href=&quot;#多主复制&quot; class=&quot;headerlink&quot; title=&quot;多主复制&quot;&gt;&lt;/a&gt;多主复制&lt;/h1&gt;&lt;p&gt;在主从复制的场景中，只有一个主节点，所有的写入操作都要先经过主节点，主节点压力大的问题还是没能解决。而且单主节点的容灾效果也</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>数据分片</title>
-    <link href="http://example.com/2023/10/02/%E6%95%B0%E6%8D%AE%E5%88%86%E7%89%87/"/>
-    <id>http://example.com/2023/10/02/%E6%95%B0%E6%8D%AE%E5%88%86%E7%89%87/</id>
-    <published>2023-10-02T11:31:22.000Z</published>
-    <updated>2023-10-02T11:32:46.868Z</updated>
-    
-    <content type="html"><![CDATA[<h2 id="分片"><a href="#分片" class="headerlink" title="分片"></a>分片</h2><p>对数据进行分片的策略，主要有三种：水平分片、垂直分片和混合分片，具体如下图所示。水平分片和垂直分片是通过数据切分的操作方向来区分的，而混合分片 是它们的组合体。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002105033499.png" alt="image-20231002105033499" style="zoom: 67%;" /><h3 id="水平分片"><a href="#水平分片" class="headerlink" title="水平分片"></a>水平分片</h3><p>水平分片有点类似于负载均衡，从流量角度来看，是负载均衡，从数据存储角度来看，是水平分片。</p><p>水平分片算法有两个最关键的因素，一是，如何对数据进行划分，即数据划分，二是，分片是 否支持动态分裂与合并，即数据平衡。</p><h4 id="数据划分"><a href="#数据划分" class="headerlink" title="数据划分"></a>数据划分</h4><p>数据划分主要有两种方案，一种是基于模运算，一种是基于范围划分。基于模运算比较简单，不再阐述。而基于范围划分，又分为基于关键词划分和基于关键词的 Hash 值划分两种方式。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002110024878.png" alt="image-20231002110024878" style="zoom:67%;" /><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002110040276.png" alt="image-20231002110040276" style="zoom:67%;" /><p>这两种分片都是给每一个分片分配一个固定的范围，两者的不同区别在于一个是直接拿关键词进行划分，另一个是利用了关键词的Hash值进行划分。看似区别不大，但是会影响数据的分布。</p><h5 id="基于关键词划分"><a href="#基于关键词划分" class="headerlink" title="基于关键词划分"></a>基于关键词划分</h5><p>基于<strong>关键词划分</strong>的好处是，分片后数据的分布依然保留了关键词的顺序，我们可以方便地进行区间查询，因为某个关键词区间的数据都是连续存储的。</p><p>但是基于关键词划分也会带来问题，即<strong>数据分布不均匀和访问的热度不均匀</strong>。比如说按照地区进行划分，那么某些省份人数多，这个分片的数据就会多，人数少，分片数据就少。而且数据分布不均时，数据多的分片被访问到的概率也会变大。</p><p>如果基于自增 ID 或者时间等关键词对数据进行分片的时候，即使数据是均匀分布的，对于一般的业务场景来说，往往新产生数据的访问热度，也是远远大于历史数据的，这也会导致访问的热度不均匀。</p><p>很明显，数据的分布与关键词的分布是一致的。</p><h5 id="基于关键词的hash值"><a href="#基于关键词的hash值" class="headerlink" title="基于关键词的hash值"></a>基于关键词的hash值</h5><p>基于关键词的 Hash 值划分就可以上述问题，它通过对关键词进行 Hash 运算，然后基于计算后的 Hash 值范围对数据进行划分，一个好的 Hash 算法可以处理数据倾斜并让它均匀分布。这样可以解决数据分布和访问热度不均的问题。</p><p>但导致的问题就是无法高效的进行范围查询。</p><h4 id="数据平衡"><a href="#数据平衡" class="headerlink" title="数据平衡"></a>数据平衡</h4><p>根据数据分片是否支持<strong>动态的分裂与合并</strong>，我们可以将水平分片的数据平衡方式分为<strong>静态分片</strong>和<strong>动态分片</strong>。</p><p>静态分片是指在系统设计之初，数据分片的数目和区间就预估好了，数据划分后不能再变化。</p><p>动态分片则可以在运行时，根据分片的负载和容量做调整。</p><p>因为动态分片在运行时分区时可以进行分裂与合并的，不需要担心数据分布的问题，所以动态分片与基于关键词的划分，往往是一个 比较好的组合方式，它避免了基于关键词划分的问题，还保留了数据基于关键词有序的优点。</p><p>但是，在基于关键词的划分中，基于自增 ID 或者时间戳等原因，导致的访问冷热不均匀的问题，即使是在动态分片中也不能很好地解决，因为数据的热点往往集中在最新的一个分片区间上。而基于关键词的 Hash 值划分的方式，则可以很方便地将最新的热点数据分布到多个分片 上，很好地解决这个问题。</p><p>动态分片存在冷启动的问题。当一个基于动态分片的存储系统启动时，通常是从一个分片开始，当数据量不断增长后，再动态进行分裂。在第一次进行分裂前，所有的读写请求都由 第一个分片来进行处理，而其他的节点则都属于空闲状态。关于这个问题，一个比较好的解决 方式是，动态分片在冷启动时，预分裂为多个分片来缓解。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002112557636.png" alt="image-20231002112557636" style="zoom:67%;" /><h3 id="垂直分片"><a href="#垂直分片" class="headerlink" title="垂直分片"></a>垂直分片</h3><p>水平分片策 略将整个数据集的条数作为划分的对象，每一个分片负责处理一定的数据条数。而垂直分片策略则是将数据 Schema 的字段集个数作为划分的对象，每一个分片负责处理一个或几个字段 的全部数据，具体如下图所示。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002164951470.png" alt="image-20231002164951470" style="zoom: 80%;" /><p>如果垂直分片策略的处理方式为一个字段一个分片，那么垂直分片策略就等价于列式存储了，所以列式存储是垂直分片策略的一种特殊情况，也是最常见的情况。</p><p>列式存储往往用于大数据分析当中，这类数据的特点是一次写入，多次查询（从不修改），而且是按列读取，每次只关心一列或者几列，每张表都很宽，比如上百列。而且查询无规律，不能索引覆盖。</p><h4 id="列式存储"><a href="#列式存储" class="headerlink" title="列式存储"></a>列式存储</h4><p>如果是行式存储，当我们只需要读取一列时，有两种方案，第一个是挨个读取每一行的数据，但是只取出自己要的那一列，这会导致读取数据的量放大很多。如果我们只读取那一列，这会导致我们读取时不是按顺序读取，会对读取造成性能影响。</p><p>读多写少的场景，会减少列式存储对写性能的影响。一般来说，数据写入存储系统是以 行的形式写入的，而列式存储会导致一行数据的写入操作，按字段拆分为多个写入操作，使写入放大。</p><p>大数据场景，采用列式存储非常适合压缩存储，比如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002192207839.png" alt="image-20231002192207839" style="zoom:67%;" /><p>好处是使用压缩会大大减小存储成本，提高了存储效率，但是在存储和读取数据时，需要多一步，即找到数据的编码，需要消耗额外的CPU资源。</p><h3 id="混合分片策略"><a href="#混合分片策略" class="headerlink" title="混合分片策略"></a>混合分片策略</h3><p>根据水平分片和垂直分片的策略，混合分片可以分为<strong>垂直水平分片</strong>策略和<strong>水平垂直分片</strong>策略。前者先 进行垂直分片，再进行水平分片，而后者先进行水平分片，然后再进行垂直分片。具体如下图：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002192630321.png" alt="image-20231002192630321" style="zoom: 80%;" /><p>垂直水平分片看着不怎么滴，不过多介绍。</p><p>水平垂直分片更像是两者的结合提。先水平划分，划分完后在每一个分片内部再采用列式存储，这样可以保留水平分片和垂直分片的优点。</p><h3 id="行列存储比较"><a href="#行列存储比较" class="headerlink" title="行列存储比较"></a>行列存储比较</h3><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231002193058865.png" alt="image-20231002193058865" style="zoom:80%;" /><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h2 id=&quot;分片&quot;&gt;&lt;a href=&quot;#分片&quot; class=&quot;headerlink&quot; title=&quot;分片&quot;&gt;&lt;/a&gt;分片&lt;/h2&gt;&lt;p&gt;对数据进行分片的策略，主要有三种：水平分片、垂直分片和混合分片，具体如下图所示。水平分片和垂直分片是通过数据切分的操作方向来区分的，而混合分</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="分布式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-    
-    <category term="分布式" scheme="http://example.com/tags/%E5%88%86%E5%B8%83%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Spring的IoC</title>
-    <link href="http://example.com/2023/09/30/Spring%E7%9A%84IoC/"/>
-    <id>http://example.com/2023/09/30/Spring%E7%9A%84IoC/</id>
-    <published>2023-09-30T06:54:11.000Z</published>
-    <updated>2023-09-30T07:30:30.177Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="大致流程"><a href="#大致流程" class="headerlink" title="大致流程"></a>大致流程</h1><p>1、解析xml文件，将xml中读取到的内容利用<code>ClassPathXmlResource</code>来进行存储。</p><p>2、初始化一个工厂，该工厂可以自由选择，比如<code>SimpleBeanFactory</code>或者<code>AutowireCapableBeanFactory</code>，又或者是<code>BeanFactory</code>，取决于场景需要。</p><p>3、实例化一个<code>XmlBeanDefinitionReader</code>，该类需要传入第二步生成的工厂，它的主要作用就是解析存储在<code>ClassPathXmlResource</code>中的属性，将它封装为一个<code>BeanDefinition</code>，然后存储在一个map中，map的key为对象的名字，value就是<code>BeanDefinition</code>。用于后续创建bean时，根据名称取到<code>BeanDefinition</code>，然后<code>BeanDefinition</code>中取得属性。</p><p>4、到此为止，上面的三步是为了初始化并且存储一些对象的信息，这些信息都来自xml中的配置。之后，调用<code>refresh()</code>来进行具体的创建。</p><p>5、在单例模式下，<code>refresh()</code>会先从存放了所有bean实例的map中根据名字取该元素，如果不为空，则直接返回，如果为空，则从毛坯实例中尝试获取该元素（存储毛坯实例是为了解决循环依赖的问题，创建一个空的对象，所有属性都不赋值，用于注入），如果还是为空，则执行创建。</p><p>6、创建的流程就是获取到之前存储的<code>BeanDefinition</code>，然后先创建一个毛坯实例，这里是利用Java的反射以及<code>BeanDefinition</code>中存储的<code>getConstructorArgumentValues</code>信息，来进行创建，只创建空的类，类的所有属性都不赋值。之后将毛坯实例进行存储。</p><p>7、这一步是将上一步创建的毛坯实例属性进行赋值，从<code>BeanDefinition</code>中获取到<code>PropertyValues</code>，然后遍历，调用<code>setXXX</code>方法进行赋值。</p><p>8、创建完后，将bean存储到第五步刚开始取元素的那个map当中，并返回本次创建的实例。如果没有采用注解，到这里就已经创建结束了。</p><p>9、如果创建的元素当中有属性使用了注解，则会调用<code>AutowiredAnnotationBeanPostProcessor</code>的<code>postProcessBeforeInitialization</code>方法，该方法会遍历传入实例的所有属性，如果发现带有@Autowired注解，那么就去工厂中获取到对应的实例，并进行注入，然后返回该对象。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;大致流程&quot;&gt;&lt;a href=&quot;#大致流程&quot; class=&quot;headerlink&quot; title=&quot;大致流程&quot;&gt;&lt;/a&gt;大致流程&lt;/h1&gt;&lt;p&gt;1、解析xml文件，将xml中读取到的内容利用&lt;code&gt;ClassPathXmlResource&lt;/code&gt;来进行存储。</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="设计模式" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-    
-    <category term="设计模式" scheme="http://example.com/tags/%E8%AE%BE%E8%AE%A1%E6%A8%A1%E5%BC%8F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>降级</title>
-    <link href="http://example.com/2023/09/27/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%99%8D%E7%BA%A7/"/>
-    <id>http://example.com/2023/09/27/%E7%B3%BB%E7%BB%9F%E8%AE%BE%E8%AE%A1/%E9%99%8D%E7%BA%A7/</id>
-    <published>2023-09-27T02:16:37.000Z</published>
-    <updated>2023-09-27T02:18:44.244Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="降级"><a href="#降级" class="headerlink" title="降级"></a>降级</h1><p>上面的熔断，是为了在系统过载时不发生雪崩，限流是为了流量较大时，系统不发生过载。但是这两者都不会区分该服务是核心业务还是非核心业务。而降级，则是为了减少或者停掉一些非核心业务，来确保核心业务收到的影响最小。</p><h2 id="为什么需要降级"><a href="#为什么需要降级" class="headerlink" title="为什么需要降级"></a>为什么需要降级</h2><ol><li>降级机制能从全局角度对资源进行调配，通过牺牲非核心服务来保障核心服务的稳定性。降级是主动停掉一些非核心业务，而限流则是被动的将一些请求拒绝。</li><li>降级可以提高系统的用户体验性和可用性。在一些场景中，如果正常调用出现了非业务层错误后，我们可以不返回错误，而是执行接口的B计划，进行降级，虽然可能和正常流程不太一样，但是比直接返回错误要好。</li></ol><h2 id="如何实现降级"><a href="#如何实现降级" class="headerlink" title="如何实现降级"></a>如何实现降级</h2><h3 id="手动降级"><a href="#手动降级" class="headerlink" title="手动降级"></a>手动降级</h3><p>手动降级是指在分布式系统中提前设置好降级开关，然后通过类似配置中心的集中式降级平 台，来管理降级开关的配置信息，在系统需要降级的时候，通过降级平台手动启动降级开关， 对系统进行降级处理。</p><p>该方案需要注意的是，往往服务有成千上百个，如果全部手动操作，则很麻烦。一个解决办法是：通过对降级分级，利用服务的等级信息和业务信息进行批量降级，比如一次直接把p1,p2,p3的服务全部降级。</p><h3 id="自动降级"><a href="#自动降级" class="headerlink" title="自动降级"></a>自动降级</h3><p>自动降级是指在分布式系统中，当系统的某些指标或者接口调用出现错误时，直接启动降级逻辑。一个降级的例子如下：</p><p>我们在网关中调用鉴权服务进行鉴权，每一 个调用鉴权服务的鉴权接口，需要执行如下的两个校验逻辑，不论哪一个失败，都会导致鉴权失败。</p><ol><li>校验 Token 是否合法。</li><li>校验 UID 是否被管理员封禁。</li></ol><p>在这个情况下，我们可以将 Token 设计为可以自校验的，在鉴权服务出现故障的时候，则启动降级逻辑，直接在网关中校验 Token 是否合法，如果合法就返回鉴权成功。</p><h2 id="降级机制的关键问题"><a href="#降级机制的关键问题" class="headerlink" title="降级机制的关键问题"></a>降级机制的关键问题</h2><p>一般来 说，我们使用降级都是在系统已经出现过载的场景下，这时我们需要考虑，降级的配置信息是 否能正常下发。并且，降级通常会与熔断和限流一起出现，我们应该如何处理它们三者之间的关系。</p><h3 id="配置信息下发的问题"><a href="#配置信息下发的问题" class="headerlink" title="配置信息下发的问题"></a>配置信息下发的问题</h3><p>对于熔断和限流来说，其阈值相关的配置信息在系统正常运行的时候，就已经下发到实例上了，所以在系统出现故障的时候，这些配置信息会直接生效。但是对于手动降级，我们需要在系统出问题时，通过降级平台下发配置来启动降级。</p><p>针对于配置无法正常下发的情况，我们可以考虑，由服务直接暴露出修改降级配置的 HTTP 接口，在必要的时候，可以手动通过 HTTP 接口，来启动服务的降级逻辑。</p><h3 id="熔断、限流和降级之间的关系"><a href="#熔断、限流和降级之间的关系" class="headerlink" title="熔断、限流和降级之间的关系"></a>熔断、限流和降级之间的关系</h3><p>首先，因为熔断机制是系统稳定性保障的最后一道防线，并且它是自适应的，所以我们应该在系统全局默认启用；</p><p>其次，限流是用来保障被限流服务稳定性的，一般在系统的核心链路和核心服务上，默认启用限流机制；</p><p>最后，降级是通过牺牲被降级的接口或者服务，来保障其他的接口和服务正常运行的，可以通过降级直接停用非核心服务，然后对于核心接口和服务，在必要的时候，可以提供一个“ B 计划”。</p><h1 id="参考"><a href="#参考" class="headerlink" title="参考"></a>参考</h1><p>《深入浅出分布式技术原理》</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;降级&quot;&gt;&lt;a href=&quot;#降级&quot; class=&quot;headerlink&quot; title=&quot;降级&quot;&gt;&lt;/a&gt;降级&lt;/h1&gt;&lt;p&gt;上面的熔断，是为了在系统过载时不发生雪崩，限流是为了流量较大时，系统不发生过载。但是这两者都不会区分该服务是核心业务还是非核心业务。而降级，</summary>
       
     
     
