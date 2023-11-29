@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2023-11-27T03:02:52.463Z</updated>
+  <updated>2023-11-29T03:18:45.794Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,34 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>方法内联</title>
+    <link href="http://example.com/2023/11/29/%E6%96%B9%E6%B3%95%E5%86%85%E8%81%94/"/>
+    <id>http://example.com/2023/11/29/%E6%96%B9%E6%B3%95%E5%86%85%E8%81%94/</id>
+    <published>2023-11-29T03:17:51.000Z</published>
+    <updated>2023-11-29T03:18:45.794Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="方法内联"><a href="#方法内联" class="headerlink" title="方法内联"></a>方法内联</h1><p>方法内联指的是在编译过程中遇到方法调用时，将目标方法的方法体纳入编译范围之中，并取代原方法调用的优化手段。它不仅可以消除调用本身带来的性能开销，还可以进一步触发更多的优化。</p><p>举个例子，如果没有方法内联，当调用getter&#x2F;setter方法时，程序需要保存当前方法的执行位置，创建并压入用于getter&#x2F;setter的栈帧，访问字段，弹出栈帧，最后再恢复当前方法的执行，当内联了对getter&#x2F;setter的方法调用后，上述操作仅剩字段访问。</p><blockquote><p>即时编译器首先解析字节码，并生成IR图，然后在该IR图上进行优化，优化是由一个个独立的优化阶段串联起来的，每个优化阶段都会对IR图进行转换，最后即时编译器根据IR图的节点以及调度顺序生成机器码。</p></blockquote><p>一个相对于IR图好理解的内联形式：</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b , <span class="type">int</span> c, <span class="type">int</span> d)</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> add(a, b) + add(c, d);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>内联之后</p><figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="type">int</span> <span class="title function_">add</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b , <span class="type">int</span> c, <span class="type">int</span> d)</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> a + b + c + d;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure><p>不难发现，内敛后少了两次方法的调用，那么就意味着少了两次的方法的入栈。</p><h2 id="内联的条件"><a href="#内联的条件" class="headerlink" title="内联的条件"></a>内联的条件</h2><ol><li>热点代码。如果一个方法的执行频率很高就表示优化的潜在价值就越大。这里是根据编译器的编译模式来决定的，如果是客户端模式，则次数是1500，服务端编译模式是10000，该大小可以通过<code>-XX:CompileThreshold来调整</code>。</li><li>方法体不能太大。jvm中被内联的方法会编译成机器码放在code cache中。如果方法体太大，则能缓存热点方法就少，反而会影响性能。</li><li>由 -XX:CompileCommand 中的 inline 指令指定的方法，以及由 @ForceInline 注 解的方法（仅限于 JDK 内部方法），会被强制内联。</li><li>如果调用字节码对应的符号引用未被解析、目标方法所在的类未被初始化，或者目标方 法是 native 方法，都将导致方法调用无法内联。</li></ol>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;方法内联&quot;&gt;&lt;a href=&quot;#方法内联&quot; class=&quot;headerlink&quot; title=&quot;方法内联&quot;&gt;&lt;/a&gt;方法内联&lt;/h1&gt;&lt;p&gt;方法内联指的是在编译过程中遇到方法调用时，将目标方法的方法体纳入编译范围之中，并取代原方法调用的优化手段。它不仅可以消除调用</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    <category term="虚拟机" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/%E8%99%9A%E6%8B%9F%E6%9C%BA/"/>
+    
+    
+    <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
+    
+  </entry>
   
   <entry>
     <title>即时编译（上）</title>
@@ -531,27 +559,6 @@
     
     
     <category term="源码" scheme="http://example.com/tags/%E6%BA%90%E7%A0%81/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>单点登录</title>
-    <link href="http://example.com/2023/10/13/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/"/>
-    <id>http://example.com/2023/10/13/%E5%8D%95%E7%82%B9%E7%99%BB%E5%BD%95/</id>
-    <published>2023-10-13T06:33:30.000Z</published>
-    <updated>2023-10-30T08:51:55.851Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="单点登录"><a href="#单点登录" class="headerlink" title="单点登录"></a>单点登录</h1><p>一个真正的单点登录流程如下：该流程属于不同域下的单点登录。</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/637ec3d1265a44629a45aa7571a77c9f~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image.png"></p><ul><li>用户进入 A 系统，没有登录凭证（ticket），A 系统给他跳到 SSO。</li><li>SSO 没登录过，也就没有 sso 系统下没有凭证（怎么感知到的）（注意这个和前面 A ticket 是两回事），输入账号密码登录。</li><li>SSO 账号密码验证成功，通过接口返回做两件事：一是种下 sso 系统下凭证（记录用户在 SSO 登录状态）；二是下发一个 ticket。</li><li>客户端拿到 ticket，保存起来，带着请求系统 A 接口。</li><li>系统 A 校验 ticket，成功后正常处理业务请求。</li><li>此时用户第一次进入系统 B，没有登录凭证（ticket），B 系统给他跳到 SSO。</li><li>SSO 登录过，系统下有凭证，不用再次登录，只需要下发 ticket。</li><li>客户端拿到 ticket，保存起来，并携带ticket请求系统B的接口。</li></ul><p>至此，还存在问题，SSO 域下返回的数据要怎么存，才能在访问 A 的时候带上？因为浏览器对跨域有严格限制，cookie、localStorage 等方式都是有域限制的。</p><p>下面这张图是一个更细致的流程：</p><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/6dabc898da7149d9b8972a7830825bc9~tplv-k3u1fbpfcp-zoom-in-crop-mark:1512:0:0:0.awebp" alt="image.png"></p><ul><li>在 SSO 域下，SSO 不是通过接口把 ticket 直接返回，而是通过一个带 code 的 URL 重定向到系统 A 的接口上，这个接口通常在 A 向 SSO 注册时约定。相当于提前定义好了一个接口来接收SSO系统返回的code。</li><li>浏览器被重定向到 A 域下，带着 code 访问了 A 的 callback 接口，callback 接口通过 code 换取 ticket。</li><li>这个 code 不同于 ticket，code 是一次性的，暴露在 URL 中，只为了传一下换 ticket，换完就失效。</li><li>callback 接口拿到 ticket 后，在自己的域下 set cookie 成功。</li><li>在后续请求中，只需要把 cookie 中的 ticket 解析出来，去 SSO 验证就好。</li></ul><p>这里，用户第一次请求时，由于本地没有cookie，所以验证会失败，跳转到SSO系统去验证，而这个验证也会因为没有cookie而失败，所以要求用户进行登录。当登录完成过后，会跳转到系统A提前定义好的接口，并携带code，此时也会在用户本地存储SSO域的一个cookie。该接口会拿到code后去SSO系统换取ticket，拿到ticket后会向SSO系统验证这个ticket是否正确（防止有人伪造ticket而直接请求接口），如果正确则可以正常处理。</p><p>此时如果用户使用系统B，因为本地已经有SSO域的cookie 了，携带者去请求SSO就可以，然后可以直接下发凭证。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;单点登录&quot;&gt;&lt;a href=&quot;#单点登录&quot; class=&quot;headerlink&quot; title=&quot;单点登录&quot;&gt;&lt;/a&gt;单点登录&lt;/h1&gt;&lt;p&gt;一个真正的单点登录流程如下：该流程属于不同域下的单点登录。&lt;/p&gt;
-&lt;p&gt;&lt;img src=&quot;https://image-1</summary>
-      
-    
-    
-    
     
   </entry>
   
