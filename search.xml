@@ -4,6 +4,60 @@
   
     
     <entry>
+      <title>Redis的切片集群</title>
+      <link href="/2023/12/21/Redis%E7%9A%84%E5%88%87%E7%89%87%E9%9B%86%E7%BE%A4/"/>
+      <url>/2023/12/21/Redis%E7%9A%84%E5%88%87%E7%89%87%E9%9B%86%E7%BE%A4/</url>
+      
+        <content type="html"><![CDATA[<h2 id="切片集群"><a href="#切片集群" class="headerlink" title="切片集群"></a>切片集群</h2><p>切片集群，也叫分片集群，就是指启动多个 Redis 实例组成一个集群，然后按照一定的规则，把收到的数据划分成多份，每一份用一个实例来保存。</p><blockquote><p>这里需要注意的是，这多个实例对外其实是提供一个服务，因为每个实例只有所有数据的一部分，他们内部是5个，客户端在使用时其实只会感知到1个。</p></blockquote><p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231221112358729.png" alt="image-20231221112358729"></p><h3 id="如何保存更多数据"><a href="#如何保存更多数据" class="headerlink" title="如何保存更多数据"></a>如何保存更多数据</h3><p>Redis应对数据量增多有两种办法：</p><ul><li>纵向扩展（scale up）：指的是升级单个Redis实例的配置资源，包括增加容量，使用更高配CPU等。</li><li>横向扩展（scale out）：增加Redis实例的个数。</li></ul><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231221112825594.png" alt="image-20231221112825594" style="zoom:80%;" /><p>纵向扩展实现起来最简单，换一个机器就可以，但是会面临问题，即内存越大，单实例存储的数据就越多，在进行RDB持久化时，主线程fork子进程时就可能阻塞。如果不要求持久化，是一个不错的选择。</p><p>而针对于特别大的数据量，更好的方案是切片集群。</p><h3 id="数据切片和实例的对应分布"><a href="#数据切片和实例的对应分布" class="headerlink" title="数据切片和实例的对应分布"></a>数据切片和实例的对应分布</h3><p>数据和实例之间如何对应，与Redis Cluster有关。</p><p>具体来说，Redis Cluster 方案采用哈希槽（Hash Slot，接下来我会直接称之为 Slot），来处理数据和实例之间的映射关系。在 Redis Cluster 方案中，一个切片集群共有 16384 个哈希槽，这些哈希槽类似于数据分区，每个键值对都会根据它的 key，被映射到一个哈希槽中。</p><p>首先根据键值对的 key，按照CRC16 算法计算一个 16 bit 的值；然后，再用这个 16bit 值对 16384 取模，得到 0~16383 范围内的模数，每个模数代表一个相应编号的哈希槽。</p><p>在部署 Redis Cluster 方案时，可以使用 cluster create 命令创建集群，此时，Redis 会自动把这些槽平均分布在集群实例上。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231221154113991.png" alt="image-20231221154113991" style="zoom:80%;" /><p><strong>在手动分配哈希槽时，需要把 16384 个槽都分配完，否则 Redis 集群无法正常工作</strong>。</p><h3 id="客户端定位"><a href="#客户端定位" class="headerlink" title="客户端定位"></a>客户端定位</h3><p>在定位键值对数据时，它所处的哈希槽是可以通过计算得到的，这个计算可以在客户端发送请求时来执行。</p><p>客户端和集群建立连接后。实例就会把哈希槽的分配信息发送给客户端。但是刚创建的时候，每个实例只知道自己的哈希槽，不知道其他的哈希槽信息，这时<strong>Redis实例会把自己的哈希槽信息发送给它相连接的其他实例，来完成哈希槽信息分配的扩散</strong>。当实例之间相互连接后，每个实例就有所有哈希槽的映射关系了。</p><p>但是，哈希槽并不是一直不变的，最常见的有以下两种变化：</p><ul><li><p>在集群中，实例有新增或删除，Redis 需要重新分配哈希槽；</p></li><li><p>为了负载均衡，Redis 需要把哈希槽在所有实例上重新分布一遍。</p></li></ul><p>此时，Redis实例之间可以通过相互传递消息，获得最新的哈希槽分配。但是客户端是无从感知的。Redis Cluster提供了一种<strong>重定向机制</strong>。该机制，指的是客户端给一个实例发送读写操作时，这个实例上没有对应的数据，客户端需要给一个新的实例发送数据。</p><p>具体来说，如果请求的实例没有数据，那么该实例会给客户端返回拥有该数据的实例，然后客户端再次请求即可。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231221161342141.png" alt="image-20231221161342141" style="zoom:80%;" />]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> Redis </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Redis </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
+      <title>Redis的String</title>
+      <link href="/2023/12/15/Redis%E7%9A%84String/"/>
+      <url>/2023/12/15/Redis%E7%9A%84String/</url>
+      
+        <content type="html"><![CDATA[<p>假设，我们用String 类型存储一个键值对，他们的长度都是10位数，其实用两个8字节的Long类型表示就可以了。Long最大可以表示2^64次方，表示10为数字绝对没问题。</p><p>但是Redis中的String 类型表示这一对 key 和 val 却用了64字节，这是因为<strong>String类型实际上还需要额外的内存空间记录数据长度，空间使用，</strong>等信息。如果用String存储比较小的数据，额外的空间就显得比较大。</p><p>当我们保存64位有符号整数时，String类型会把它保存为一个8字节的Long类型整数，这种保存也叫 <strong>int 编码</strong>。如果保存的数据中包含字符串时，String 类型就会用 <strong>简单动态字符串（SDS）</strong>来保存。其结构如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231222104741805.png" alt="image-20231222104741805" style="zoom:67%;" /><ul><li>buf：字节数组，保存实际的数据，为了表示数据结束，会在数组后加一个”\0”，这就会额外占用1个字节的开销。</li><li>len：占4个字节，表示buf已使用的长度。</li><li>alloc：占4个字节，表示buf的实际分配长度，一般大于len。</li></ul><p>对于String，除了SDS的额外开销，还有一个来自于<strong>RedisObjec</strong>t结构体的开销。</p><p>Redis 的数据类型有很多，而且，不同数据类型都有些相同的元数据要记录（比如最后一次访问的时间、被引用的次数等），所以，Redis 会用一个 RedisObject 结构体来统一记录这些元数据，同时指向实际数据。</p><p>一个 RedisObject 包含了 8 字节的元数据和一个 8 字节指针，这个指针再进一步指向具体数据类型的实际数据所在：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231222105622386.png" alt="image-20231222105622386" style="zoom:67%;" /><p>为了节省空间，Redis对Long类型和SDS的内存布局做了专门的设计。</p><p>一方面，当保存的是Long类型整数时，RedisObject中的指针就直接赋值为整数数据，不再使用额外的指针指向整数，节省了指针的空间开销。</p><p>另一方面，当保存的是字符串数据，并且字符串小于等于44时，RedisObject 中的元数据、指针和 SDS 是一块连续的内存区域，这样就可以避免内存碎片，这种布局被称为<strong>embstr编码</strong>。当字符串大于44字节时，Redis就不再把SDS和RedisObject布局在一起，而是给SDS分配单独空间，并用指针指向SDS结构，这种被称为<strong>raw编码</strong>。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231222111057985.png" alt="image-20231222111057985" style="zoom: 80%;" /><p>至此，十位数的key和十位数的val是Long类型整数，可以直接用int编码的RedisObject保存。每个int编码的RedisObject元数据部分占8字节，指针部分被直接赋值为8字节整数。此时，每个ID会使用16字节，加起来一共是32字节。与64字节还差32字节。</p><p>其实，<strong>Redis会使用一个全局哈希表保存所有键值对，哈希表每一项是一个dictEntry的结构体，用来指向一个键值对</strong>，三个指针一共24字节，如下图所示：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231222111723672.png" alt="image-20231222111723672" style="zoom:80%;" /><p>但是这样也只有24字节，还差了8字节。这里涉及到Redis使用的内存分配库<code>jemalloc</code>，该函数在分配内存时，会根据我们申请的字节数N，找一个比N大，但是最接近N的2的幂次数作为分配的空间，这样可以减少频繁分配次数。</p><p><strong>如何节省内存？</strong></p><p>Redis 有一种底层数据结构，叫压缩列表（ziplist）。压缩列表表头有三个字段，zlbytes、zltail 和 zllen，分别表示列表长度，列表尾的偏移量以及列表中的entry个数。压缩列表尾还有一个 zlend，表示列表结束。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231222112339962.png" alt="image-20231222112339962" style="zoom:80%;" /><p>每个entry又有以下及部分：</p><ul><li><strong>prev_len</strong>，表示前一个 entry 的长度。prev_len 有两种取值情况：1 字节或 5 字节。取值 1 字节时，表示上一个 entry 的长度小于 254 字节，取5时表示大于255字节。</li><li><strong>len</strong>：表示自身长度，4字节。</li><li><strong>encoding</strong>：表示编码方式，1字节。</li><li><strong>content</strong>：保存实际数据。</li></ul><p>这些 entry 会挨个儿放置在内存中，不需要再用额外的指针进行连接，这样就可以节省指针所占用的空间。</p><p>Redis 基于压缩列表实现了 List、Hash 和 Sorted Set 这样的集合类型，这样做的最大好处就是节省了 dictEntry 的开销。当你用 String 类型时，一个键值对就有一个 dictEntry，要用 32 字节空间。但采用集合类型时，一个 key 就对应一个集合的数据，能保存的数据多了很多，但也只用了一个 dictEntry，这样就节省了内存。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> 学习笔记 </category>
+          
+          <category> Redis </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> Redis </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>如何保证消息不丢失</title>
       <link href="/2023/12/11/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1/"/>
       <url>/2023/12/11/%E5%A6%82%E4%BD%95%E4%BF%9D%E8%AF%81%E6%B6%88%E6%81%AF%E4%B8%8D%E4%B8%A2%E5%A4%B1/</url>
