@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2024-02-29T04:26:42.167Z</updated>
+  <updated>2024-03-09T10:43:24.532Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>MySQL的组提交</title>
+    <link href="http://example.com/2024/03/08/MySQL%E7%9A%84%E7%BB%84%E6%8F%90%E4%BA%A4/"/>
+    <id>http://example.com/2024/03/08/MySQL%E7%9A%84%E7%BB%84%E6%8F%90%E4%BA%A4/</id>
+    <published>2024-03-08T03:32:21.000Z</published>
+    <updated>2024-03-09T10:43:24.532Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="为什么要组提交"><a href="#为什么要组提交" class="headerlink" title="为什么要组提交"></a>为什么要组提交</h1><p>因为MySQL为了保证redo log 和binlog的数据一致性，而采用了两阶段提交。即redo log 会先处理prepare状态，然后写binlog，当binlog写完之后，才去修改事务的最终状态为commit状态。</p><p>如果配置了双1，那么就会在prepare阶段，将redo log写入磁盘，而binlog也要刷盘，之后才可以提交事务，即一次事务要刷两次盘，影响性能。</p><p>并发事务的影响则更为明显，因为为了保证事务的顺序，需要加锁去保证，即一个事务完全写完之后，才能去写第二个。</p><p>因此，出现了组提交的优化。</p><h1 id="组提交"><a href="#组提交" class="headerlink" title="组提交"></a>组提交</h1><blockquote><p> 以下的分析都是针对于双1配置。</p></blockquote><p>在组提交中，prepare阶段不发生太多的变化，只是写完redo log 后，不再执行刷盘。</p><p>然后将commit阶段做了流水线处理，分为了三步，一共有3个队列，每个队列分别加锁：</p><ul><li>第一个队列，也就是flush stage：将存的一批事务，按其顺序将其redo log 刷盘，然后写binlog。但是这里的binlog只是写cache（缓存），不刷盘。</li><li>第二个队列，sync stage：将队列中积攒的不同事务的binlog 刷盘。</li><li>第三个队列，commit stage：将上述的队列按照顺序commit。</li></ul><p>通过这样优化，就可以将之前的多个事务，每个事务需要两次I&#x2F;O，且多个事务间一个执行完才能执行另一个，改为了多个事务一次I&#x2F;O操作，且锁的粒度更低，事务间并发度更高。</p><h1 id="注意的点"><a href="#注意的点" class="headerlink" title="注意的点"></a>注意的点</h1><p>首先，在非组提交时，两阶段协议中，redo log处于prepare阶段时已经刷盘，但此时事务还没有commit。而binlog 需要刷完盘之后，才可以让事务提交。</p><p>提交的事务就无法回滚，因为可能会覆盖其他事务的提交。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;为什么要组提交&quot;&gt;&lt;a href=&quot;#为什么要组提交&quot; class=&quot;headerlink&quot; title=&quot;为什么要组提交&quot;&gt;&lt;/a&gt;为什么要组提交&lt;/h1&gt;&lt;p&gt;因为MySQL为了保证redo log 和binlog的数据一致性，而采用了两阶段提交。即redo </summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
+    
+    
+    <category term="MySQL45讲" scheme="http://example.com/tags/MySQL45%E8%AE%B2/"/>
+    
+  </entry>
   
   <entry>
     <title>Condition实现原理</title>
@@ -73,6 +99,33 @@
   </entry>
   
   <entry>
+    <title>Redis6.0新特性之多线程</title>
+    <link href="http://example.com/2024/01/18/Redis6-0%E6%96%B0%E7%89%B9%E6%80%A7%E4%B9%8B%E5%A4%9A%E7%BA%BF%E7%A8%8B/"/>
+    <id>http://example.com/2024/01/18/Redis6-0%E6%96%B0%E7%89%B9%E6%80%A7%E4%B9%8B%E5%A4%9A%E7%BA%BF%E7%A8%8B/</id>
+    <published>2024-01-18T02:15:33.000Z</published>
+    <updated>2024-03-05T02:58:17.127Z</updated>
+    
+    <content type="html"><![CDATA[<h3 id="多线程"><a href="#多线程" class="headerlink" title="多线程"></a>多线程</h3><blockquote><p><strong>需要注意的是，Redis 多 IO 线程模型只用来处理网络读写请求，对于 Redis 的读写命令，依然是单线程处理</strong>。</p></blockquote><p>要采用多线程原因：随着硬件性能提升，Redis 的性能瓶颈可能出现网络 IO 的读写，也就是：<strong>单个线程处理网络读写的速度跟不上底层网络硬件的速度</strong>。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20240114100625559.png" alt="image-20240114100625559" style="zoom:80%;" /><p>多线程下处理请求流程如下：</p><p>一、<strong>服务端和客户端建立 Socket 连接，并分配处理线程</strong></p><p>首先，<strong>主线程负责接收建立连接请求</strong>。当有客户端请求和实例建立 Socket 连接时，主线程会创建和客户端的连接，并把 Socket 放入全局等待队列中。紧接着，主线程通过轮询方法把 Socket 连接分配给 IO 线程。</p><p>二、<strong>IO 线程读取并解析请求</strong></p><p>主线程一旦把 Socket 分配给 IO 线程，就会进入阻塞状态，等待 IO 线程完成客户端请求读取和解析。因为有多个 IO 线程（<strong>这里就体现了多线程</strong>）在并行处理，所以，这个过程很快就可以完成。</p><p>三、<strong>主线程执行请求操作</strong></p><p>等到 IO 线程解析完请求，主线程还是会以单线程的方式执行这些命令操作。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/1460000040376115" alt="Redis多线程与IO线程" style="zoom:67%;" />]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h3 id=&quot;多线程&quot;&gt;&lt;a href=&quot;#多线程&quot; class=&quot;headerlink&quot; title=&quot;多线程&quot;&gt;&lt;/a&gt;多线程&lt;/h3&gt;&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;需要注意的是，Redis 多 IO 线程模型只用来处理网络读写请求，对于 Redis 的读</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Redis" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Redis/"/>
+    
+    
+    <category term="Redis" scheme="http://example.com/tags/Redis/"/>
+    
+  </entry>
+  
+  <entry>
     <title>Synchronized锁升级的过程</title>
     <link href="http://example.com/2024/01/14/Synchronized%E9%94%81%E5%8D%87%E7%BA%A7%E7%9A%84%E8%BF%87%E7%A8%8B/"/>
     <id>http://example.com/2024/01/14/Synchronized%E9%94%81%E5%8D%87%E7%BA%A7%E7%9A%84%E8%BF%87%E7%A8%8B/</id>
@@ -97,33 +150,6 @@
     
     
     <category term="Jvm" scheme="http://example.com/tags/Jvm/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>Redis6.0新特性之多线程</title>
-    <link href="http://example.com/2024/01/14/Redis6-0%E6%96%B0%E7%89%B9%E6%80%A7%E4%B9%8B%E5%A4%9A%E7%BA%BF%E7%A8%8B/"/>
-    <id>http://example.com/2024/01/14/Redis6-0%E6%96%B0%E7%89%B9%E6%80%A7%E4%B9%8B%E5%A4%9A%E7%BA%BF%E7%A8%8B/</id>
-    <published>2024-01-14T02:15:33.000Z</published>
-    <updated>2024-01-14T02:19:43.280Z</updated>
-    
-    <content type="html"><![CDATA[<h3 id="多线程"><a href="#多线程" class="headerlink" title="多线程"></a>多线程</h3><blockquote><p><strong>需要注意的是，Redis 多 IO 线程模型只用来处理网络读写请求，对于 Redis 的读写命令，依然是单线程处理</strong>。</p></blockquote><p>要采用多线程原因：随着硬件性能提升，Redis 的性能瓶颈可能出现网络 IO 的读写，也就是：<strong>单个线程处理网络读写的速度跟不上底层网络硬件的速度</strong>。</p><img src="C:\Users\郭俊豪\AppData\Roaming\Typora\typora-user-images\image-20240114100625559.png" alt="image-20240114100625559" style="zoom:80%;" /><p>多线程下处理请求流程如下：</p><p>一、<strong>服务端和客户端建立 Socket 连接，并分配处理线程</strong></p><p>首先，<strong>主线程负责接收建立连接请求</strong>。当有客户端请求和实例建立 Socket 连接时，主线程会创建和客户端的连接，并把 Socket 放入全局等待队列中。紧接着，主线程通过轮询方法把 Socket 连接分配给 IO 线程。</p><p>二、<strong>IO 线程读取并解析请求</strong></p><p>主线程一旦把 Socket 分配给 IO 线程，就会进入阻塞状态，等待 IO 线程完成客户端请求读取和解析。因为有多个 IO 线程（<strong>这里就体现了多线程</strong>）在并行处理，所以，这个过程很快就可以完成。</p><p>三、<strong>主线程执行请求操作</strong></p><p>等到 IO 线程解析完请求，主线程还是会以单线程的方式执行这些命令操作。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/1460000040376115" alt="Redis多线程与IO线程" style="zoom:67%;" />]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h3 id=&quot;多线程&quot;&gt;&lt;a href=&quot;#多线程&quot; class=&quot;headerlink&quot; title=&quot;多线程&quot;&gt;&lt;/a&gt;多线程&lt;/h3&gt;&lt;blockquote&gt;
-&lt;p&gt;&lt;strong&gt;需要注意的是，Redis 多 IO 线程模型只用来处理网络读写请求，对于 Redis 的读</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="Redis" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Redis/"/>
-    
-    
-    <category term="Redis" scheme="http://example.com/tags/Redis/"/>
     
   </entry>
   
@@ -525,35 +551,6 @@
     
     
     <category term="文件系统" scheme="http://example.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>索引下推</title>
-    <link href="http://example.com/2023/11/07/%E7%B4%A2%E5%BC%95%E4%B8%8B%E6%8E%A8/"/>
-    <id>http://example.com/2023/11/07/%E7%B4%A2%E5%BC%95%E4%B8%8B%E6%8E%A8/</id>
-    <published>2023-11-07T01:27:54.000Z</published>
-    <updated>2023-11-07T01:28:17.394Z</updated>
-    
-    <content type="html"><![CDATA[<h1 id="索引下推"><a href="#索引下推" class="headerlink" title="索引下推"></a>索引下推</h1><p>首先，MySQL的结构图如下：</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231107091604104.png" alt="image-20231107091604104" style="zoom:80%;" /><p>其中，Server层所做的事情，就是负责SQL的语法解析，生成执行计划，并调用存储引擎层去执行数据的存储核检索，<strong>判断引擎返回的数据是否满足where条件</strong>。<code>索引下推</code>就是指将上层（Server层）负责的事情，交给了下层（引擎层）去处理。具体的查询区别如下：</p><p>在没有使用索引下推时：</p><ul><li>存储引擎读取索引记录；</li><li>根据索引中的主键值，定位并读取完整的行记录；</li><li>存储引擎把记录交给<code>Server</code>层去检测该记录是否满足<code>WHERE</code>条件。</li></ul><p>而使用了索引下推的查询过程：</p><ul><li>存储引擎读取索引记录（不是完整的行记录）；</li><li>判断<code>WHERE</code>条件部分能否用<strong>索引中的列来做检查</strong>，条件不满足，则处理下一行索引记录；</li><li>条件满足，使用索引中的主键去定位并读取完整的行记录（就是所谓的回表）；</li><li>存储引擎把记录交给<code>Server</code>层，<code>Server</code>层检测该记录是否满足<code>WHERE</code>条件的<strong>其余部分</strong>。</li></ul><p>这里的优化点在于，可以提前根据索引中的数据过滤掉一部分不满足的值，这一部分数据不需要回表查询，也不需要交由Server层去处理。</p><p>但是要注意，这个提前判断只能判断索引中存在的值，比如说where条件中有a , b , c 三个字段，但是这个索引（<strong>只能是二级索引，也叫辅助索引</strong>）是建立在a 和 b上面的，那么就只能提前判断a 和 b 是否满足，去除这两个不满足的，然后回表查询数据，返回给Server 然后去判断 c 是否满足条件。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;h1 id=&quot;索引下推&quot;&gt;&lt;a href=&quot;#索引下推&quot; class=&quot;headerlink&quot; title=&quot;索引下推&quot;&gt;&lt;/a&gt;索引下推&lt;/h1&gt;&lt;p&gt;首先，MySQL的结构图如下：&lt;/p&gt;
-&lt;img src=&quot;https://image-1314238346.cos.ap-</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="MySQL" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/"/>
-    
-    <category term="索引" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/MySQL/%E7%B4%A2%E5%BC%95/"/>
-    
-    
-    <category term="索引" scheme="http://example.com/tags/%E7%B4%A2%E5%BC%95/"/>
     
   </entry>
   
