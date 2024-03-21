@@ -6,7 +6,7 @@
   <link href="http://example.com/atom.xml" rel="self"/>
   
   <link href="http://example.com/"/>
-  <updated>2024-03-09T10:43:24.532Z</updated>
+  <updated>2024-03-20T07:23:03.026Z</updated>
   <id>http://example.com/</id>
   
   <author>
@@ -15,6 +15,32 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>Java中的NIO与I/O多路复用</title>
+    <link href="http://example.com/2024/03/20/Java%E4%B8%AD%E7%9A%84NIO%E4%B8%8EI-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/"/>
+    <id>http://example.com/2024/03/20/Java%E4%B8%AD%E7%9A%84NIO%E4%B8%8EI-O%E5%A4%9A%E8%B7%AF%E5%A4%8D%E7%94%A8/</id>
+    <published>2024-03-20T07:08:17.000Z</published>
+    <updated>2024-03-20T07:23:03.026Z</updated>
+    
+    <content type="html"><![CDATA[<h1 id="Java的NIO"><a href="#Java的NIO" class="headerlink" title="Java的NIO"></a>Java的NIO</h1><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20240320151336501.png" alt="image-20240320151336501" style="zoom:67%;" /><p>它的大致模型如上图所示，采用了I&#x2F;O多路复用的Reactor模型。</p><h2 id="单线程模型"><a href="#单线程模型" class="headerlink" title="单线程模型"></a>单线程模型</h2><p>上图展示的是单线程模型，也就是说Reactor这里是单线程的，每当有一个事件过来，只有一个线程可以处理该事件，当有下一个事件需要处理时，必须等待上一个事件结束后，才能够被处理。这里与Redis 的模型一致。Redis是采用了一个队列，存储所有的待处理命令，然后有一个线程依次从队列中取出执行。</p><h2 id="多线程模型"><a href="#多线程模型" class="headerlink" title="多线程模型"></a>多线程模型</h2><p>为了提高处理效率，也有Reactor多线程模型，即Reactor这里变为多线程。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20240320152214537.png" alt="image-20240320152214537" style="zoom:67%;" /><p>由上图可以看到，当有一个事件变的待处理时，不再是原来的一个线程，而是从线程池中选择一个线程去处理对应的事件，提高了处理效率。</p>]]></content>
+    
+    
+      
+      
+    <summary type="html">&lt;h1 id=&quot;Java的NIO&quot;&gt;&lt;a href=&quot;#Java的NIO&quot; class=&quot;headerlink&quot; title=&quot;Java的NIO&quot;&gt;&lt;/a&gt;Java的NIO&lt;/h1&gt;&lt;img src=&quot;https://image-1314238346.cos.ap-chongqi</summary>
+      
+    
+    
+    
+    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+    
+    <category term="Java" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/Java/"/>
+    
+    
+    <category term="I/O" scheme="http://example.com/tags/I-O/"/>
+    
+  </entry>
   
   <entry>
     <title>MySQL的组提交</title>
@@ -524,33 +550,6 @@
     
     
     <category term="并发" scheme="http://example.com/tags/%E5%B9%B6%E5%8F%91/"/>
-    
-  </entry>
-  
-  <entry>
-    <title>文件系统</title>
-    <link href="http://example.com/2023/11/10/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
-    <id>http://example.com/2023/11/10/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/</id>
-    <published>2023-11-10T02:04:48.000Z</published>
-    <updated>2023-11-21T07:04:10.049Z</updated>
-    
-    <content type="html"><![CDATA[<p>文件系统将硬盘空间以块进行划分，每个文件占用其中的几个块，然后再通过一个<strong>文件控制块 FCB</strong> 记录每个文件占据的硬盘数据块。</p><img src="https://image-1314238346.cos.ap-chongqing.myqcloud.com/image-20231115093943594.png" alt="image-20231115093943594" style="zoom:67%;" /><p>在linux中，这个文件控制块就是inode，想要访问文件，就要先获取这个inode，然后在inode中查找文件数据块的索引表，根据索引中记录的硬盘地址信息来访问硬盘，读写数据。</p><p>inode的结构是固定的，只有15个索引，前12个索引直接指向数据块地址，第13个索引记录索引地址，即不直接指向数据块，而是指向一张索引表，每张索引表可以记录256个索引，访问这里的数据需要多一次查找。第 14 个索引记录二级索引地址，第 15 个索引记录三级索引地址。</p><h1 id="RAID"><a href="#RAID" class="headerlink" title="RAID"></a>RAID</h1><p>RAID，即独立硬盘冗余阵列，将多块硬盘通过硬件 RAID 卡或者软件 RAID 的方案管理起 来，使其共同对外提供服务。</p><p>RAID 的核心思路其实是利用文件系统<strong>将数据写入硬盘中不同数据块的特性</strong>，将多块硬盘上的空闲空间看做一个整体，进行数据写入，也就是说，一个文件的 多个数据块可能写入多个硬盘。</p><p>RAID常用的方式有5种，分别是 RAID 0、RAID 1、RAID 10、 RAID 5 和 RAID 6。</p><h2 id="RAID-0"><a href="#RAID-0" class="headerlink" title="RAID 0"></a>RAID 0</h2><p>该方式是将一个文件的数据分成N块，然后同时写入N个硬盘，这样单个文件可以存储在N个硬盘上，文件容量可以扩大N倍，理论上读写速度也扩大N倍。但是有一个问题，这N个磁盘任何一个损坏，就会导致文件的不完整。文件可用性降低。</p><h2 id="RAID-1"><a href="#RAID-1" class="headerlink" title="RAID 1"></a>RAID 1</h2><p>利用两块硬盘进行数据备份，文件同时向两块硬盘写入，这样任何一块硬盘损坏都不会出现文件数据丢失的情况，文件的可用性得到提升。</p><h2 id="RAID-10"><a href="#RAID-10" class="headerlink" title="RAID 10"></a>RAID 10</h2><p>将多块硬盘进行两两分组，文件数据分成 N 片，每个分组 写入一片，每个分组内的两块硬盘再进行数据备份。这样既扩大了文件的容量，又提高了文件 的可用性。但是这种方式硬盘的利用率只有 50%，有一半的硬盘被用来做数据备份。</p><h2 id="RAID-5"><a href="#RAID-5" class="headerlink" title="RAID 5"></a>RAID 5</h2><p>RAID 5 针对 RAID 10 硬盘浪费的情况，将数据分成 N-1 片，再利用这 N-1 片数据进行位运算，计算一片校验数据，然后将这 N 片数据写入 N 个硬盘。这样任何一块硬盘损坏，都可以 利用校验片的数据和其他数据进行计算得到这片丢失的数据，而硬盘的利用率也提高到( N - 1&#x2F;N)。</p><h1 id="分布式文件系统"><a href="#分布式文件系统" class="headerlink" title="分布式文件系统"></a>分布式文件系统</h1><p>文件的inode，是以索引的方式记录每个文件所在的磁盘位置，如果这些索引记录的不是在本地的磁盘位置，而是记录一个其他服务器的地址，那么查询到的数据块就不止是本地磁盘，还可以是其他服务器的磁盘。这样磁盘的容量就是整个分布式集群的大小，读写速度也会加快。</p><p>这样的文件系统就是分布式文件系统，将文件分成很多片，同时向多台服务器写入，然后做好备份，解决单一服务器崩溃导致文件缺失的情况。</p>]]></content>
-    
-    
-      
-      
-    <summary type="html">&lt;p&gt;文件系统将硬盘空间以块进行划分，每个文件占用其中的几个块，然后再通过一个&lt;strong&gt;文件控制块 FCB&lt;/strong&gt; 记录每个文件占据的硬盘数据块。&lt;/p&gt;
-&lt;img src=&quot;https://image-1314238346.cos.ap-chongqing.my</summary>
-      
-    
-    
-    
-    <category term="学习笔记" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
-    
-    <category term="操作系统" scheme="http://example.com/categories/%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/%E6%93%8D%E4%BD%9C%E7%B3%BB%E7%BB%9F/"/>
-    
-    
-    <category term="文件系统" scheme="http://example.com/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/"/>
     
   </entry>
   
